@@ -14,10 +14,86 @@
         .power-not-proved { background-color: #FFA500; padding: 2px 4px; }
         .toggle-arrow { cursor: pointer; user-select: none; display: inline-block; width: 20px; }
         .prime-index-hcns { display: none; margin-top: 5px; padding-left: 25px; }
+        .collapsible-content { display: none; margin-top: 10px; }
     </style>
 </head>
 <body>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
     <h1>Highly Composite Numbers Explorer</h1>
+    
+    <div th:if="${matrix.lastExecutionTimeMs > 0}" style="padding: 10px; background-color: #e8f5e9; margin-bottom: 10px;">
+        <strong>Last execution:</strong> Found <span th:text="${matrix.provedHcnList.size()}"></span> HCNs in <span th:text="${matrix.lastExecutionTimeMs}"></span> ms
+    </div>
+    
+    <div th:if="${enableGraph and matrix.progressData.size() > 0}" style="margin-bottom: 20px;">
+        <canvas id="progressChart" width="1600" height="600"></canvas>
+        <script th:inline="javascript">
+            const progressData = [[${matrix.progressData}]];
+            const chartData = progressData.map(d => ({x: d[0], y: d[1]}));
+            const extensionEvents = [[${matrix.extensionEvents}]];
+            
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'HCNs Found',
+                        data: chartData,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    scales: {
+                        x: { 
+                            type: 'linear',
+                            title: { display: true, text: 'Time (ms)' }
+                        },
+                        y: { 
+                            title: { display: true, text: 'HCN Count' }
+                        }
+                    },
+                    plugins: {
+                        annotation: {
+                            annotations: extensionEvents.map(e => ({
+                                type: 'line',
+                                xMin: e.time,
+                                xMax: e.time,
+                                borderColor: e.type === 'nextPrime' ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 0, 255, 0.5)',
+                                borderWidth: 2,
+                                label: {
+                                    display: true,
+                                    content: e.label,
+                                    position: 'start'
+                                }
+                            }))
+                        },
+                        zoom: {
+                            zoom: {
+                                wheel: { enabled: true },
+                                pinch: { enabled: true },
+                                mode: 'xy'
+                            },
+                            pan: {
+                                enabled: true,
+                                mode: 'xy'
+                            }
+                        }
+                    }
+                }
+            });
+        </script>
+        <div th:if="${!matrix.extensionEvents.isEmpty()}" style="margin-top: 10px; font-size: 12px;">
+            <strong>Extension Events:</strong>
+            <span th:each="event, iterStat : ${matrix.extensionEvents}">
+                <span th:style="'color: ' + (${event.type} == 'nextPrime' ? 'red' : 'blue')" th:text="${event.label} + ' (' + ${event.time} + 'ms)'">
+                </span><span th:if="!${iterStat.last}">, </span>
+            </span>
+        </div>
+    </div>
     
     <div class="section">
         <h2>Configuration</h2>
@@ -36,12 +112,26 @@
             <label style="margin-left: 20px;">
                 <input type="checkbox" name="showFactor" th:checked="${showFactor}" onchange="this.form.submit()"> HCN Divisor Count
             </label>
+            <br>
+            <label style="margin-top: 10px; display: inline-block;">
+                <input type="checkbox" name="enableGraph" th:checked="${enableGraph}" onchange="this.form.submit()"> Enable Progress Graph
+            </label>
+            <label style="margin-left: 20px;">
+                Sample every <input type="number" name="sampleInterval" th:value="${sampleInterval}" min="1" style="width: 60px;" onchange="this.form.submit()"> HCNs
+            </label>
+            <br>
+            <label style="margin-top: 10px; display: inline-block;">
+                <input type="checkbox" name="trackNextPrime" th:checked="${trackNextPrime}" onchange="this.form.submit()"> Track Next Prime
+            </label>
+            <label style="margin-left: 20px;">
+                <input type="checkbox" name="trackPowerExtension" th:checked="${trackPowerExtension}" onchange="this.form.submit()"> Track Power Extension
+            </label>
         </form>
     </div>
     
     <div>
         <form method="post" action="/proveHcns" style="display: inline;">
-            <label>Determine next <input type="number" name="count" value="100" min="1" style="width: 80px;"> HCNs</label>
+            <label>Determine next <input type="number" name="count" value="1000" min="1" style="width: 80px;"> HCNs</label>
             <button type="submit">Start Detection</button>
         </form>
         <form method="post" action="/reset" style="display: inline;">
@@ -50,7 +140,11 @@
     </div>
     
     <div class="section">
-        <h2>Matrix</h2>
+        <h2>
+            <span class="toggle-arrow" onclick="toggleSection('matrix-content')">▶</span>
+            Matrix
+        </h2>
+        <div id="matrix-content" class="collapsible-content">
         <table class="matrix-table">
             <tr>
                 <th>Prime Index</th>
@@ -79,9 +173,22 @@
                 </div>
             </div>
         </div>
+        </div>
     </div>
     
     <script>
+        function toggleSection(id) {
+            const content = document.getElementById(id);
+            const arrow = event.target;
+            if (content.style.display === 'block') {
+                content.style.display = 'none';
+                arrow.textContent = '▶';
+            } else {
+                content.style.display = 'block';
+                arrow.textContent = '▼';
+            }
+        }
+        
         function toggleList(index) {
             const list = document.getElementById('hcn-list-' + index);
             const arrow = event.target;
@@ -96,22 +203,32 @@
     </script>
     
     <div class="section">
-        <h2>HCN List (Candidates)</h2>
+        <h2>
+            <span class="toggle-arrow" onclick="toggleSection('candidates-content')">▶</span>
+            HCN List (Candidates) - <span th:text="${matrix.hcnList.size()}"></span> items
+        </h2>
+        <div id="candidates-content" class="collapsible-content">
         <div class="hcn-list">
             <div th:if="${matrix.hcnList.isEmpty()}">No candidates yet</div>
             <div th:each="hcn : ${matrix.hcnList}">
                 <span th:text="${displayFormat == 'short' ? hcn.toShortString(showValue, showFactor) : hcn.toString(showValue, showFactor)}"></span>
             </div>
         </div>
+        </div>
     </div>
     
     <div class="section">
-        <h2>Proved List</h2>
+        <h2>
+            <span class="toggle-arrow" onclick="toggleSection('proved-content')">▶</span>
+            Proved List - <span th:text="${matrix.provedHcnList.size()}"></span> items
+        </h2>
+        <div id="proved-content" class="collapsible-content">
         <div class="hcn-list">
             <div th:if="${matrix.provedHcnList.isEmpty()}">No proved HCNs yet</div>
             <div th:each="hcn : ${matrix.provedHcnList}">
                 <span th:text="${displayFormat == 'short' ? hcn.toShortString(showValue, showFactor) : hcn.toString(showValue, showFactor)}"></span>
             </div>
+        </div>
         </div>
     </div>
 </body>

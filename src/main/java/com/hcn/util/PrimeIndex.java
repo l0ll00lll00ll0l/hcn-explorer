@@ -81,7 +81,6 @@ public class PrimeIndex {
     public void removeInactivePowers(List<PrimeIndex> allPrimeIndexes) {
         while (!powers.isEmpty() && powers.get(powers.firstKey()).getActiveCount() == 0) {
             PrimeIndexPower removed = powers.remove(powers.firstKey());
-            System.out.println("Removed inactive power: p" + index + "^" + removed.getPower());
             
             for (PrimeIndex primeIndex : allPrimeIndexes) {
                 primeIndex.getHcnSet().removeIf(hcn -> hcn.getPowers().contains(removed));
