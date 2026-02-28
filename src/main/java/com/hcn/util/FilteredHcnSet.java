@@ -6,9 +6,49 @@ import java.util.TreeSet;
 
 public abstract class FilteredHcnSet extends TreeSet<Hcn> {
     private static final Hcn.DivisorComparator DIVISOR_COMPARATOR = new Hcn.DivisorComparator();
+    private Hcn referenceHcn = null;
+    
+    private void updateReferenceHcn() {
+        if (isEmpty()) {
+            referenceHcn = null;
+            return;
+        }
+        
+        Hcn bestCandidate = null;
+        int bestScore = -1;
+        
+        for (Hcn hcn : this) {
+            int score = 0;
+            for (PrimeIndexPower power : hcn.getPowers()) {
+                score += power.getActiveCount();
+            }
+            if (score > bestScore) {
+                bestScore = score;
+                bestCandidate = hcn;
+            }
+        }
+        
+        referenceHcn = bestCandidate;
+        referenceHcn.setReferenceValue(1.0);
+        referenceHcn.setReferenceFactor(1.0);
+        
+        for (Hcn hcn : this) {
+            if (hcn != referenceHcn) {
+                hcn.calculateReferences(referenceHcn);
+            }
+        }
+    }
     
     @Override
     public boolean add(Hcn hcn) {
+        if (referenceHcn == null) {
+            referenceHcn = hcn;
+            hcn.setReferenceValue(1.0);
+            hcn.setReferenceFactor(1.0);
+        } else {
+            hcn.calculateReferences(referenceHcn);
+        }
+        
         Hcn lower = lower(hcn);
         
         if (lower != null && DIVISOR_COMPARATOR.compare(lower, hcn) >= 0) {
@@ -28,8 +68,12 @@ public abstract class FilteredHcnSet extends TreeSet<Hcn> {
             }
             
             for (Hcn removed : toRemove) {
+                boolean wasReference = (removed == referenceHcn);
                 super.remove(removed);
                 onRemove(removed);
+                if (wasReference) {
+                    updateReferenceHcn();
+                }
             }
         }
         

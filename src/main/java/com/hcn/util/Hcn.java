@@ -7,9 +7,27 @@ import java.util.stream.Collectors;
 
 public class Hcn implements Comparable<Hcn> {
     private List<PrimeIndexPower> powers;
+    private double referenceValue = 1.0;
+    private double referenceFactor = 1.0;
     
     public Hcn() {
         this.powers = new ArrayList<>();
+    }
+    
+    public double getReferenceValue() {
+        return referenceValue;
+    }
+    
+    public void setReferenceValue(double referenceValue) {
+        this.referenceValue = referenceValue;
+    }
+    
+    public double getReferenceFactor() {
+        return referenceFactor;
+    }
+    
+    public void setReferenceFactor(double referenceFactor) {
+        this.referenceFactor = referenceFactor;
     }
     
     public List<PrimeIndexPower> getPowers() {
@@ -22,26 +40,7 @@ public class Hcn implements Comparable<Hcn> {
     
     @Override
     public int compareTo(Hcn other) {
-        int maxIndex = Math.max(
-            this.powers.isEmpty() ? -1 : this.powers.get(this.powers.size() - 1).getPrimeIndex(),
-            other.powers.isEmpty() ? -1 : other.powers.get(other.powers.size() - 1).getPrimeIndex()
-        );
-        
-        double ratio = 1.0;
-        
-        for (int i = 0; i <= maxIndex; i++) {
-            int thisPower = getPowerAtIndex(i);
-            int otherPower = other.getPowerAtIndex(i);
-            
-            if (thisPower != otherPower) {
-                int prime = PrimeCenter.getPrime(i);
-                ratio *= Math.pow(prime, thisPower - otherPower);
-            }
-        }
-        
-        if (ratio > 1.0) return 1;
-        if (ratio < 1.0) return -1;
-        return 0;
+        return Double.compare(this.referenceValue, other.referenceValue);
     }
     
     private int getPowerAtIndex(int primeIndex) {
@@ -139,28 +138,34 @@ public class Hcn implements Comparable<Hcn> {
         this.powers.stream().forEach(p -> p.setProved(true));
     }
     
+    public void calculateReferences(Hcn referenceHcn) {
+        int maxIndex = Math.max(
+            this.powers.isEmpty() ? -1 : this.powers.get(this.powers.size() - 1).getPrimeIndex(),
+            referenceHcn.powers.isEmpty() ? -1 : referenceHcn.powers.get(referenceHcn.powers.size() - 1).getPrimeIndex()
+        );
+        
+        double valueRatio = 1.0;
+        double factorRatio = 1.0;
+        
+        for (int i = 0; i <= maxIndex; i++) {
+            int thisPower = getPowerAtIndex(i);
+            int refPower = referenceHcn.getPowerAtIndex(i);
+            
+            if (thisPower != refPower) {
+                int prime = PrimeCenter.getPrime(i);
+                valueRatio *= Math.pow(prime, thisPower - refPower);
+                factorRatio *= (double)(thisPower + 1) / (refPower + 1);
+            }
+        }
+        
+        this.referenceValue = valueRatio;
+        this.referenceFactor = factorRatio;
+    }
+    
     public static class DivisorComparator implements java.util.Comparator<Hcn> {
         @Override
         public int compare(Hcn hcn1, Hcn hcn2) {
-            int maxIndex = Math.max(
-                hcn1.powers.isEmpty() ? -1 : hcn1.powers.get(hcn1.powers.size() - 1).getPrimeIndex(),
-                hcn2.powers.isEmpty() ? -1 : hcn2.powers.get(hcn2.powers.size() - 1).getPrimeIndex()
-            );
-            
-            double ratio = 1.0;
-            
-            for (int i = 0; i <= maxIndex; i++) {
-                int power1 = hcn1.getPowerAtIndex(i);
-                int power2 = hcn2.getPowerAtIndex(i);
-                
-                if (power1 != power2) {
-                    ratio *= (double)(power1 + 1) / (power2 + 1);
-                }
-            }
-            
-            if (ratio > 1.0) return 1;
-            if (ratio < 1.0) return -1;
-            return 0;
+            return Double.compare(hcn1.referenceFactor, hcn2.referenceFactor);
         }
     }
 }
