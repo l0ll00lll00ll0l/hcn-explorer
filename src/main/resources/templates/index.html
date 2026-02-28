@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Highly Composite Numbers</title>
+    <style>
+        body { font-family: monospace; margin: 20px; }
+        .section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .section h2 { margin-top: 0; }
+        .matrix-table { border-collapse: collapse; }
+        .matrix-table td, .matrix-table th { padding: 5px 10px; border: 1px solid #ddd; }
+        .hcn-list { max-height: 300px; overflow-y: auto; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+        .power-proved { background-color: #90EE90; padding: 2px 4px; }
+        .power-not-proved { background-color: #FFA500; padding: 2px 4px; }
+        .toggle-arrow { cursor: pointer; user-select: none; display: inline-block; width: 20px; }
+        .prime-index-hcns { display: none; margin-top: 5px; padding-left: 25px; }
+    </style>
+</head>
+<body>
+    <h1>Highly Composite Numbers Explorer</h1>
+    
+    <div class="section">
+        <h2>Configuration</h2>
+        <form method="post" action="/setDisplayFormat" style="margin-bottom: 10px;">
+            <label>
+                <input type="radio" name="format" value="full" th:checked="${displayFormat == 'full'}" onchange="this.form.submit()"> Full (p0^9 × p1^5)
+            </label>
+            <label style="margin-left: 20px;">
+                <input type="radio" name="format" value="short" th:checked="${displayFormat == 'short'}" onchange="this.form.submit()"> Short (9|5)
+            </label>
+        </form>
+        <form method="post" action="/setDisplayOptions">
+            <label>
+                <input type="checkbox" name="showValue" th:checked="${showValue}" onchange="this.form.submit()"> HCN Value
+            </label>
+            <label style="margin-left: 20px;">
+                <input type="checkbox" name="showFactor" th:checked="${showFactor}" onchange="this.form.submit()"> HCN Divisor Count
+            </label>
+        </form>
+    </div>
+    
+    <div>
+        <form method="post" action="/proveHcns" style="display: inline;">
+            <label>Determine next <input type="number" name="count" value="100" min="1" style="width: 80px;"> HCNs</label>
+            <button type="submit">Start Detection</button>
+        </form>
+        <form method="post" action="/reset" style="display: inline;">
+            <button type="submit">Reset</button>
+        </form>
+    </div>
+    
+    <div class="section">
+        <h2>Matrix</h2>
+        <table class="matrix-table">
+            <tr>
+                <th>Prime Index</th>
+                <th>Powers (Active Count)</th>
+            </tr>
+            <tr th:each="primeIndex : ${matrix.primeIndexes}">
+                <td th:text="'p' + ${primeIndex.index}"></td>
+                <td>
+                    <span th:each="power, iterStat : ${primeIndex.powers}">
+                        <span th:class="${power.proved} ? 'power-proved' : 'power-not-proved'" 
+                              th:text="${power.power} + ' (' + ${power.activeCount} + ')'"></span>
+                        <span th:if="!${iterStat.last}">, </span>
+                    </span>
+                </td>
+            </tr>
+        </table>
+        
+        <h3 style="margin-top: 20px;">PrimeIndex HCN Lists</h3>
+        <div th:each="primeIndex : ${matrix.primeIndexes}" style="margin: 5px 0;">
+            <span class="toggle-arrow" th:onclick="'toggleList(' + ${primeIndex.index} + ')'">▶</span>
+            <span th:text="'p' + ${primeIndex.index} + ': ' + ${primeIndex.hcnList.size()} + ' HCNs'"></span>
+            <div th:id="'hcn-list-' + ${primeIndex.index}" class="prime-index-hcns">
+                <div th:if="${primeIndex.hcnList.isEmpty()}">Empty</div>
+                <div th:each="hcn : ${primeIndex.hcnList}">
+                    <span th:text="${displayFormat == 'short' ? hcn.toShortString(showValue, showFactor) : hcn.toString(showValue, showFactor)}"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function toggleList(index) {
+            const list = document.getElementById('hcn-list-' + index);
+            const arrow = event.target;
+            if (list.style.display === 'block') {
+                list.style.display = 'none';
+                arrow.textContent = '▶';
+            } else {
+                list.style.display = 'block';
+                arrow.textContent = '▼';
+            }
+        }
+    </script>
+    
+    <div class="section">
+        <h2>HCN List (Candidates)</h2>
+        <div class="hcn-list">
+            <div th:if="${matrix.hcnList.isEmpty()}">No candidates yet</div>
+            <div th:each="hcn : ${matrix.hcnList}">
+                <span th:text="${displayFormat == 'short' ? hcn.toShortString(showValue, showFactor) : hcn.toString(showValue, showFactor)}"></span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>Proved List</h2>
+        <div class="hcn-list">
+            <div th:if="${matrix.provedHcnList.isEmpty()}">No proved HCNs yet</div>
+            <div th:each="hcn : ${matrix.provedHcnList}">
+                <span th:text="${displayFormat == 'short' ? hcn.toShortString(showValue, showFactor) : hcn.toString(showValue, showFactor)}"></span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
