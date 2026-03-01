@@ -69,11 +69,13 @@ public class Matrix {
         PrimeIndexPower newPower = newPrimeIndex.getPowers().get(0);
         
         for (Hcn oldHcn : previousPrimeIndex.getHcnList()) {
-            int oldLastPower = oldHcn.getOwnPower().getPower();
+            int oldLastPower = oldHcn.getPowers().get(oldHcn.getPowers().size() - 1).getPower();
             if (oldLastPower < newPower.getPower() || (oldLastPower == 0 && newPower.getPower() == 0)) {
                 continue;
             }
-            Hcn newHcn = new Hcn(oldHcn, newPower);
+            Hcn newHcn = new Hcn();
+            newHcn.getPowers().addAll(oldHcn.getPowers());
+            newHcn.getPowers().add(newPower);
             newPrimeIndex.getHcnSet().add(newHcn);
             if (newPower.getPower() == 0) {
                 hcnList.add(newHcn);
@@ -94,22 +96,25 @@ public class Matrix {
         if (primeIndex.getIndex() > 0) {
             PrimeIndex previousPrimeIndex = primeIndexes.get(primeIndex.getIndex() - 1);
             for (Hcn oldHcn : previousPrimeIndex.getHcnList()) {
-                int lastPower = oldHcn.getOwnPower().getPower();
+                int lastPower = oldHcn.getPowers().get(oldHcn.getPowers().size() - 1).getPower();
                 if (lastPower < newPower.getPower() || (lastPower == 0 && newPower.getPower() == 0)) {
                     continue;
                 }
-                Hcn newHcn = new Hcn(oldHcn, newPower);
+                Hcn newHcn = new Hcn();
+                newHcn.getPowers().addAll(oldHcn.getPowers());
+                newHcn.getPowers().add(newPower);
                 incomingHcns.add(newHcn);
             }
         } else {
-            Hcn newHcn = new Hcn(null, newPower);
+            Hcn newHcn = new Hcn();
+            newHcn.getPowers().add(newPower);
             incomingHcns.add(newHcn);
         }
 
         primeIndex.getHcnSet().addAll(incomingHcns);
         
         for (Hcn hcn : incomingHcns) {
-            if (hcn.getOwnPower().getPower() == 0) {
+            if (hcn.getPowers().get(hcn.getPowers().size() - 1).getPower() == 0) {
                 hcnList.add(hcn);
             }
         }
@@ -128,11 +133,13 @@ public class Matrix {
         
         for (Hcn incomingHcn : incomingHcns) {
             for (PrimeIndexPower power : currentPrimeIndex.getPowers()) {
-                int lastPower = incomingHcn.getOwnPower().getPower();
+                int lastPower = incomingHcn.getPowers().get(incomingHcn.getPowers().size() - 1).getPower();
                 if (lastPower < power.getPower() || (lastPower == 0 && power.getPower() == 0)) {
                     continue;
                 }
-                Hcn newHcn = new Hcn(incomingHcn, power);
+                Hcn newHcn = new Hcn();
+                newHcn.getPowers().addAll(incomingHcn.getPowers());
+                newHcn.getPowers().add(power);
                 newHcns.add(newHcn);
             }
         }
@@ -144,7 +151,7 @@ public class Matrix {
     private void addHcnsToList(PrimeIndex primeIndex, List<Hcn> hcns) {
         for (Hcn hcn : hcns) {
             primeIndex.getHcnSet().add(hcn);
-            if (hcn.getOwnPower().getPower() == 0) {
+            if (hcn.getPowers().get(hcn.getPowers().size() - 1).getPower() == 0) {
                 hcnList.add(hcn);
             }
         }

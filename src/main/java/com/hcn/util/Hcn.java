@@ -6,22 +6,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class Hcn implements Comparable<Hcn> {
-    private Hcn parentHcn;
-    private PrimeIndexPower ownPower;
+    private List<PrimeIndexPower> powers;
     private double referenceValue = 1.0;
     private double referenceFactor = 1.0;
     
-    public Hcn(Hcn parentHcn, PrimeIndexPower ownPower) {
-        this.parentHcn = parentHcn;
-        this.ownPower = ownPower;
-    }
-    
-    public Hcn getParentHcn() {
-        return parentHcn;
-    }
-    
-    public PrimeIndexPower getOwnPower() {
-        return ownPower;
+    public Hcn() {
+        this.powers = new ArrayList<>();
     }
     
     public double getReferenceValue() {
@@ -41,20 +31,11 @@ public class Hcn implements Comparable<Hcn> {
     }
     
     public List<PrimeIndexPower> getPowers() {
-        List<PrimeIndexPower> result = new ArrayList<>();
-        collectPowers(result);
-        return result;
-    }
-    
-    private void collectPowers(List<PrimeIndexPower> result) {
-        if (parentHcn != null) {
-            parentHcn.collectPowers(result);
-        }
-        result.add(ownPower);
+        return powers;
     }
     
     public void setPowers(List<PrimeIndexPower> powers) {
-        // Deprecated - kept for compatibility
+        this.powers = powers;
     }
     
     @Override
@@ -63,14 +44,12 @@ public class Hcn implements Comparable<Hcn> {
     }
     
     private int getPowerAtIndex(int primeIndex) {
-        if (ownPower.getPrimeIndex() == primeIndex) {
-            return ownPower.getPower();
+        for (PrimeIndexPower power : powers) {
+            if (power.getPrimeIndex() == primeIndex) {
+                return power.getPower();
+            }
         }
-        return parentHcn != null ? parentHcn.getPowerAtIndex(primeIndex) : 0;
-    }
-    
-    private int getMaxPrimeIndex() {
-        return ownPower.getPrimeIndex();
+        return 0;
     }
     
     @Override
@@ -79,7 +58,6 @@ public class Hcn implements Comparable<Hcn> {
     }
     
     public String toString(boolean showValue, boolean showFactor) {
-        List<PrimeIndexPower> powers = getPowers();
         String base = powers.stream()
             .map(p -> "p" + p.getPrimeIndex() + "^" + p.getPower())
             .collect(Collectors.joining(" × "));
@@ -106,7 +84,6 @@ public class Hcn implements Comparable<Hcn> {
     }
     
     public String toShortString(boolean showValue, boolean showFactor) {
-        List<PrimeIndexPower> powers = getPowers();
         if (powers.isEmpty()) return "";
         
         StringBuilder sb = new StringBuilder();
@@ -139,28 +116,33 @@ public class Hcn implements Comparable<Hcn> {
     }
     
     private BigInteger calculateValue() {
-        BigInteger parentValue = parentHcn != null ? parentHcn.calculateValue() : BigInteger.ONE;
-        if (ownPower.getPower() > 0) {
-            int prime = PrimeCenter.getPrime(ownPower.getPrimeIndex());
-            return parentValue.multiply(BigInteger.valueOf(prime).pow(ownPower.getPower()));
+        BigInteger value = BigInteger.ONE;
+        for (PrimeIndexPower p : powers) {
+            if (p.getPower() > 0) {
+                int prime = PrimeCenter.getPrime(p.getPrimeIndex());
+                value = value.multiply(BigInteger.valueOf(prime).pow(p.getPower()));
+            }
         }
-        return parentValue;
+        return value;
     }
     
     private long calculateDivisorCount() {
-        long parentCount = parentHcn != null ? parentHcn.calculateDivisorCount() : 1;
-        return parentCount * (ownPower.getPower() + 1);
+        long count = 1;
+        for (PrimeIndexPower p : powers) {
+            count *= (p.getPower() + 1);
+        }
+        return count;
     }
 
     public void setProved() {
-        ownPower.setProved(true);
-        if (parentHcn != null) {
-            parentHcn.setProved();
-        }
+        this.powers.stream().forEach(p -> p.setProved(true));
     }
     
     public void calculateReferences(Hcn referenceHcn) {
-        int maxIndex = Math.max(this.getMaxPrimeIndex(), referenceHcn.getMaxPrimeIndex());
+        int maxIndex = Math.max(
+            this.powers.isEmpty() ? -1 : this.powers.get(this.powers.size() - 1).getPrimeIndex(),
+            referenceHcn.powers.isEmpty() ? -1 : referenceHcn.powers.get(referenceHcn.powers.size() - 1).getPrimeIndex()
+        );
         
         double valueRatio = 1.0;
         double factorRatio = 1.0;
