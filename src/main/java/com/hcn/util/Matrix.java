@@ -76,9 +76,10 @@ public class Matrix {
             Hcn newHcn = new Hcn();
             newHcn.getPowers().addAll(oldHcn.getPowers());
             newHcn.getPowers().add(newPower);
-            newPrimeIndex.getHcnSet().add(newHcn);
             if (newPower.getPower() == 0) {
                 hcnList.add(newHcn);
+            } else {
+                newPrimeIndex.getHcnSet().add(newHcn);
             }
         }
         
@@ -150,9 +151,10 @@ public class Matrix {
     
     private void addHcnsToList(PrimeIndex primeIndex, List<Hcn> hcns) {
         for (Hcn hcn : hcns) {
-            primeIndex.getHcnSet().add(hcn);
             if (hcn.getPowers().get(hcn.getPowers().size() - 1).getPower() == 0) {
                 hcnList.add(hcn);
+            } else {
+                primeIndex.getHcnSet().add(hcn);
             }
         }
     }
