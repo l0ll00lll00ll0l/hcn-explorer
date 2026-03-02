@@ -18,10 +18,7 @@ public abstract class FilteredHcnSet extends TreeSet<Hcn> {
         int bestScore = -1;
         
         for (Hcn hcn : this) {
-            int score = 0;
-            for (PrimeIndexPower power : hcn.getPowers()) {
-                score += power.getActiveCount();
-            }
+            int score = calculateActiveCountScore(hcn);
             if (score > bestScore) {
                 bestScore = score;
                 bestCandidate = hcn;
@@ -37,6 +34,14 @@ public abstract class FilteredHcnSet extends TreeSet<Hcn> {
                 hcn.calculateReferences(referenceHcn);
             }
         }
+    }
+    
+    private int calculateActiveCountScore(Hcn hcn) {
+        int score = hcn.getOwnPower().getActiveCount();
+        if (hcn.getParentHcn() != null) {
+            score += calculateActiveCountScore(hcn.getParentHcn());
+        }
+        return score;
     }
     
     @Override

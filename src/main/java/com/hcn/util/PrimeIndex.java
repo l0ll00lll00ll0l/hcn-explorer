@@ -18,8 +18,7 @@ public class PrimeIndex {
     
     public static PrimeIndex initializePrimeIndex() {
         PrimeIndex primeIndex = new PrimeIndex(0);
-        Hcn hcn = new Hcn();
-        hcn.getPowers().add(primeIndex.powers.get(0));
+        Hcn hcn = new Hcn(null, primeIndex.powers.get(0));
         primeIndex.hcnList.add(hcn);
         
         return primeIndex;
@@ -83,8 +82,15 @@ public class PrimeIndex {
             PrimeIndexPower removed = powers.remove(powers.firstKey());
             
             for (PrimeIndex primeIndex : allPrimeIndexes) {
-                primeIndex.getHcnSet().removeIf(hcn -> hcn.getPowers().contains(removed));
+                primeIndex.getHcnSet().removeIf(hcn -> containsPower(hcn, removed));
             }
         }
+    }
+    
+    private boolean containsPower(Hcn hcn, PrimeIndexPower power) {
+        if (hcn.getOwnPower() == power) {
+            return true;
+        }
+        return hcn.getParentHcn() != null && containsPower(hcn.getParentHcn(), power);
     }
 }
