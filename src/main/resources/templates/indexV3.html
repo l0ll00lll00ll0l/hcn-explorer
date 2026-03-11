@@ -27,8 +27,26 @@
 <body>
     <h1>HCN Matrix V3</h1>
     
+    <form method="post" action="/v3/proveUntilIndex" style="display: inline-block; margin-right: 10px;">
+        <label>Prove Index: 
+            <input type="number" name="primeIndex" value="10" min="0" style="width: 60px;" />
+        </label>
+        <button type="submit">Prove Index</button>
+    </form>
+    
     <form method="post" action="/v3/proveNext" style="display: inline-block; margin-right: 10px;">
         <button type="submit">Prove Next HCN</button>
+    </form>
+    
+    <form method="post" action="/v3/proveUntilCount" style="display: inline-block; margin-right: 10px;">
+        <label>Prove Count: 
+            <input type="number" name="count" value="5000" min="1" style="width: 80px;" />
+        </label>
+        <button type="submit">Prove Count</button>
+    </form>
+    
+    <form method="post" action="/v3/reset" style="display: inline-block; margin-right: 10px;">
+        <button type="submit" style="background-color: #ff6b6b; color: white;">Reset Matrix</button>
     </form>
     
     <form method="post" action="/v3/setDisplayDecimals" style="display: inline-block;">

@@ -90,27 +90,45 @@ public class ActivePrimeIndex {
         //check if extension is required
         if (provedBody.getPip().equals(getLastPip())) {
 
-            addNextPrimeIndexPower();
-            Set<HcnBody> createdBodies;
+            boolean canWeExtendHere = parentActivePrimeIndex == null || parentActivePrimeIndex.pips.containsKey(getLastPip().getPower() + 1) && parentActivePrimeIndex.pips.get(getLastPip().getPower() + 1).isProved();
 
-            if (parentActivePrimeIndex != null) {
-                createdBodies = parentActivePrimeIndex.pips.values().stream()
-                        .filter(pip -> pip.getPower() >= getLastPip().getPower())
-                        .flatMap(pip -> pip.getActiveHcnBodies().stream())
-                        .map(parentBody -> new HcnBody(parentBody, getLastPip()))
-                        .collect(Collectors.toSet());
+            if (canWeExtendHere) {
+                addNextPrimeIndexPower();
+
+                Set<HcnBody> createdBodies;
+
+                if (parentActivePrimeIndex != null) {
+                    createdBodies = parentActivePrimeIndex.pips.values().stream()
+                            .filter(pip -> pip.getPower() >= getLastPip().getPower())
+                            .flatMap(pip -> pip.getActiveHcnBodies().stream())
+                            .map(parentBody -> new HcnBody(parentBody, getLastPip()))
+                            .collect(Collectors.toSet());
+                } else {
+                    createdBodies = Set.of(new HcnBody(null, getLastPip()));
+                }
+
+                Set<HcnBody> successfullyAdded = hcnBodyList.addGroup(createdBodies);
+                bodiesCreated = !successfullyAdded.isEmpty();
+
+                if (nextActivePrimeIndex != null) {
+                    if (nextActivePrimeIndex.getLastPip().isProved()) {
+                        if (nextActivePrimeIndex.pips.lastKey() < provedBody.getPip().getPower()) {
+                            nextActivePrimeIndex.addNextPrimeIndexPower();
+                        }
+                    }
+
+                    nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
+                } else {
+                    if (provedBody.getPip().getPower() == 2) {
+                        generateNextActivePrimeIndex();
+                    }
+                }
             } else {
-                createdBodies = Set.of(new HcnBody(null, getLastPip()));
-            }
-
-            Set<HcnBody> successfullyAdded = hcnBodyList.addGroup(createdBodies);
-            bodiesCreated = !successfullyAdded.isEmpty();
-
-            if (nextActivePrimeIndex != null) {
-                nextActivePrimeIndex.generateHcnBodies(getLastPip().getActiveHcnBodies());
-            }  else {
-                if (provedBody.getPip().getPower() == 2) {
-                    generateNextActivePrimeIndex();
+                if (nextActivePrimeIndex == null) {
+                    if (provedBody.getPip().getPower() == 2) {
+                        generateNextActivePrimeIndex();
+                        bodiesCreated = true;
+                    }
                 }
             }
         }

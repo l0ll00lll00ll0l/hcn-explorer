@@ -11,6 +11,8 @@ public class Matrix {
 
     private ScientificNumber lowLimit = new ScientificNumber(1.0, 0);
     private ScientificNumber upperLimit = new ScientificNumber(2, 0);
+
+    private int lastProvedPrimeIndex = 0;
     
     public Matrix() {
         // Create p0 with pip1
@@ -52,12 +54,23 @@ public class Matrix {
         return upperLimit;
     }
 
+    public void proveUntilPrimeIndex(int provedIndex) {
+        while (lastProvedPrimeIndex < provedIndex) {
+            proveNextHcn();
+        }
+    }
+    
+    public void proveUntilCount(int count) {
+        while (provedHcnList.size() < count) {
+            proveNextHcn();
+        }
+    }
+
     public void proveNextHcn() {
         Hcn provedHcn = hcnList.first();
         provedHcnList.add(provedHcn);
 
         if (!provedHcn.getBody().isDeactivated()) {
-            //HcnBody hcnBodyToExtend = provedHcn.getBody().setProvedRecursive();
             if (lastActivePrimeIndex.extendMatrix(provedHcn.getBody())) {
 
                 if (!lastActivePrimeIndex.isLastActivePrimeIndex()) {
@@ -68,7 +81,6 @@ public class Matrix {
 
                 List<HcnBody> bodySnapshot = new ArrayList<>(lastActivePrimeIndex.getHcnBodyList());
                 for (HcnBody body : bodySnapshot) {
-                    //System.out.println("Body to check (vertical): " + body);
                     body.getHcnsBetween(lowLimit, upperLimit).forEach(hcn -> {
                         if (hcnList.add(hcn)) {
                         }
@@ -77,22 +89,20 @@ public class Matrix {
             }
         }
 
-        if (hcnList.size() == 1) {
+        while (hcnList.size() == 1) {
             lowLimit = upperLimit;
-            System.out.println("newLimitBody = " + lastActivePrimeIndex.getHcnBodyList().first());
-            System.out.println("HCN = " + lastActivePrimeIndex.getHcnBodyList().first().getHcnFactory().getLimitHcn());
-            System.out.println("limit = " + lastActivePrimeIndex.getHcnBodyList().first().getHcnFactory().getLimitHcn().getValue());
-            //upperLimit = provedHcn.getValue().multiply(new ScientificNumber(PrimeCenter.getPrime(provedHcn.getLastActivePrime() + 1), 0));
             upperLimit = lastActivePrimeIndex.getHcnBodyList().first().getHcnFactory().getLimitHcn().getValue();
-            System.out.println("upperLimit = " + upperLimit);
 
             List<HcnBody> bodySnapshot = new ArrayList<>(lastActivePrimeIndex.getHcnBodyList());
             for (HcnBody body : bodySnapshot) {
-                //System.out.println("Body to check (vertical): " + body);
                 body.getHcnsBetween(lowLimit, upperLimit).forEach(hcn -> hcnList.add(hcn));
             }
         }
 
+        if (provedHcn.getLastActivePrime() > lastProvedPrimeIndex) {
+            lastProvedPrimeIndex = provedHcn.getLastActivePrime();
+        }
+        System.out.println(provedHcnList.size() +" Proved: " + provedHcn);
         hcnList.remove(provedHcn);
     }
 }

@@ -131,6 +131,10 @@ public class HcnBody implements Comparable<HcnBody> {
     }
 
     public void deactivateFromLists() {
+        if (isDeactivated()) {
+            return;
+        }
+        
         pip.getActivePrimeIndex().getHcnBodyList().remove(this);
         if (proved) {
             pip.getActivePrimeIndex().getDeactivatedBodyList().add(this);

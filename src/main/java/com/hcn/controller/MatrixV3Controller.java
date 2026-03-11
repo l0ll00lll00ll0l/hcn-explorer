@@ -27,9 +27,27 @@ public class MatrixV3Controller {
         return "indexV3";
     }
     
+    @PostMapping("/v3/proveUntilIndex")
+    public String proveUntilIndex(@RequestParam int primeIndex) {
+        matrix.proveUntilPrimeIndex(primeIndex);
+        return "redirect:/v3";
+    }
+    
     @PostMapping("/v3/proveNext")
     public String proveNext() {
         matrix.proveNextHcn();
+        return "redirect:/v3";
+    }
+    
+    @PostMapping("/v3/proveUntilCount")
+    public String proveUntilCount(@RequestParam int count) {
+        matrix.proveUntilCount(count);
+        return "redirect:/v3";
+    }
+    
+    @PostMapping("/v3/reset")
+    public String reset() {
+        matrix = new Matrix();
         return "redirect:/v3";
     }
     
