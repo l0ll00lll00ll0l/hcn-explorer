@@ -134,4 +134,24 @@ public class ScientificNumber implements Comparable<ScientificNumber> {
     public long getExponent() {
         return exponent;
     }
+    
+    public boolean isBiggerThan(ScientificNumber other) {
+        return this.compareTo(other) > 0;
+    }
+    
+    public boolean isNotBiggerThan(ScientificNumber other) {
+        return this.compareTo(other) <= 0;
+    }
+    
+    public boolean isSmallerThan(ScientificNumber other) {
+        return this.compareTo(other) < 0;
+    }
+    
+    public boolean isNotSmallerThan(ScientificNumber other) {
+        return this.compareTo(other) >= 0;
+    }
+    
+    public boolean isEqualTo(ScientificNumber other) {
+        return this.compareTo(other) == 0;
+    }
 }

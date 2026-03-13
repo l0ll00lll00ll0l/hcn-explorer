@@ -2,12 +2,14 @@ package com.hcn.v3;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 
 public class Matrix {
     private ActivePrimeIndex lastActivePrimeIndex;
     private List<FixedPowerGroup> fixedPowerGroups = new ArrayList<>();
-    private FilteredHcnSet hcnList = new FilteredHcnSet();
+    //private FilteredHcnSet hcnList = new FilteredHcnSet();
     private List<Hcn> provedHcnList = new ArrayList<>();
+    private HcnFilter hcnFilter = new HcnFilter();
 
     private ScientificNumber lowLimit = new ScientificNumber(1.0, 0);
     private ScientificNumber upperLimit = new ScientificNumber(2, 0);
@@ -27,7 +29,10 @@ public class Matrix {
         
         // Create initial Hcn
         Hcn firstHcn = firstBody.getHcnsBetween(lowLimit, upperLimit).get(0);
-        hcnList.add(firstHcn);
+        //hcnList.add(firstHcn);
+        TreeSet<Hcn> tree = new TreeSet<>();
+        tree.add(firstHcn);
+        hcnFilter.filter(tree);
     }
     
     public ActivePrimeIndex getLastActivePrimeIndex() {
@@ -38,8 +43,8 @@ public class Matrix {
         return fixedPowerGroups;
     }
     
-    public FilteredHcnSet getHcnList() {
-        return hcnList;
+    public List<Hcn> getHcnList() {
+        return hcnFilter.getMaxLevelHcnList();
     }
     
     public List<Hcn> getProvedHcnList() {
@@ -67,7 +72,7 @@ public class Matrix {
     }
 
     public void proveNextHcn() {
-        Hcn provedHcn = hcnList.first();
+        Hcn provedHcn = hcnFilter.getMaxLevelHcnList().get(0);
         provedHcnList.add(provedHcn);
 
         if (!provedHcn.getBody().isDeactivated()) {
@@ -80,29 +85,46 @@ public class Matrix {
                 lowLimit = provedHcn.getValue();
 
                 List<HcnBody> bodySnapshot = new ArrayList<>(lastActivePrimeIndex.getHcnBodyList());
+                TreeSet<Hcn> sortedRawHcn = new TreeSet<>();
                 for (HcnBody body : bodySnapshot) {
-                    body.getHcnsBetween(lowLimit, upperLimit).forEach(hcn -> {
-                        if (hcnList.add(hcn)) {
-                        }
-                    });
+                    List<Hcn> generatedHcns = body.getHcnsBetween(lowLimit, upperLimit);
+                    sortedRawHcn.addAll(generatedHcns);
+                    //generatedHcns.forEach(hcn -> {
+                      //  if (hcnList.add(hcn)) {
+                        //}
+                    //});
                 }
+                hcnFilter.filterAgain(sortedRawHcn);
+                //hcnFilter.lowLimitUpdate(lowLimit);
             }
         }
 
-        while (hcnList.size() == 1) {
+        while (hcnFilter.getMaxLevelHcnList().size() == 1) {
             lowLimit = upperLimit;
             upperLimit = lastActivePrimeIndex.getHcnBodyList().first().getHcnFactory().getLimitHcn().getValue();
 
             List<HcnBody> bodySnapshot = new ArrayList<>(lastActivePrimeIndex.getHcnBodyList());
+
+            TreeSet<Hcn> sortedRawHcn = new TreeSet<>();
             for (HcnBody body : bodySnapshot) {
-                body.getHcnsBetween(lowLimit, upperLimit).forEach(hcn -> hcnList.add(hcn));
+                List<Hcn> generatedHcns = body.getHcnsBetween(lowLimit, upperLimit);
+                //generatedHcns.forEach(hcn -> hcnList.add(hcn));
+                sortedRawHcn.addAll(generatedHcns);
             }
+            hcnFilter.filter(sortedRawHcn);
+            hcnFilter.lowLimitUpdate(lowLimit);
         }
 
         if (provedHcn.getLastActivePrime() > lastProvedPrimeIndex) {
             lastProvedPrimeIndex = provedHcn.getLastActivePrime();
         }
-        System.out.println(provedHcnList.size() +" Proved: " + provedHcn);
-        hcnList.remove(provedHcn);
+
+        //System.out.println("Proved HCN: " + provedHcn.fullPrint());
+        //hcnList.remove(provedHcn);
+        //for (Hcn hcn : hcnList) {
+            //System.out.println("hcnlist after remove" + hcn.fullPrint());
+        //}
+        hcnFilter.rmoveFirst();
+       // hcnFilter.printHcnList("After remove");
     }
 }
