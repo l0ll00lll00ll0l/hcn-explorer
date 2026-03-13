@@ -188,11 +188,11 @@ public class HcnFilter {
         }
         if (defeated.getBody().isProved()) {
             defeated.getBody().deactivateFromLists();
-            defeated.getBody().deactivateRecursive(superior.getBody());
+            defeated.getBody().getPip().getActivePrimeIndex().deactivateRecursive(defeated.getBody(), superior.getBody());
         } else {
             if (superior.getLastActivePrime() <= defeated.getLastActivePrime()) {
                 defeated.getBody().deactivateFromLists();
-                defeated.getBody().deactivateRecursive(superior.getBody());
+                defeated.getBody().getPip().getActivePrimeIndex().deactivateRecursive(defeated.getBody(), superior.getBody());
             }
         }
     }

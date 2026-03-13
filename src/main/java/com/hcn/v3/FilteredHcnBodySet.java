@@ -52,7 +52,7 @@ public class FilteredHcnBodySet extends TreeSet<HcnBody> {
             if (superior == null) {
                 superior = this.floor(removed);
             }
-            removed.deactivateRecursive(superior);
+            removed.getPip().getActivePrimeIndex().deactivateRecursive(removed, superior);
         }
         
         return successfullyAdded;

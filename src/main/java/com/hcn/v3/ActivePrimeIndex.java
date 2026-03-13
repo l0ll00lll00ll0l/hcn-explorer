@@ -186,4 +186,35 @@ public class ActivePrimeIndex {
 
         nextActivePrimeIndex.hcnBodyList.addGroup(pip2Bodies);
     }
+
+    public void deactivateRecursive(HcnBody defeated, HcnBody superiorBody) {
+
+        // 2. Beállítja a superiorHcnBody-t
+        defeated.setSuperiorBody(superiorBody);
+
+        // 3. Lecsekkolja, hogy ez volt-e az utolsó aktív HcnBody a pip-ben
+        if (defeated.getPip().getActiveHcnBodies().isEmpty()) {
+            // Töröljük EZT a pip-et, nem a firstKey-t!
+            defeated.getPip().getActivePrimeIndex().getDeactivatedPips().add(defeated.getPip());
+            defeated.getPip().getActivePrimeIndex().getPips().remove(defeated.getPip().getPower());
+        }
+
+        // 4-5. Ha van parent, deaktiválja magát a parentben, és ha kell, rekurzívan a parentet is
+        if (defeated.getParent() != null) {
+            defeated.getParent().getOffspring().remove(defeated);
+
+            if (defeated.isProved()) {
+                defeated.getParent().getDeactivatedOffsprings().add(defeated);
+            } else {
+                defeated.getParent().getNeverActivatedOffsprings().add(defeated);
+            }
+
+
+            if (defeated.getParent().getOffspring().isEmpty()) {
+                // Parent mindig benne van a listákban, töröljük
+                defeated.getParent().deactivateFromLists();
+                defeated.getParent().getPip().getActivePrimeIndex().deactivateRecursive(defeated.getParent(), superiorBody.getParent());
+            }
+        }
+    }
 }

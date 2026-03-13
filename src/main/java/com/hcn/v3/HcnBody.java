@@ -74,12 +74,24 @@ public class HcnBody implements Comparable<HcnBody> {
         return superiorBody;
     }
 
+    public void setSuperiorBody(HcnBody superiorBody) {
+        this.superiorBody = superiorBody;
+    }
+
     public boolean isProved() {
         return proved;
     }
 
     public void setProved(boolean proved) {
         this.proved = proved;
+    }
+
+    public List<HcnBody> getDeactivatedOffsprings() {
+        return deactivatedOffsprings;
+    }
+
+    public List<HcnBody> getNeverActivatedOffsprings() {
+        return neverActivatedOffsprings;
     }
 
     public boolean isDeactivated(){
@@ -143,36 +155,5 @@ public class HcnBody implements Comparable<HcnBody> {
         }
 
         pip.removeActiveHcnBody(this);
-    }
-
-    public void deactivateRecursive(HcnBody superiorBody) {
-
-        // 2. Beállítja a superiorHcnBody-t
-        this.superiorBody = superiorBody;
-        
-        // 3. Lecsekkolja, hogy ez volt-e az utolsó aktív HcnBody a pip-ben
-        if (pip.getActiveHcnBodies().isEmpty()) {
-            // Töröljük EZT a pip-et, nem a firstKey-t!
-            pip.getActivePrimeIndex().getDeactivatedPips().add(pip);
-            pip.getActivePrimeIndex().getPips().remove(pip.getPower());
-        }
-        
-        // 4-5. Ha van parent, deaktiválja magát a parentben, és ha kell, rekurzívan a parentet is
-        if (parent != null) {
-            parent.offspring.remove(this);
-
-            if (proved) {
-                parent.deactivatedOffsprings.add(this);
-            } else {
-                parent.neverActivatedOffsprings.add(this);
-            }
-
-            
-            if (parent.offspring.isEmpty()) {
-                // Parent mindig benne van a listákban, töröljük
-                parent.deactivateFromLists();
-                parent.deactivateRecursive(superiorBody != null ? superiorBody.parent : null);
-            }
-        }
     }
 }
