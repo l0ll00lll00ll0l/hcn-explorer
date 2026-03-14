@@ -11,10 +11,12 @@ public class HcnBody implements Comparable<HcnBody> {
     private List<HcnBody> neverActivatedOffsprings = new ArrayList<>();
     private PrimeIndexPower pip;
     private boolean proved = false;
-    private final ScientificNumber value;
-    private final ScientificNumber factor;
+    private ScientificNumber value;
+    private ScientificNumber factor;
     private HcnFactory hcnFactory = null;
     private HcnBody superiorBody = null;
+    private FixedPowerGroup offspringFixedPowerGroup = null;
+    private FixedPowerGroup parentFixedPowerGroup = null;
 
     public HcnBody(HcnBody parent, PrimeIndexPower pip) {
         this.parent = parent;
@@ -60,6 +62,14 @@ public class HcnBody implements Comparable<HcnBody> {
 
     public ScientificNumber getFactor() {
         return factor;
+    }
+
+    public void setValue(ScientificNumber value) {
+        this.value = value;
+    }
+
+    public void setFactor(ScientificNumber factor) {
+        this.factor = factor;
     }
 
     public HcnFactory getHcnFactory() {
@@ -155,5 +165,34 @@ public class HcnBody implements Comparable<HcnBody> {
         }
 
         pip.removeActiveHcnBody(this);
+    }
+
+    public void removeFixedHcnBody(FixedPowerGroup fixedPowerGroup) {
+        /*
+        System.out.println("Initialize fixed power group: " + fixedPowerGroup + " for body: " + this);
+
+        System.out.println(" Parentbody: " + parent);
+        System.out.println(" parentOffspring: " + parent.offspring);
+        System.out.println(" offspring: " + offspring);
+*/
+        offspring.forEach(offspring -> {
+            offspring.parent = parent;
+            parent.offspring.remove(this);
+            parent.offspring.add(offspring);
+        });
+    }
+
+    public HcnBody addReactivateHcnBody(ActivePrimeIndex reactivatedPrimeIndex) {
+
+        //System.out.println("Reactivating HcnBody: " + this);
+        //System.out.println("Reactivated HcnBody parent: " + parent);
+        HcnBody reactivateHcnBody = new HcnBody(parent, reactivatedPrimeIndex.getLastPip());
+        reactivateHcnBody.getPip().addActiveHcnBody(reactivateHcnBody);
+
+        //System.out.println("reactivateHcnBody: " + reactivateHcnBody);
+        //System.out.println("parentoffspring: " + parent.offspring);
+        parent.offspring.remove(this);
+        this.parent = reactivateHcnBody;
+        return reactivateHcnBody;
     }
 }

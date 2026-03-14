@@ -1,6 +1,7 @@
 package com.hcn.controller;
 
 import com.hcn.v3.ActivePrimeIndex;
+import com.hcn.v3.FixedPowerGroup;
 import com.hcn.v3.HcnBody;
 import com.hcn.v3.Matrix;
 import com.hcn.v3.ScientificNumber;
@@ -55,6 +56,33 @@ public class MatrixV3Controller {
     public String setDisplayDecimals(@RequestParam int decimals) {
         ScientificNumber.setDisplayDecimals(decimals);
         return "redirect:/v3";
+    }
+    
+    public List<Object> buildMatrixChain(ActivePrimeIndex lastActivePrimeIndex) {
+        List<Object> chain = new ArrayList<>();
+        Object current = lastActivePrimeIndex;
+        
+        while (current != null) {
+            if (current instanceof ActivePrimeIndex) {
+                ActivePrimeIndex api = (ActivePrimeIndex) current;
+                chain.add(api);
+                
+                if (api.getParentFixedPowerGroup() != null) {
+                    current = api.getParentFixedPowerGroup();
+                } else {
+                    current = api.getParentActivePrimeIndex();
+                }
+            } else if (current instanceof FixedPowerGroup) {
+                FixedPowerGroup fpg = (FixedPowerGroup) current;
+                chain.add(fpg);
+                current = fpg.getParentPrimeIndex();
+            } else {
+                current = null;
+            }
+        }
+        
+        Collections.reverse(chain);
+        return chain;
     }
     
     public List<ActivePrimeIndex> buildPrimeIndexList(ActivePrimeIndex lastActivePrimeIndex) {
