@@ -1,4 +1,4 @@
-package com.hcn.v3;
+package com.hcn.v2;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,12 +11,10 @@ public class HcnBody implements Comparable<HcnBody> {
     private List<HcnBody> neverActivatedOffsprings = new ArrayList<>();
     private PrimeIndexPower pip;
     private boolean proved = false;
-    private ScientificNumber value;
-    private ScientificNumber factor;
+    private final ScientificNumber value;
+    private final ScientificNumber factor;
     private HcnFactory hcnFactory = null;
     private HcnBody superiorBody = null;
-    private FixedPowerGroup offspringFixedPowerGroup = null;
-    private FixedPowerGroup parentFixedPowerGroup = null;
 
     public HcnBody(HcnBody parent, PrimeIndexPower pip) {
         this.parent = parent;
@@ -66,14 +64,6 @@ public class HcnBody implements Comparable<HcnBody> {
 
     public ScientificNumber getFactor() {
         return factor;
-    }
-
-    public void setValue(ScientificNumber value) {
-        this.value = value;
-    }
-
-    public void setFactor(ScientificNumber factor) {
-        this.factor = factor;
     }
 
     public HcnFactory getHcnFactory() {
@@ -169,46 +159,5 @@ public class HcnBody implements Comparable<HcnBody> {
         }
 
         pip.removeActiveHcnBody(this);
-    }
-
-    public void removeFixedHcnBody(FixedPowerGroup fixedPowerGroup) {
-        offspring.forEach(offspring -> {
-            offspring.parent = parent;
-            parent.offspring.remove(this);
-            parent.offspring.add(offspring);
-        });
-    }
-
-    public HcnBody addReactivateHcnBodyFromOffspring(ActivePrimeIndex reactivatedPrimeIndex) {
-        HcnBody reactivateHcnBody = new HcnBody(parent, reactivatedPrimeIndex.getLastPip());
-        reactivateHcnBody.getPip().addActiveHcnBody(reactivateHcnBody);
-
-        if (proved) {
-            reactivateHcnBody.proved = true;
-        }
-
-        parent.offspring.remove(this);
-        reactivateHcnBody.offspring.add(this);
-        this.parent = reactivateHcnBody;
-        return reactivateHcnBody;
-    }
-
-    public HcnBody addReactivateHcnBodyFromParent(ActivePrimeIndex reactivatedPrimeIndex) {
-
-        List<HcnBody> offspringSnapshot = new ArrayList<>(this.offspring);
-        HcnBody reactivateHcnBody = new HcnBody(this, reactivatedPrimeIndex.getLastPip());
-        reactivateHcnBody.getPip().addActiveHcnBody(reactivateHcnBody);
-        if (proved) {
-            reactivateHcnBody.proved = true;
-        }
-
-        offspringSnapshot.forEach(offspring -> {
-
-            this.offspring.remove(offspring);
-            reactivateHcnBody.offspring.add(offspring);
-            offspring.parent = reactivateHcnBody;
-        });
-
-        return reactivateHcnBody;
     }
 }

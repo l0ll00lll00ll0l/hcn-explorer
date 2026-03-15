@@ -14,7 +14,7 @@ public class FixedPowerGroup {
     public void receivePrimeIndex(ActivePrimeIndex primeIndex) {
 
         fixedPowerGroup.add(primeIndex);
-        value = value.multiply(new ScientificNumber(Math.pow(primeIndex.getIndex(), primeIndex.getPips().firstEntry().getValue().getPower()), 0));
+        value = value.multiply(new ScientificNumber(Math.pow(PrimeCenter.getPrime(primeIndex.getIndex()), primeIndex.getPips().firstEntry().getValue().getPower()), 0));
         factor = factor.multiply(new ScientificNumber((primeIndex.getPips().firstEntry().getValue().getPower() + 1), 0));
         primeIndex.getHcnBodyList().stream().forEach(hcnBody -> hcnBody.removeFixedHcnBody(this));
         offspringPrimeIndex = primeIndex.getNextActivePrimeIndex();
@@ -22,21 +22,14 @@ public class FixedPowerGroup {
         primeIndex.getLastPip().getActiveHcnBodies().clear();
     }
 
-    public ActivePrimeIndex reactivatePrimeIned() {
+    public ActivePrimeIndex reactivatePrimeIndex() {
         ActivePrimeIndex reactivatedPrimeIndex = fixedPowerGroup.remove(0);
 
-        reactivatedPrimeIndex.getHcnBodyList()
-                .addGroup(offspringPrimeIndex.getHcnBodyList().stream()
-                        .map(hcnBody -> hcnBody.addReactivateHcnBody(reactivatedPrimeIndex)).collect(Collectors.toList()));
-
-        offspringPrimeIndex.getHcnBodyList().stream().forEach(hcnBody -> {
-            //System.out.println("hello? " + hcnBody);
-
-            hcnBody.addReactivateHcnBody(reactivatedPrimeIndex);
-        });
+        //reactivatedPrimeIndex.getHcnBodyList().addGroup(offspringPrimeIndex.getHcnBodyList().stream().map(hcnBody -> hcnBody.addReactivateHcnBody(reactivatedPrimeIndex)).collect(Collectors.toList()));
+        reactivatedPrimeIndex.getHcnBodyList().addGroup(parentPrimeIndex.getHcnBodyList().stream().map(hcnBody -> hcnBody.addReactivateHcnBodyFromParent(reactivatedPrimeIndex)).collect(Collectors.toList()));
 
         parentPrimeIndex = reactivatedPrimeIndex;
-        value = value.divide(new ScientificNumber(Math.pow(reactivatedPrimeIndex.getIndex(), reactivatedPrimeIndex.getPips().firstEntry().getValue().getPower()), 0));
+        value = value.divide(new ScientificNumber(Math.pow(PrimeCenter.getPrime(reactivatedPrimeIndex.getIndex()), reactivatedPrimeIndex.getPips().firstEntry().getValue().getPower()), 0));
         factor = factor.divide(new ScientificNumber((reactivatedPrimeIndex.getPips().firstEntry().getValue().getPower() + 1), 0));
 
 
