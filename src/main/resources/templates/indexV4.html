@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>HCN Matrix V4</title>
+    <style>
+        body { font-family: monospace; margin: 20px; }
+        .section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .prime-index { background: #f0f0f0; margin: 10px 0; padding: 10px; }
+        .collapsible { cursor: pointer; padding: 5px; background: #ddd; border: none; width: 100%; text-align: left; }
+        .collapsible:hover { background: #ccc; }
+        .content { display: none; padding: 10px; border: 1px solid #ddd; }
+        .content.active { display: block; }
+        .hcn-item { margin: 5px 0; font-size: 12px; }
+        
+        .body-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .body-table th { background: #333; color: white; padding: 5px; text-align: left; cursor: pointer; user-select: none; }
+        .body-table th:hover { background: #555; }
+        .body-table td { padding: 5px; border-bottom: 1px solid #ddd; }
+        .body-table tr:hover { background: #f5f5f5; }
+        .body-table tr.proved { background: #90EE90; }
+        .body-table tr.deactivated { background: #D3D3D3; }
+        .body-table tr.never-activated { background: #FFE4B5; }
+        .column-config { margin: 10px 0; padding: 5px; background: #f9f9f9; border: 1px solid #ddd; }
+        .column-config label { margin-right: 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>HCN Matrix V4</h1>
+    
+    <form method="post" action="/v4/proveUntilIndex" style="display: inline-block; margin-right: 10px;">
+        <label>Prove Index: 
+            <input type="number" name="primeIndex" value="10" min="0" style="width: 60px;" />
+        </label>
+        <button type="submit">Prove Index</button>
+    </form>
+    
+    <form method="post" action="/v4/proveNext" style="display: inline-block; margin-right: 10px;">
+        <button type="submit">Prove Next HCN</button>
+    </form>
+    
+    <form method="post" action="/v4/proveUntilCount" style="display: inline-block; margin-right: 10px;">
+        <label>Prove Count: 
+            <input type="number" name="count" value="5000" min="1" style="width: 80px;" />
+        </label>
+        <button type="submit">Prove Count</button>
+    </form>
+    
+    <form method="post" action="/v4/reset" style="display: inline-block; margin-right: 10px;">
+        <button type="submit" style="background-color: #ff6b6b; color: white;">Reset Matrix</button>
+    </form>
+    
+    <form method="post" action="/v4/setDisplayDecimals" style="display: inline-block;">
+        <label>Display Decimals: 
+            <input type="number" name="decimals" th:value="${displayDecimals}" min="0" max="15" style="width: 60px;" />
+        </label>
+        <button type="submit">Set</button>
+    </form>
+    
+    <div class="section">
+        <h2>Matrix Info</h2>
+        <div>Last Active PrimeIndex: p<span th:text="${matrix.lastActivePrimeIndex.index}"></span></div>
+        <div>Fixed PowerGroups: <span th:text="${matrix.fixedPowerGroups.size()}"></span></div>
+        <div>HCN List size: <span th:text="${matrix.hcnList.size()}"></span></div>
+        <div>Low Limit: <span th:text="${matrix.lowLimit}"></span></div>
+        <div>Upper Limit: <span th:text="${matrix.upperLimit}"></span></div>
+    </div>
+    
+    <div class="section">
+        <h2>Matrix Chain</h2>
+        <div th:with="matrixChain=${@matrixV4Controller.buildMatrixChain(matrix.lastActivePrimeIndex)}">
+            <div th:each="item : ${matrixChain}">
+                <!-- ActivePrimeIndex -->
+                <div th:if="${item.class.simpleName == 'ActivePrimeIndex'}" class="prime-index">
+                    <span style="display: inline-block; width: 60px; height: 60px; line-height: 60px; border-radius: 50%; border: 2px solid #000; text-align: center; font-size: 2em; margin-right: 10px;" th:text="${T(com.hcn.v4.PrimeCenter).getPrime(item.index)}"></span>
+                    <span th:each="pip : ${item.pips.values()}" 
+                          th:style="'display: inline-block; padding: 8px; margin: 2px; border: 2px solid #000; background-color: ' + (${pip.proved} ? '#90EE90' : '#FFFFFF')">
+                        <span style="font-weight: bold; font-size: 2em;" th:text="${pip.power}"></span>
+                        <span style="display: inline-block; margin-left: 5px; vertical-align: top; font-size: 0.9em;">
+                            <div th:text="${@matrixV4Controller.getTotalActiveOffspring(pip)}"></div>
+                            <div th:text="${pip.activeHcnBodies.size()}"></div>
+                        </span>
+                    </span>
+                    
+                    <button class="collapsible" th:onclick="'toggleContent(\'pi' + ${item.index} + '\')'">
+                        HcnBody List (<span th:text="${item.hcnBodyList.size()}"></span>)
+                    </button>
+                    <div th:id="'pi' + ${item.index}" class="content">
+                        <div class="column-config">
+                            <strong>Status Filters:</strong>
+                            <label><input type="checkbox" class="status-toggle" th:data-pi="${item.index}" data-status="active" checked> Active</label>
+                            <label><input type="checkbox" class="status-toggle" th:data-pi="${item.index}" data-status="deactivated"> Deactivated</label>
+                            <label><input type="checkbox" class="status-toggle" th:data-pi="${item.index}" data-status="neverActivated"> Never Activated</label>
+                        </div>
+                        <div class="column-config">
+                            <strong>Columns:</strong>
+                            <label><input type="checkbox" class="col-toggle" data-col="chain" checked> Chain</label>
+                            <label><input type="checkbox" class="col-toggle" data-col="status" checked> Status</label>
+                            <label><input type="checkbox" class="col-toggle" data-col="value" checked> Value</label>
+                            <label><input type="checkbox" class="col-toggle" data-col="factor" checked> Factor</label>
+                            <label><input type="checkbox" class="col-toggle" data-col="proved" checked> Proved</label>
+                            <label><input type="checkbox" class="col-toggle" data-col="offspring" checked> Offspring</label>
+                            <label><input type="checkbox" class="col-toggle" data-col="hasFactory" checked> Factory</label>
+                            <label><input type="checkbox" class="col-toggle" data-col="superior" checked> Superior Body</label>
+                        </div>
+                        
+                        <table class="body-table" th:id="'table-pi' + ${item.index}">
+                            <thead>
+                                <tr>
+                                    <th class="col-chain">Chain</th>
+                                    <th class="col-status">Status</th>
+                                    <th class="col-value">Value</th>
+                                    <th class="col-factor">Factor</th>
+                                    <th class="col-proved">Proved</th>
+                                    <th class="col-offspring">Offspring</th>
+                                    <th class="col-hasFactory">Factory</th>
+                                    <th class="col-superior">Superior Body</th>
+                                </tr>
+                            </thead>
+                            <tbody th:attr="data-pi=${item.index}">
+                                <tr th:each="body : ${@matrixV4Controller.getAggregatedBodies(item)}" 
+                                    th:class="${body.proved ? 'proved' : (body.deactivated ? (body.proved ? 'deactivated' : 'never-activated') : '')}" 
+                                    th:attr="data-status=${body.deactivated ? (body.proved ? 'deactivated' : 'neverActivated') : 'active'}" 
+                                    th:style="${body.deactivated ? (body.proved ? 'display:none;' : 'display:none;') : ''}">
+                                    <td class="col-chain" th:text="${body.parentChainString()}"></td>
+                                    <td class="col-status" th:text="${body.deactivated ? (body.proved ? 'Deactivated' : 'Never Activated') : 'Active'}"></td>
+                                    <td class="col-value" th:text="${body.value}"></td>
+                                    <td class="col-factor" th:text="${body.factor}"></td>
+                                    <td class="col-proved" th:text="${body.proved}"></td>
+                                    <td class="col-offspring" th:text="${body.offspringPowers}"></td>
+                                    <td class="col-hasFactory" th:text="${body.hcnFactory != null ? body.hcnFactory.limitHcn : ''}"></td>
+                                    <td class="col-superior" th:text="${body.superiorBody != null ? body.superiorBody.value : ''}"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- FixedPowerGroup -->
+                <div th:if="${item.class.simpleName == 'FixedPowerGroup'}" class="prime-index" style="background: #ffe6cc;">
+                    <span style="display: inline-block; width: 60px; height: 60px; line-height: 60px; border-radius: 50%; border: 2px solid #ff8800; text-align: center; font-size: 1.5em; margin-right: 10px; background: #ffcc99;" th:text="${item.primeRangeDisplay}"></span>
+                    <span style="font-size: 1.2em; color: #ff8800;">FixedPowerGroup</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <button class="collapsible" onclick="toggleContent('hcnList')">
+            HCN List (<span th:text="${matrix.hcnList.size()}"></span>)
+        </button>
+        <div id="hcnList" class="content">
+            <div th:each="hcn : ${matrix.hcnList}" class="hcn-item">
+                <span th:text="${hcn.fullPrint()}"></span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <button class="collapsible" onclick="toggleContent('provedList')">
+            Proved HCNs (<span th:text="${matrix.provedHcnList.size()}"></span>)
+        </button>
+        <div id="provedList" class="content">
+            <div th:each="hcn : ${matrix.provedHcnList}" class="hcn-item">
+                <span th:text="${hcn.fullPrint()}"></span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function toggleContent(id) {
+            var content = document.getElementById(id);
+            content.classList.toggle('active');
+        }
+        
+        // Column visibility toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.col-toggle').forEach(function(checkbox) {
+                checkbox.addEventListener('change', function() {
+                    var colClass = 'col-' + this.dataset.col;
+                    var table = this.closest('.content').querySelector('.body-table');
+                    var cells = table.querySelectorAll('.' + colClass);
+                    cells.forEach(function(cell) {
+                        cell.style.display = checkbox.checked ? '' : 'none';
+                    });
+                });
+            });
+            
+            // Status filter toggle
+            document.querySelectorAll('.status-toggle').forEach(function(checkbox) {
+                checkbox.addEventListener('change', function() {
+                    var piIndex = this.dataset.pi;
+                    var status = this.dataset.status;
+                    var tbody = document.querySelector('tbody[data-pi="' + piIndex + '"]');
+                    var rows = tbody.querySelectorAll('tr[data-status="' + status + '"]');
+                    rows.forEach(function(row) {
+                        row.style.display = checkbox.checked ? '' : 'none';
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

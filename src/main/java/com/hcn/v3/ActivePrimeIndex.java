@@ -106,50 +106,15 @@ public class ActivePrimeIndex {
                 canWeExtendHere = parentActivePrimeIndex.pips.containsKey(getLastPip().getPower() + 1) && parentActivePrimeIndex.pips.get(getLastPip().getPower() + 1).isProved();
             }
 
-            if (parentActivePrimeIndex != null) {
-                System.out.println("Extending at " + this);
-                System.out.println("parentActivePrimeIndex " + parentActivePrimeIndex);
-                System.out.println("parentFixedPowerGroup " + parentFixedPowerGroup);
-                System.out.println("offspringFixedPowerGroup " + offspringFixedPowerGroup);
-                System.out.println("thispip at " + this.pips);
-                System.out.println("parentpip at " + parentActivePrimeIndex.pips);
-                System.out.println("parentActivePrimeIndex.pips.containsKey(getLastPip().getPower() + 1) " + parentActivePrimeIndex.pips.containsKey(getLastPip().getPower() + 1));
-                if (parentActivePrimeIndex.pips.containsKey(getLastPip().getPower() + 1)) {
-                    System.out.println("parentActivePrimeIndex.pips.get(getLastPip().getPower() + 1).isProved() " + parentActivePrimeIndex.pips.get(getLastPip().getPower() + 1).isProved());
-
-                } else {
-                    System.out.println("WOW " + parentActivePrimeIndex.pips);
-                }
-
-                System.out.println("Extending at " + this + " canWeExtendHere: " + canWeExtendHere);
-            }
-
             //boolean canWeExtendHere = parentActivePrimeIndex == null || parentActivePrimeIndex.pips.containsKey(getLastPip().getPower() + 1) && parentActivePrimeIndex.pips.get(getLastPip().getPower() + 1).isProved();
             if (canWeExtendHere) {
 
                 addNextPrimeIndexPower();
-                System.out.println("NextPip added here:  " + this + " offsp: " + offspringFixedPowerGroup);
                 if (offspringFixedPowerGroup != null) {
                     reactivateFixedPowerGroupMember();
                 }
 
-                Set<HcnBody> createdBodies;
-                if (parentActivePrimeIndex != null) {
-                    createdBodies = parentActivePrimeIndex.pips.values().stream()
-                            .filter(pip -> pip.getPower() >= getLastPip().getPower())
-                            .flatMap(pip -> pip.getActiveHcnBodies().stream())
-                            .map(parentBody -> new HcnBody(parentBody, getLastPip()))
-                            .collect(Collectors.toSet());
-                } else if (parentFixedPowerGroup != null) {
-
-                    createdBodies = parentFixedPowerGroup.getParentPrimeIndex().pips.values().stream()
-                            .filter(pip -> pip.getPower() >= getLastPip().getPower())
-                            .flatMap(pip -> pip.getActiveHcnBodies().stream())
-                            .map(parentBody -> new HcnBody(parentBody, getLastPip()))
-                            .collect(Collectors.toSet());
-                } else {
-                    createdBodies = Set.of(new HcnBody(null, getLastPip()));
-                }
+                Set<HcnBody> createdBodies = generateLocalStarterBodies();
                 Set<HcnBody> successfullyAdded = hcnBodyList.addGroup(createdBodies);
                 bodiesCreated = !successfullyAdded.isEmpty();
 
@@ -171,6 +136,19 @@ public class ActivePrimeIndex {
                         generateNextActivePrimeIndex();
                         bodiesCreated = true;
                     }
+                } else if (offspringFixedPowerGroup != null) {
+                    reactivateFixedPowerGroupMember();
+                    nextActivePrimeIndex.addNextPrimeIndexPower();
+
+                    Set<HcnBody> createdBodies = this.pips.values().stream()
+                            .filter(pip -> pip.getPower() >= nextActivePrimeIndex.getLastPip().getPower())
+                            .flatMap(pip -> pip.getActiveHcnBodies().stream())
+                            .map(parentBody -> new HcnBody(parentBody, nextActivePrimeIndex.getLastPip()))
+                            .collect(Collectors.toSet());
+                    Set<HcnBody> successfullyAdded = nextActivePrimeIndex.hcnBodyList.addGroup(createdBodies);
+                    nextActivePrimeIndex.offspringFixedPowerGroup.getOffspringPrimeIndex().generateHcnBodies(successfullyAdded);
+                } else {
+                    System.out.println("Will it happen????");
                 }
             }
         }
@@ -186,8 +164,28 @@ public class ActivePrimeIndex {
         return bodiesCreated;
     }
 
+    private Set<HcnBody> generateLocalStarterBodies() {
+        Set<HcnBody> createdBodies;
+        if (parentActivePrimeIndex != null) {
+            createdBodies = parentActivePrimeIndex.pips.values().stream()
+                    .filter(pip -> pip.getPower() >= getLastPip().getPower())
+                    .flatMap(pip -> pip.getActiveHcnBodies().stream())
+                    .map(parentBody -> new HcnBody(parentBody, getLastPip()))
+                    .collect(Collectors.toSet());
+        } else if (parentFixedPowerGroup != null) {
+
+            createdBodies = parentFixedPowerGroup.getParentPrimeIndex().pips.values().stream()
+                    .filter(pip -> pip.getPower() >= getLastPip().getPower())
+                    .flatMap(pip -> pip.getActiveHcnBodies().stream())
+                    .map(parentBody -> new HcnBody(parentBody, getLastPip()))
+                    .collect(Collectors.toSet());
+        } else {
+            createdBodies = Set.of(new HcnBody(null, getLastPip()));
+        }
+        return createdBodies;
+    }
+
     private void reactivateFixedPowerGroupMember() {
-        System.out.println("ExtendCheck toReactivate: ");
         ActivePrimeIndex toReactivate = offspringFixedPowerGroup.reactivatePrimeIndex();
 
         if (offspringFixedPowerGroup.getFixedPowerGroup().isEmpty()) {
@@ -207,9 +205,6 @@ public class ActivePrimeIndex {
             this.offspringFixedPowerGroup = null;
             this.nextActivePrimeIndex = toReactivate;
         }
-
-        System.out.println("ExtendCheck toReactivate.nextActivePrimeIndex: " + toReactivate.nextActivePrimeIndex);
-        System.out.println("ExtendCheck toReactivate.offspringFixedPowerGroup : " + toReactivate.offspringFixedPowerGroup );
     }
 
     public void generateHcnBodies(Set<HcnBody> previousBodies) {
