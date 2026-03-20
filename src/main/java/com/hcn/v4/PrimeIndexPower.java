@@ -9,11 +9,6 @@ public class PrimeIndexPower {
     private boolean proved = false;
     private Set<HcnBody> activeHcnBodies = new HashSet<>();
     
-    public PrimeIndexPower(ActivePrimeIndex primeIndex, int power) {
-        this.primeIndex = primeIndex;
-        this.power = power;
-    }
-    
     public ActivePrimeIndex getActivePrimeIndex() {
         return primeIndex;
     }
@@ -40,6 +35,11 @@ public class PrimeIndexPower {
 
     public void removeActiveHcnBody(HcnBody body) {
         activeHcnBodies.remove(body);
+    }
+
+    public PrimeIndexPower(ActivePrimeIndex primeIndex, int power) {
+        this.primeIndex = primeIndex;
+        this.power = power;
     }
 
     public String toString() {

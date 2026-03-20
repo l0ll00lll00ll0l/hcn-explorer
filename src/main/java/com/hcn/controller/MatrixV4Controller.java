@@ -107,9 +107,17 @@ public class MatrixV4Controller {
         .collect(Collectors.toList());
     }
     
+    public String getPrimeRangeDisplay(FixedPowerGroup fpg) {
+        List<ActivePrimeIndex> group = fpg.getFixedPowerGroup();
+        if (group.isEmpty()) return "";
+        int first = group.get(0).getIndex();
+        int last = group.get(group.size() - 1).getIndex();
+        return first == last ? String.valueOf(first) : first + "-" + last;
+    }
+
     public int getTotalActiveOffspring(com.hcn.v4.PrimeIndexPower pip) {
         return pip.getActiveHcnBodies().stream()
-                .mapToInt(body -> body.getOffspring().size())
+                .mapToInt(body -> body.getOffsprings().size())
                 .sum();
     }
 }

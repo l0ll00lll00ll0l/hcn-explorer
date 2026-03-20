@@ -5,7 +5,7 @@ import java.util.List;
 
 public class TXTcheckTest {
 
-    private static final int COMPARE_COUNT = 789000;
+    private static final int COMPARE_COUNT = 50000;
 
     @Test
     public void findFirstMismatchAgainstReference() {

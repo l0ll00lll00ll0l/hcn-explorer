@@ -59,7 +59,6 @@
     <div class="section">
         <h2>Matrix Info</h2>
         <div>Last Active PrimeIndex: p<span th:text="${matrix.lastActivePrimeIndex.index}"></span></div>
-        <div>Fixed PowerGroups: <span th:text="${matrix.fixedPowerGroups.size()}"></span></div>
         <div>HCN List size: <span th:text="${matrix.hcnList.size()}"></span></div>
         <div>Low Limit: <span th:text="${matrix.lowLimit}"></span></div>
         <div>Upper Limit: <span th:text="${matrix.upperLimit}"></span></div>
@@ -137,7 +136,7 @@
                 
                 <!-- FixedPowerGroup -->
                 <div th:if="${item.class.simpleName == 'FixedPowerGroup'}" class="prime-index" style="background: #ffe6cc;">
-                    <span style="display: inline-block; width: 60px; height: 60px; line-height: 60px; border-radius: 50%; border: 2px solid #ff8800; text-align: center; font-size: 1.5em; margin-right: 10px; background: #ffcc99;" th:text="${item.primeRangeDisplay}"></span>
+                    <span style="display: inline-block; width: 60px; height: 60px; line-height: 60px; border-radius: 50%; border: 2px solid #ff8800; text-align: center; font-size: 1.5em; margin-right: 10px; background: #ffcc99;" th:text="${@matrixV4Controller.getPrimeRangeDisplay(item)}"></span>
                     <span style="font-size: 1.2em; color: #ff8800;">FixedPowerGroup</span>
                 </div>
             </div>

@@ -62,22 +62,12 @@ public class ActivePrimeIndex {
         return parentFixedPowerGroup;
     }
     
-    public PrimeIndexPower getLastPip() {
-        return pips.get(pips.lastKey());
-    }
+    public PrimeIndexPower getLastPip() {return pips.get(pips.lastKey());}
 
-    public List<HcnBody> getBodiesForNextPipExtension(int power) {
-        return hcnBodyList.stream().filter(body -> body.getPip().getPower() >= power).collect(Collectors.toList());
-    }
-
-    public boolean isLastActivePrimeIndex() {
-        return nextActivePrimeIndex == null && offspringFixedPowerGroup == null;
-    }
+    public boolean isLastActivePrimeIndex() {return nextActivePrimeIndex == null && offspringFixedPowerGroup == null;}
     
     @Override
-    public String toString() {
-        return "p" + index;
-    }
+    public String toString() {return "p" + index;}
 
     public void addNextPrimeIndexPower() {
         int nextPowerValue = pips.lastKey() + 1;
@@ -100,7 +90,6 @@ public class ActivePrimeIndex {
         }
 
         provedBody.setProved(true);
-
         boolean bodiesCreated = false;
 
         //check if extension is required
@@ -114,63 +103,31 @@ public class ActivePrimeIndex {
 
                     reactivateFixedPowerGroupMember();
                     nextActivePrimeIndex.addNextPrimeIndexPower();
-
-                    Set<HcnBody> createdBodies = this.pips.values().stream()
-                            .filter(pip -> pip.getPower() >= nextActivePrimeIndex.getLastPip().getPower())
-                            .flatMap(pip -> pip.getActiveHcnBodies().stream())
-                            .map(parentBody -> new HcnBody(parentBody, nextActivePrimeIndex.getLastPip()))
-                            .collect(Collectors.toSet());
-                    Set<HcnBody> successfullyAdded = nextActivePrimeIndex.hcnBodyList.addGroup(createdBodies);
-
-                    if (nextActivePrimeIndex.offspringFixedPowerGroup != null) {
-                        nextActivePrimeIndex.offspringFixedPowerGroup.getOffspringPrimeIndex().generateHcnBodies(successfullyAdded);
-                    } else {
-                        nextActivePrimeIndex.nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
-                    }
-
+                    integrateExistingBodiesAfterReactivate();
                 }
 
                 if (nextActivePrimeIndex != null) {
                     if (nextActivePrimeIndex.getLastPip().isProved()) {
                         if (nextActivePrimeIndex.pips.lastKey() < provedBody.getPip().getPower()) {
-                            nextActivePrimeIndex.addNextPrimeIndexPower();
-
-                            Set<HcnBody> createdBodies = this.pips.values().stream()
-                                    .filter(pip -> pip.getPower() >= nextActivePrimeIndex.getLastPip().getPower())
-                                    .flatMap(pip -> pip.getActiveHcnBodies().stream())
-                                    .map(parentBody -> new HcnBody(parentBody, nextActivePrimeIndex.getLastPip()))
-                                    .collect(Collectors.toSet());
-                            Set<HcnBody> successfullyAdded = nextActivePrimeIndex.hcnBodyList.addGroup(createdBodies);
-
-                            if (nextActivePrimeIndex.nextActivePrimeIndex != null) {
-                                nextActivePrimeIndex.nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
-                            }
+                            extendNextActive();
+                            bodiesCreated = true;
                         }
                     }
 
 
                 } else if (isLastActivePrimeIndex() && provedBody.getPip().getPower() == 2) {
-                    generateNextActivePrimeIndex();
+                    extendWithNextActivePrimeIndex();
                     bodiesCreated = true;
                 }
 
-                boolean canExtendHere = parentActivePrimeIndex == null && parentFixedPowerGroup == null ||
+                boolean localExtensionRequired = parentActivePrimeIndex == null && parentFixedPowerGroup == null ||
                         parentActivePrimeIndex != null && parentActivePrimeIndex.getHighestProved() > getLastPip().getPower();
-                if (canExtendHere) {
-                    addNextPrimeIndexPower();
 
-                    Set<HcnBody> createdBodies = generateLocalStarterBodies();
-                    Set<HcnBody> successfullyAdded = hcnBodyList.addGroup(createdBodies);
-                    bodiesCreated = !successfullyAdded.isEmpty();
-
-                    if (nextActivePrimeIndex != null) {
-                        nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
-                    }
+                if (localExtensionRequired) {
+                    bodiesCreated = extendMatrixLocally();
                 }
             }
         }
-
-
 
         if (parentActivePrimeIndex != null) {
             boolean parentBodiesCreated = parentActivePrimeIndex.extendMatrix(provedBody.getParent());
@@ -180,6 +137,50 @@ public class ActivePrimeIndex {
             bodiesCreated = bodiesCreated || parentBodiesCreated;
         }
 
+        return bodiesCreated;
+    }
+
+    private void extendNextActive() {
+        nextActivePrimeIndex.addNextPrimeIndexPower();
+
+        Set<HcnBody> createdBodies = this.pips.values().stream()
+                .filter(pip -> pip.getPower() >= nextActivePrimeIndex.getLastPip().getPower())
+                .flatMap(pip -> pip.getActiveHcnBodies().stream())
+                .map(parentBody -> new HcnBody(parentBody, nextActivePrimeIndex.getLastPip()))
+                .collect(Collectors.toSet());
+        Set<HcnBody> successfullyAdded = nextActivePrimeIndex.hcnBodyList.addGroup(createdBodies);
+
+        if (nextActivePrimeIndex.nextActivePrimeIndex != null) {
+            nextActivePrimeIndex.nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
+        }
+    }
+
+    private void integrateExistingBodiesAfterReactivate() {
+        Set<HcnBody> createdBodies = this.pips.values().stream()
+                .filter(pip -> pip.getPower() >= nextActivePrimeIndex.getLastPip().getPower())
+                .flatMap(pip -> pip.getActiveHcnBodies().stream())
+                .map(parentBody -> new HcnBody(parentBody, nextActivePrimeIndex.getLastPip()))
+                .collect(Collectors.toSet());
+        Set<HcnBody> successfullyAdded = nextActivePrimeIndex.hcnBodyList.addGroup(createdBodies);
+
+        if (nextActivePrimeIndex.offspringFixedPowerGroup != null) {
+            nextActivePrimeIndex.offspringFixedPowerGroup.getOffspringPrimeIndex().generateHcnBodies(successfullyAdded);
+        } else {
+            nextActivePrimeIndex.nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
+        }
+    }
+
+    private boolean extendMatrixLocally() {
+        boolean bodiesCreated;
+        addNextPrimeIndexPower();
+
+        Set<HcnBody> createdBodies = generateLocalStarterBodies();
+        Set<HcnBody> successfullyAdded = hcnBodyList.addGroup(createdBodies);
+        bodiesCreated = !successfullyAdded.isEmpty();
+
+        if (nextActivePrimeIndex != null) {
+            nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
+        }
         return bodiesCreated;
     }
 
@@ -242,7 +243,7 @@ public class ActivePrimeIndex {
         }
     }
 
-    private void generateNextActivePrimeIndex() {
+    private void extendWithNextActivePrimeIndex() {
         nextActivePrimeIndex = new ActivePrimeIndex(index + 1);
         nextActivePrimeIndex.parentActivePrimeIndex = this;
 
@@ -276,23 +277,22 @@ public class ActivePrimeIndex {
 
     public void deactivateRecursive(HcnBody defeated, HcnBody superiorBody) {
 
-        // 2. Beállítja a superiorHcnBody-t
         defeated.setSuperiorBody(superiorBody);
 
-        // 3. Lecsekkolja, hogy ez volt-e az utolsó aktív HcnBody a pip-ben
         if (defeated.getPip().getActiveHcnBodies().isEmpty()) {
-            // Töröljük EZT a pip-et, nem a firstKey-t!
+            // pip is deletable
             deactivatedPips.add(defeated.getPip());
             pips.remove(defeated.getPip().getPower());
 
             if (pips.size() == 1) {
+                // activePrimeIndex is fixed
                 fixPowerMaintain();
             }
         }
 
-        // 4-5. Ha van parent, deaktiválja magát a parentben, és ha kell, rekurzívan a parentet is
         if (defeated.getParent() != null) {
-            defeated.getParent().getOffspring().remove(defeated);
+            // activePrimeIndex must be removed from parent's offsprings
+            defeated.getParent().getOffsprings().remove(defeated);
 
             if (defeated.isProved()) {
                 defeated.getParent().getDeactivatedOffsprings().add(defeated);
@@ -301,8 +301,8 @@ public class ActivePrimeIndex {
             }
 
 
-            if (defeated.getParent().getOffspring().isEmpty()) {
-                // Parent mindig benne van a listákban, töröljük
+            if (defeated.getParent().getOffsprings().isEmpty()) {
+                // parent is also deletable
                 defeated.getParent().deactivateFromLists();
                 defeated.getParent().getPip().getActivePrimeIndex().deactivateRecursive(defeated.getParent(), superiorBody.getParent());
             }

@@ -34,26 +34,15 @@ public class HcnFilter {
 
         int maxLevel = levelMap.lastKey();
 
-        for (Integer level : levelMap.keySet()) {
-            if (level == maxLevel) continue;
-
-            ArrayList<Hcn> levelList = levelMap.get(level);
-            if (levelList.isEmpty()) continue;
-
+        levelMap.forEach((level, levelList) -> {
+            if (level == maxLevel || levelList.isEmpty()) return;
             Hcn lastHcn = levelList.get(levelList.size() - 1);
-
             levelList.removeIf(hcn -> hcn != lastHcn && hcn.getValue().isSmallerThan(lowLimit));
-        }
+        });
     }
 
     public void removeLevelBelow(int minLevel) {
-        List<Integer> toRemove = new ArrayList<>();
-        for (Integer level : levelMap.keySet()) {
-            if (level < minLevel) {
-                toRemove.add(level);
-            }
-        }
-        toRemove.forEach(levelMap::remove);
+        levelMap.headMap(minLevel).clear();
     }
 
     // --- Append path ---
@@ -86,8 +75,7 @@ public class HcnFilter {
     }
 
     private void appendToHigherLevels(Hcn hcn, int startLevel) {
-        for (int level = startLevel + 1; levelMap.containsKey(level); level++) {
-            ArrayList<Hcn> levelList = levelMap.get(level);
+        for (ArrayList<Hcn> levelList : levelMap.tailMap(startLevel + 1).values()) {
             Hcn lastInLevel = levelList.get(levelList.size() - 1);
 
             if (isDominatedBy(hcn, lastInLevel)) {
@@ -124,14 +112,13 @@ public class HcnFilter {
         int insertIndex = findInsertPositionByValue(levelList, hcn);
         levelList.add(insertIndex, hcn);
 
-        removeEntriesDominatedBy(hcn, levelList, insertIndex + 1, level);
+        removeEntriesDominatedBy(hcn, levelList, insertIndex + 1);
 
         return true;
     }
 
     private void insertIntoHigherLevels(Hcn hcn, int startLevel) {
-        for (int level = startLevel + 1; levelMap.containsKey(level); level++) {
-            ArrayList<Hcn> levelList = levelMap.get(level);
+        for (ArrayList<Hcn> levelList : levelMap.tailMap(startLevel + 1).values()) {
 
             Hcn dominator = findDominator(hcn, levelList);
             if (dominator != null) {
@@ -141,7 +128,7 @@ public class HcnFilter {
             int insertIndex = findInsertPositionByValue(levelList, hcn);
             levelList.add(insertIndex, hcn);
 
-            removeEntriesDominatedBy(hcn, levelList, insertIndex + 1, level);
+            removeEntriesDominatedBy(hcn, levelList, insertIndex + 1);
         }
     }
 
@@ -191,7 +178,7 @@ public class HcnFilter {
         return list.size();
     }
 
-    private void removeEntriesDominatedBy(Hcn hcn, ArrayList<Hcn> levelList, int startIndex, int level) {
+    private void removeEntriesDominatedBy(Hcn hcn, ArrayList<Hcn> levelList, int startIndex) {
         List<Hcn> toRemove = new ArrayList<>();
         for (int i = startIndex; i < levelList.size(); i++) {
             Hcn candidate = levelList.get(i);
