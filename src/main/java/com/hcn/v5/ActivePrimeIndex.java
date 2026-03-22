@@ -1,6 +1,7 @@
 package com.hcn.v5;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
@@ -9,7 +10,8 @@ import java.util.stream.Collectors;
 public class ActivePrimeIndex {
     private int index;
     private TreeMap<Integer, PrimeIndexPower> pips = new TreeMap<>();
-    private FilteredHcnBodySet hcnBodyList = new FilteredHcnBodySet();
+    //private FilteredHcnBodySet hcnBodyList = new FilteredHcnBodySet();
+    private BodyList hcnBodyList = new BodyList();
     private ActivePrimeIndex nextActivePrimeIndex = null;
     private ActivePrimeIndex parentActivePrimeIndex = null;
     private FixedPowerGroup offspringFixedPowerGroup = null;
@@ -28,7 +30,7 @@ public class ActivePrimeIndex {
         return pips;
     }
     
-    public FilteredHcnBodySet getHcnBodyList() {
+    public BodyList getHcnBodyList() {
         return hcnBodyList;
     }
 
@@ -138,7 +140,7 @@ public class ActivePrimeIndex {
                 .flatMap(pip -> pip.getActiveHcnBodies().stream())
                 .map(parentBody -> new HcnBody(parentBody, nextActivePrimeIndex.getLastPip()))
                 .collect(Collectors.toSet());
-        Set<HcnBody> successfullyAdded = nextActivePrimeIndex.hcnBodyList.addGroup(createdBodies);
+        List<HcnBody> successfullyAdded = nextActivePrimeIndex.hcnBodyList.addGroup(createdBodies);
 
         if (nextActivePrimeIndex.nextActivePrimeIndex != null) {
             nextActivePrimeIndex.nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
@@ -151,7 +153,7 @@ public class ActivePrimeIndex {
                 .flatMap(pip -> pip.getActiveHcnBodies().stream())
                 .map(parentBody -> new HcnBody(parentBody, nextActivePrimeIndex.getLastPip()))
                 .collect(Collectors.toSet());
-        Set<HcnBody> successfullyAdded = nextActivePrimeIndex.hcnBodyList.addGroup(createdBodies);
+        List<HcnBody> successfullyAdded = nextActivePrimeIndex.hcnBodyList.addGroup(createdBodies);
 
         if (nextActivePrimeIndex.offspringFixedPowerGroup != null) {
             nextActivePrimeIndex.offspringFixedPowerGroup.getOffspringPrimeIndex().generateHcnBodies(successfullyAdded);
@@ -165,7 +167,7 @@ public class ActivePrimeIndex {
         addNextPrimeIndexPower();
 
         Set<HcnBody> createdBodies = generateLocalStarterBodies();
-        Set<HcnBody> successfullyAdded = hcnBodyList.addGroup(createdBodies);
+        List<HcnBody> successfullyAdded = hcnBodyList.addGroup(createdBodies);
         bodiesCreated = !successfullyAdded.isEmpty();
 
         if (nextActivePrimeIndex != null) {
@@ -210,7 +212,7 @@ public class ActivePrimeIndex {
         }
     }
 
-    public void generateHcnBodies(Set<HcnBody> previousBodies) {
+    public void generateHcnBodies(Collection<HcnBody> previousBodies) {
         Set<HcnBody> createdBodies = previousBodies.stream()
                 .flatMap(previousBody -> pips.values().stream()
                         .filter(pip -> pip.getPower() <= previousBody.getPip().getPower())
@@ -224,7 +226,7 @@ public class ActivePrimeIndex {
             });
         }
 
-        Set<HcnBody> successfullyAdded = hcnBodyList.addGroup(createdBodies);
+        List<HcnBody> successfullyAdded = hcnBodyList.addGroup(createdBodies);
 
         if (nextActivePrimeIndex != null) {
             nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
@@ -242,6 +244,7 @@ public class ActivePrimeIndex {
         pip1.setProved(true);
 
         // Create bodies with pip1 from all current bodies
+
         Set<HcnBody> pip1Bodies = hcnBodyList.stream().map(previousBody -> {
             HcnBody newBody = new HcnBody(previousBody, pip1);
             if (previousBody.isProved()) {

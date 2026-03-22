@@ -2,9 +2,11 @@ package com.hcn.v5;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class BodyList {
 
@@ -14,20 +16,50 @@ public class BodyList {
     public int size() { return size; }
     public HcnBody getSmallestBody() { return smallestBody; }
 
+    public void clear() {
+        System.out.println("[BodyList] clear() called, was size=" + size);
+        smallestBody = null; size = 0;
+    }
+
+    public void remove(HcnBody body) {
+        System.out.println("[BodyList] remove() body=" + body + " size before=" + size);
+        if (body.getSmallerBody() != null) body.getSmallerBody().setLargerBody(body.getLargerBody());
+        else smallestBody = body.getLargerBody();
+        if (body.getLargerBody() != null) body.getLargerBody().setSmallerBody(body.getSmallerBody());
+        size--;
+        System.out.println("[BodyList] remove() done, size after=" + size);
+    }
+
+    public Stream<HcnBody> stream() {
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(
+                new java.util.Iterator<>() {
+                    HcnBody current = smallestBody;
+                    public boolean hasNext() { return current != null; }
+                    public HcnBody next() { HcnBody c = current; current = current.getLargerBody(); return c; }
+                }, Spliterator.ORDERED), false);
+    }
+
     public List<HcnBody> addGroup(Collection<HcnBody> bodies) {
+        System.out.println("[BodyList] addGroup() called with " + bodies.size() + " bodies, current size=" + size);
         List<HcnBody> sorted = new ArrayList<>(bodies);
         sorted.sort(HcnBody::compareTo);
 
+        List<HcnBody> result;
         if (smallestBody == null) {
-            return initializeFromSorted(sorted);
+            result = initializeFromSorted(sorted);
+        } else {
+            result = mergeSortedBodies(sorted);
         }
-        return mergeSortedBodies(sorted);
+        System.out.println("[BodyList] addGroup() done, added=" + result.size() + ", size after=" + size);
+        return result;
     }
 
     private List<HcnBody> initializeFromSorted(List<HcnBody> sorted) {
         List<HcnBody> added = new ArrayList<>();
         smallestBody = sorted.remove(0);
         added.add(smallestBody);
+        System.out.println("[BodyList] initializeFromSorted() first body=" + smallestBody);
+        smallestBody.getPip().addActiveHcnBody(smallestBody);
 
         HcnBody currentFloorBody = smallestBody;
         while (!sorted.isEmpty()) {
@@ -36,6 +68,7 @@ public class BodyList {
                 currentFloorBody.setLargerBody(next);
                 next.setSmallerBody(currentFloorBody);
                 added.add(next);
+                next.getPip().addActiveHcnBody(next);
                 currentFloorBody = next;
             }
         }
@@ -45,11 +78,14 @@ public class BodyList {
     }
 
     private List<HcnBody> mergeSortedBodies(List<HcnBody> sorted) {
+        System.out.println("[BodyList] mergeSortedBodies() with " + sorted.size() + " sorted bodies");
         List<HcnBody> added = new ArrayList<>();
+        List<HcnBody> toDelete = new ArrayList<>();
 
         HcnBody currentFloorBody = smallestBody;
 
         for (HcnBody newBody : sorted) {
+            System.out.println("[BodyList]   processing newBody=" + newBody + ", floor=" + currentFloorBody);
 
             while (currentFloorBody.getLargerBody() != null && currentFloorBody.getLargerBody().getValue().isSmallerThan(newBody.getValue())) {
                 currentFloorBody = currentFloorBody.getLargerBody();
@@ -60,18 +96,25 @@ public class BodyList {
                     currentFloorBody.setLargerBody(newBody);
                     newBody.setSmallerBody(currentFloorBody);
                     added.add(newBody);
+                    newBody.getPip().addActiveHcnBody(newBody);
                     size++;
+                    System.out.println("[BodyList]   -> ADDED at end, size=" + size);
                     currentFloorBody = newBody;
                 } else {
-                    // new created body was not added
+                    System.out.println("[BodyList]   -> REJECTED at end (factor too low)");
+                    newBody.getPip().getActivePrimeIndex().deactivateRecursive(newBody);
                 }
             } else {
                 if (newBody.getFactor().isBiggerThan(currentFloorBody.getFactor())) {
 
                     HcnBody currentCeilingBody = currentFloorBody.getLargerBody();
+                    int deletedCount = 0;
                     while (currentCeilingBody != null && currentCeilingBody.getFactor().isNotBiggerThan(newBody.getFactor())) {
-                        // currentCeilingBody existing member is deactivated here
+                        System.out.println("[BodyList]   -> DELETING existing body=" + currentCeilingBody);
+                        currentCeilingBody.deactivateFromLists();
+                        toDelete.add(currentCeilingBody);
                         size--;
+                        deletedCount++;
                         currentCeilingBody = currentCeilingBody.getLargerBody();
                     }
 
@@ -84,13 +127,18 @@ public class BodyList {
                     }
 
                     added.add(newBody);
+                    newBody.getPip().addActiveHcnBody(newBody);
                     size++;
+                    System.out.println("[BodyList]   -> ADDED in middle, deleted=" + deletedCount + ", size=" + size);
                     currentFloorBody = newBody;
                 } else {
-                    // new created body was not added
+                    System.out.println("[BodyList]   -> REJECTED in middle (factor too low)");
+                    newBody.getPip().getActivePrimeIndex().deactivateRecursive(newBody);
                 }
             }
         }
+        System.out.println("[BodyList] mergeSortedBodies() deactivating " + toDelete.size() + " deleted bodies");
+        toDelete.forEach(body -> body.getPip().getActivePrimeIndex().deactivateRecursive(body));
         return added;
     }
 }

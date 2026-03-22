@@ -118,7 +118,7 @@ public class Matrix {
 
         // set new range until potential new lastActivePrimeIndex
         lowLimit = upperLimit;
-        upperLimit = lastActivePrimeIndex.getHcnBodyList().first().getHcnFactory().getLimitHcn().getValue();
+        upperLimit = lastActivePrimeIndex.getHcnBodyList().getSmallestBody().getHcnFactory().getLimitHcn().getValue();
 
         long tGen = System.nanoTime();
         TreeSet<Hcn> sortedRawHcn = generateHcnsBetweenLimits();
@@ -153,9 +153,9 @@ public class Matrix {
         hcnFilter.discardBelowLimit(lowLimit);
         
         // snapshot required to avoid concurrentModificationException
-        List<HcnBody> bodySnapshot = new ArrayList<>(lastActivePrimeIndex.getHcnBodyList());
+        //List<HcnBody> bodySnapshot = new ArrayList<>(lastActivePrimeIndex.getHcnBodyList());
         
-        return bodySnapshot.stream()
+        return lastActivePrimeIndex.getHcnBodyList().stream()
                 .flatMap(body -> body.getHcnsBetween(lowLimit, upperLimit).stream())
                 .collect(java.util.stream.Collectors.toCollection(TreeSet::new));
     }

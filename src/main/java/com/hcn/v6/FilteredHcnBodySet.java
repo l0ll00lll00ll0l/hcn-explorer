@@ -14,6 +14,7 @@ public class FilteredHcnBodySet extends TreeSet<HcnBody> {
     }
     
     public Set<HcnBody> addGroup(Collection<HcnBody> bodies) {
+        System.out.println("[FilteredSet] addGroup() called with " + bodies.size() + " bodies, current size=" + size());
         Set<HcnBody> successfullyAdded = new HashSet<>();
         Set<HcnBody> bodiesToDeactivate = new HashSet<>();
         
@@ -29,18 +30,21 @@ public class FilteredHcnBodySet extends TreeSet<HcnBody> {
         for (HcnBody current : allBodies) {
             if (recorder != null && compareByFactor(recorder, current) >= 0) {
                 // Recorder beats current, remove it
+                System.out.println("[FilteredSet]   -> DELETING body=" + current + " (dominated by " + recorder + ")");
                 super.remove(current);
                 bodiesToDeactivate.add(current);
             } else {
                 // Current is superior, becomes new recorder
                 recorder = current;
                 if (bodies.contains(current)) {
+                    System.out.println("[FilteredSet]   -> ADDED new body=" + current);
                     current.getPip().addActiveHcnBody(current);
                     successfullyAdded.add(current);
                 }
             }
         }
         
+        System.out.println("[FilteredSet] addGroup() done, added=" + successfullyAdded.size() + ", deleted=" + bodiesToDeactivate.size() + ", size after=" + size());
         // 3. Deactivate removed bodies
         for (HcnBody removed : bodiesToDeactivate) {
             // Call deactivateFromLists only for old bodies

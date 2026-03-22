@@ -15,7 +15,7 @@ public class FixedPowerGroup {
         fixedPowerGroup.add(primeIndex);
         value = value.multiply(new ScientificNumber(Math.pow(PrimeCenter.getPrime(primeIndex.getIndex()), primeIndex.getPips().firstEntry().getValue().getPower()), 0));
         factor = factor.multiply(new ScientificNumber((primeIndex.getPips().firstEntry().getValue().getPower() + 1), 0));
-        primeIndex.getHcnBodyList().forEach(HcnBody::removeFixedHcnBody);
+        primeIndex.getHcnBodyList().stream().forEach(HcnBody::removeFixedHcnBody);
         offspringPrimeIndex = primeIndex.getNextActivePrimeIndex();
         primeIndex.getHcnBodyList().clear();
         primeIndex.getLastPip().getActiveHcnBodies().clear();
