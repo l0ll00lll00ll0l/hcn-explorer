@@ -12,6 +12,16 @@ public class Matrix {
     private ScientificNumber upperLimit = new ScientificNumber(2, 0);
     private int lastProvedPrimeIndex = -1;
 
+    private long totalNanos = 0;
+    private long extendMatrixNanos = 0;
+    private long generateHcnNanos = 0;
+    private long filterNanos = 0;
+
+    public long getTotalMs() { return totalNanos / 1_000_000; }
+    public long getExtendMatrixMs() { return extendMatrixNanos / 1_000_000; }
+    public long getGenerateHcnMs() { return generateHcnNanos / 1_000_000; }
+    public long getFilterMs() { return filterNanos / 1_000_000; }
+
     public ActivePrimeIndex getLastActivePrimeIndex() {
         return lastActivePrimeIndex;
     }
@@ -70,12 +80,17 @@ public class Matrix {
     }
 
     public Hcn proveNextHcn() {
+        long t0 = System.nanoTime();
 
         Hcn provedHcn = hcnFilter.getMaxLevelCandidates().get(0);
         provedCount++;
 
         if (!provedHcn.getBody().isDeactivated()) {
-            if (lastActivePrimeIndex.extendMatrix(provedHcn.getBody())) {
+            long tExt = System.nanoTime();
+            boolean extended = lastActivePrimeIndex.extendMatrix(provedHcn.getBody());
+            extendMatrixNanos += System.nanoTime() - tExt;
+
+            if (extended) {
                 generateHcnsAfterExtension(provedHcn);
             }
         }
@@ -88,6 +103,8 @@ public class Matrix {
             newLastActivePrimeIndexFound(provedHcn);
         }
         hcnFilter.removeProvedFirst();
+
+        totalNanos += System.nanoTime() - t0;
         return provedHcn;
     }
 
@@ -103,8 +120,13 @@ public class Matrix {
         lowLimit = upperLimit;
         upperLimit = lastActivePrimeIndex.getHcnBodyList().first().getHcnFactory().getLimitHcn().getValue();
 
+        long tGen = System.nanoTime();
         TreeSet<Hcn> sortedRawHcn = generateHcnsBetweenLimits();
+        generateHcnNanos += System.nanoTime() - tGen;
+
+        long tFilt = System.nanoTime();
         hcnFilter.addFromExpandedRange(sortedRawHcn);
+        filterNanos += System.nanoTime() - tFilt;
     }
 
     private void generateHcnsAfterExtension(Hcn provedHcn) {
@@ -116,8 +138,13 @@ public class Matrix {
         // set remaining range with same upperLimit
         lowLimit = provedHcn.getValue();
 
+        long tGen = System.nanoTime();
         TreeSet<Hcn> sortedRawHcn = generateHcnsBetweenLimits();
+        generateHcnNanos += System.nanoTime() - tGen;
+
+        long tFilt = System.nanoTime();
         hcnFilter.addAfterExtension(sortedRawHcn);
+        filterNanos += System.nanoTime() - tFilt;
     }
 
     private TreeSet<Hcn> generateHcnsBetweenLimits() {

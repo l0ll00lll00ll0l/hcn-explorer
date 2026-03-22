@@ -104,6 +104,10 @@
             <div>HCN List: <span th:text="${matrix.hcnList.size()}"></span></div>
             <div>Low: <span th:text="${matrix.lowLimit}"></span></div>
             <div>Upper: <span th:text="${matrix.upperLimit}"></span></div>
+            <div style="margin-top: 6px; border-top: 1px solid #ccc; padding-top: 4px;">Total: <span th:text="${matrix.totalMs}"></span> ms</div>
+            <div>ExtendMatrix: <span th:text="${matrix.extendMatrixMs}"></span> ms</div>
+            <div>GenerateHcn: <span th:text="${matrix.generateHcnMs}"></span> ms</div>
+            <div>Filter: <span th:text="${matrix.filterMs}"></span> ms</div>
         </div>
         <div th:with="matrixChain=${@matrixV6Controller.buildMatrixChain(matrix.lastActivePrimeIndex)}">
             <div class="matrix-columns">

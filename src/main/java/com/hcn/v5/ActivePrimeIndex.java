@@ -271,14 +271,12 @@ public class ActivePrimeIndex {
     public void deactivateRecursive(HcnBody defeated) {
 
 
-        System.out.println("Deactivate recursive at " + this);
         if (defeated.getPip().getActiveHcnBodies().isEmpty()) {
             // pip is deletable
             pips.remove(defeated.getPip().getPower());
 
             if (pips.size() == 1) {
                 // activePrimeIndex is fixed
-                System.out.println("FixPowerMaintain at " + this);
                 fixPowerMaintain();
             }
         }
