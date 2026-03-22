@@ -52,17 +52,14 @@ public class BodyList {
     private List<HcnBody> initializeFromSorted(List<HcnBody> sorted) {
         List<HcnBody> added = new ArrayList<>();
         smallestBody = sorted.remove(0);
-        added.add(smallestBody);
-        smallestBody.getPip().addActiveHcnBody(smallestBody);
+        acceptBody(smallestBody, added);
 
         HcnBody currentFloorBody = smallestBody;
         while (!sorted.isEmpty()) {
             HcnBody next = sorted.remove(0);
             if (next.getFactor().isBiggerThan(currentFloorBody.getFactor())) {
-                currentFloorBody.setLargerBody(next);
-                next.setSmallerBody(currentFloorBody);
-                added.add(next);
-                next.getPip().addActiveHcnBody(next);
+                insertAfter(currentFloorBody, next, null);
+                acceptBody(next, added);
                 currentFloorBody = next;
             }
         }
@@ -83,46 +80,37 @@ public class BodyList {
                 currentFloorBody = currentFloorBody.getLargerBody();
             }
 
-            if (currentFloorBody.getLargerBody() == null) {
-                if (newBody.getFactor().isBiggerThan(currentFloorBody.getFactor())) {
-                    currentFloorBody.setLargerBody(newBody);
-                    newBody.setSmallerBody(currentFloorBody);
-                    added.add(newBody);
-                    newBody.getPip().addActiveHcnBody(newBody);
-                    size++;
-                    currentFloorBody = newBody;
-                } else {
-                    toDelete.add(newBody);
-                }
-            } else {
-                if (newBody.getFactor().isBiggerThan(currentFloorBody.getFactor())) {
-
-                    HcnBody currentCeilingBody = currentFloorBody.getLargerBody();
-                    while (currentCeilingBody != null && currentCeilingBody.getFactor().isNotBiggerThan(newBody.getFactor())) {
-                        currentCeilingBody.deactivateFromLists();
-                        toDelete.add(currentCeilingBody);
-                        size--;
-                        currentCeilingBody = currentCeilingBody.getLargerBody();
-                    }
-
-                    currentFloorBody.setLargerBody(newBody);
-                    newBody.setSmallerBody(currentFloorBody);
-
-                    if (currentCeilingBody != null) {
-                        newBody.setLargerBody(currentCeilingBody);
-                        currentCeilingBody.setSmallerBody(newBody);
-                    }
-
-                    added.add(newBody);
-                    newBody.getPip().addActiveHcnBody(newBody);
-                    size++;
-                    currentFloorBody = newBody;
-                } else {
-                    toDelete.add(newBody);
-                }
+            if (!newBody.getFactor().isBiggerThan(currentFloorBody.getFactor())) {
+                toDelete.add(newBody);
+                continue;
             }
+
+            HcnBody ceilingBody = currentFloorBody.getLargerBody();
+            while (ceilingBody != null && ceilingBody.getFactor().isNotBiggerThan(newBody.getFactor())) {
+                ceilingBody.deactivateFromLists();
+                toDelete.add(ceilingBody);
+                size--;
+                ceilingBody = ceilingBody.getLargerBody();
+            }
+
+            insertAfter(currentFloorBody, newBody, ceilingBody);
+            acceptBody(newBody, added);
+            currentFloorBody = newBody;
         }
         toDelete.forEach(body -> body.getPip().getActivePrimeIndex().deactivateRecursive(body));
         return added;
+    }
+
+    private void insertAfter(HcnBody floor, HcnBody newBody, HcnBody ceiling) {
+        floor.setLargerBody(newBody);
+        newBody.setSmallerBody(floor);
+        newBody.setLargerBody(ceiling);
+        if (ceiling != null) ceiling.setSmallerBody(newBody);
+    }
+
+    private void acceptBody(HcnBody body, List<HcnBody> added) {
+        added.add(body);
+        body.getPip().addActiveHcnBody(body);
+        size++;
     }
 }

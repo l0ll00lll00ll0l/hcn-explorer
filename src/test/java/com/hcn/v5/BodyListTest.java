@@ -11,16 +11,22 @@ import static org.junit.jupiter.api.Assertions.*;
 public class BodyListTest {
 
     private BodyList bodyList;
+    private ActivePrimeIndex dummyApi;
+    private PrimeIndexPower dummyPip;
 
     @BeforeEach
     void setUp() {
         bodyList = new BodyList();
+        dummyApi = new ActivePrimeIndex(0);
+        dummyPip = new PrimeIndexPower(dummyApi, 1);
+        dummyApi.getPips().put(1, dummyPip);
     }
 
     private HcnBody body(double value, double factor) {
         HcnBody b = new HcnBody();
         b.setValue(new ScientificNumber(value, 0));
         b.setFactor(new ScientificNumber(factor, 0));
+        b.setPip(dummyPip);
         return b;
     }
 

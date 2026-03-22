@@ -27,6 +27,10 @@ public class HcnBody implements Comparable<HcnBody> {
         return pip;
     }
 
+    public void setPip(PrimeIndexPower pip) {
+        this.pip = pip;
+    }
+
     public ScientificNumber getValue() {
         return value;
     }

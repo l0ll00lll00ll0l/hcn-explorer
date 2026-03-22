@@ -152,9 +152,6 @@ public class Matrix {
         // new extension won't produce Hcns below lowLimit, hcnFilter can be maintained
         hcnFilter.discardBelowLimit(lowLimit);
         
-        // snapshot required to avoid concurrentModificationException
-        //List<HcnBody> bodySnapshot = new ArrayList<>(lastActivePrimeIndex.getHcnBodyList());
-        
         return lastActivePrimeIndex.getHcnBodyList().stream()
                 .flatMap(body -> body.getHcnsBetween(lowLimit, upperLimit).stream())
                 .collect(java.util.stream.Collectors.toCollection(TreeSet::new));
