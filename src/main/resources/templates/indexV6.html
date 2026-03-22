@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>HCN Matrix V6</title>
+    <style>
+        body { font-family: monospace; margin: 20px; }
+        .section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .matrix-info { float: right; font-size: 0.85em; text-align: right; margin-bottom: 10px; }
+        .hcn-item { margin: 5px 0; font-size: 12px; }
+
+        .mainpanel { margin: 20px 0; border: 1px solid #ccc; }
+        .tab-bar { display: flex; border-bottom: 2px solid #ccc; background: #f0f0f0; }
+        .tab-btn { padding: 8px 16px; border: none; background: none; cursor: pointer; font-family: monospace; font-size: 1em; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+        .tab-btn:hover { background: #e0e0e0; }
+        .tab-btn.active { background: #fff; border-bottom: 2px solid #000; font-weight: bold; }
+        .tab-content { display: none; padding: 10px; }
+        .tab-content.active { display: block; }
+
+        .matrix-columns { display: flex; align-items: flex-end; gap: 6px; }
+        .matrix-col { display: flex; flex-direction: column; align-items: center; }
+        .pip-stack { display: flex; flex-direction: column; align-items: center; }
+
+        .prime-circle {
+            display: inline-block; width: 40px; height: 40px; line-height: 40px;
+            border-radius: 50%; border: 2px solid #000; text-align: center;
+            font-size: 1.3em; margin: 2px auto;
+        }
+        .fpg-rect {
+            border: 2px solid #ff8800; background: #ffcc99; text-align: center;
+            font-weight: bold; font-size: 1.3em;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            min-width: 44px; padding: 4px 8px; box-sizing: border-box;
+        }
+
+        .pip-cell {
+            display: inline-block; padding: 6px 8px; margin: 2px; border: 2px solid #000;
+            font-weight: bold; font-size: 1.3em; min-width: 30px;
+        }
+        .pip-proved { background-color: #90EE90; }
+        .pip-unproved { background-color: #FFFFFF; }
+
+        .pip-info { font-size: 0.7em; font-weight: normal; }
+
+        .collapsible { cursor: pointer; padding: 5px; background: #ddd; border: none; width: 100%; text-align: left; }
+        .collapsible:hover { background: #ccc; }
+        .content { display: none; padding: 10px; border: 1px solid #ddd; }
+        .content.active { display: block; }
+
+        .filter-layout { display: flex; gap: 10px; }
+        .level-list { min-width: 300px; max-height: 600px; overflow-y: auto; }
+        .level-detail { flex: 1; max-height: 600px; overflow-y: auto; }
+        .level-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .level-table th { background: #333; color: white; padding: 4px 6px; text-align: left; position: sticky; top: 0; }
+        .level-table td { padding: 4px 6px; border-bottom: 1px solid #ddd; }
+        .level-table tr:hover { background: #f5f5f5; }
+        .level-table tr.selected { background: #cce5ff; }
+        .level-table tr.level-max { background: #90EE90; }
+        .level-row { cursor: pointer; }
+
+    </style>
+</head>
+<body>
+    <h1>HCN Matrix V6</h1>
+
+    <form method="post" action="/v6/proveUntilIndex" style="display: inline-block; margin-right: 10px;">
+        <label>Prove Index:
+            <input type="number" name="primeIndex" value="10" min="0" style="width: 60px;" />
+        </label>
+        <button type="submit">Prove Index</button>
+    </form>
+
+    <form method="post" action="/v6/proveNext" style="display: inline-block; margin-right: 10px;">
+        <button type="submit">Prove Next HCN</button>
+    </form>
+
+    <form method="post" action="/v6/proveUntilCount" style="display: inline-block; margin-right: 10px;">
+        <label>Prove Count:
+            <input type="number" name="count" value="5000" min="1" style="width: 80px;" />
+        </label>
+        <button type="submit">Prove Count</button>
+    </form>
+
+    <form method="post" action="/v6/reset" style="display: inline-block; margin-right: 10px;">
+        <button type="submit" style="background-color: #ff6b6b; color: white;">Reset Matrix</button>
+    </form>
+
+    <form method="post" action="/v6/setDisplayDecimals" style="display: inline-block;">
+        <label>Display Decimals:
+            <input type="number" name="decimals" th:value="${displayDecimals}" min="0" max="15" style="width: 60px;" />
+        </label>
+        <button type="submit">Set</button>
+    </form>
+
+    <div class="mainpanel">
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('matrix')">Matrix</button>
+            <button class="tab-btn" onclick="switchTab('hcnfilter')">HcnFilter</button>
+        </div>
+        <div id="tab-matrix" class="tab-content active">
+        <div class="matrix-info">
+            <div>Proved: <span th:text="${matrix.provedCount}"></span></div>
+            <div>Last Active: p<span th:text="${matrix.lastActivePrimeIndex.index}"></span></div>
+            <div>Last Proved: p<span th:text="${matrix.lastProvedPrimeIndex}"></span></div>
+            <div>HCN List: <span th:text="${matrix.hcnList.size()}"></span></div>
+            <div>Low: <span th:text="${matrix.lowLimit}"></span></div>
+            <div>Upper: <span th:text="${matrix.upperLimit}"></span></div>
+        </div>
+        <div th:with="matrixChain=${@matrixV6Controller.buildMatrixChain(matrix.lastActivePrimeIndex)}">
+            <div class="matrix-columns">
+                <div th:each="item : ${matrixChain}" class="matrix-col">
+                    <!-- ActivePrimeIndex: pip stack + prime circle -->
+                    <th:block th:if="${item.class.simpleName == 'ActivePrimeIndex'}">
+                        <div class="pip-stack">
+                            <div th:each="pip : ${item.pips.descendingMap().values()}"
+                                 class="pip-cell"
+                                 th:classappend="${pip.proved} ? 'pip-proved' : 'pip-unproved'">
+                                <span th:text="${pip.power}"></span>
+                                <div class="pip-info">
+                                    <span th:text="${@matrixV6Controller.getTotalGeneratorCount(pip)}"></span>/<span th:text="${pip.activeHcnBodies.size()}"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="prime-circle"
+                             th:text="${T(com.hcn.v6.PrimeCenter).getPrime(item.index)}"></div>
+                    </th:block>
+                    <!-- FixedPowerGroup: single rectangle -->
+                    <th:block th:if="${item.class.simpleName == 'FixedPowerGroup' and !item.fixedPowerGroup.isEmpty()}">
+                        <div class="fpg-rect">
+                            <div th:text="${@matrixV6Controller.getPrimeRangeDisplay(item)}"></div>
+                            <div style="font-size: 0.7em; font-weight: normal;"
+                                 th:text="${@matrixV6Controller.getPrimeValueRangeDisplay(item)}"></div>
+                        </div>
+                    </th:block>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <div id="tab-hcnfilter" class="tab-content">
+            <div class="filter-layout">
+                <div class="level-list">
+                    <table class="level-table">
+                        <thead>
+                            <tr><th>Level</th><th>Size</th><th>Last Value</th><th>Last Factor</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="entry : ${matrix.hcnFilter.levelMap}"
+                                th:classappend="${entry.key == matrix.hcnFilter.levelMap.lastKey()} ? 'level-max' : ''"
+                                class="level-row" th:onclick="'showLevel(' + ${entry.key} + ')'">
+                                <td th:text="${entry.key}"></td>
+                                <td th:text="${entry.value.size()}"></td>
+                                <td th:text="${entry.value.isEmpty() ? '' : entry.value.get(entry.value.size() - 1).value}"></td>
+                                <td th:text="${entry.value.isEmpty() ? '' : entry.value.get(entry.value.size() - 1).factor}"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="level-detail">
+                    <div th:each="entry : ${matrix.hcnFilter.levelMap}"
+                         th:id="'level-' + ${entry.key}" style="display: none;">
+                        <table class="level-table">
+                            <thead>
+                                <tr><th>#</th><th>Chain</th><th>LastPrime</th><th>Value</th><th>Factor</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="hcn, iter : ${entry.value}">
+                                    <td th:text="${iter.index}"></td>
+                                    <td th:text="${hcn.body.parentChainString()}"></td>
+                                    <td th:text="${hcn.lastActivePrime}"></td>
+                                    <td th:text="${hcn.value}"></td>
+                                    <td th:text="${hcn.factor}"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HcnBody List dropdowns - temporarily hidden, code preserved for later use
+    <div class="section" th:with="matrixChain=${@matrixV6Controller.buildMatrixChain(matrix.lastActivePrimeIndex)}">
+        <h2>HcnBody Lists</h2>
+        <div th:each="item : ${matrixChain}">
+            <div th:if="${item.class.simpleName == 'ActivePrimeIndex'}">
+                <button class="collapsible" th:onclick="'toggleContent(\'pi' + ${item.index} + '\')'">
+                    p<span th:text="${item.index}"></span> HcnBody List (<span th:text="${item.hcnBodyList.size()}"></span>)
+                </button>
+                <div th:id="'pi' + ${item.index}" class="content">
+                    <div class="column-config">
+                        <strong>Columns:</strong>
+                        <label><input type="checkbox" class="col-toggle" data-col="chain" checked> Chain</label>
+                        <label><input type="checkbox" class="col-toggle" data-col="value" checked> Value</label>
+                        <label><input type="checkbox" class="col-toggle" data-col="factor" checked> Factor</label>
+                        <label><input type="checkbox" class="col-toggle" data-col="proved" checked> Proved</label>
+                        <label><input type="checkbox" class="col-toggle" data-col="offspring" checked> Offspring</label>
+                        <label><input type="checkbox" class="col-toggle" data-col="hasFactory" checked> Factory</label>
+                    </div>
+
+                    <table class="body-table" th:id="'table-pi' + ${item.index}">
+                        <thead>
+                            <tr>
+                                <th class="col-chain">Chain</th>
+                                <th class="col-value">Value</th>
+                                <th class="col-factor">Factor</th>
+                                <th class="col-proved">Proved</th>
+                                <th class="col-offspring">Offspring</th>
+                                <th class="col-hasFactory">Factory</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="body : ${@matrixV6Controller.getActiveBodies(item)}"
+                                th:class="${body.proved ? 'proved' : ''}">
+                                <td class="col-chain" th:text="${body.parentChainString()}"></td>
+                                <td class="col-value" th:text="${body.value}"></td>
+                                <td class="col-factor" th:text="${body.factor}"></td>
+                                <td class="col-proved" th:text="${body.proved}"></td>
+                                <td class="col-offspring" th:text="${body.offspringPowers}"></td>
+                                <td class="col-hasFactory" th:text="${body.hcnFactory != null ? body.hcnFactory.limitHcn : ''}"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    -->
+
+    <div class="section">
+        <button class="collapsible" onclick="toggleContent('hcnList')">
+            HCN List (<span th:text="${matrix.hcnList.size()}"></span>)
+        </button>
+        <div id="hcnList" class="content">
+            <div th:each="hcn : ${matrix.hcnList}" class="hcn-item">
+                <span th:text="${hcn.fullPrint()}"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showLevel(level) {
+            document.querySelectorAll('.level-detail > div').forEach(function(d) { d.style.display = 'none'; });
+            document.querySelectorAll('.level-row').forEach(function(r) { r.classList.remove('selected'); });
+            document.getElementById('level-' + level).style.display = 'block';
+            event.currentTarget.classList.add('selected');
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.getElementById('tab-' + tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function toggleContent(id) {
+            var content = document.getElementById(id);
+            content.classList.toggle('active');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Size FPG rects to match pip-cell + prime-circle height of neighbors
+            var firstPip = document.querySelector('.pip-cell');
+            var firstCircle = document.querySelector('.prime-circle');
+            if (firstPip && firstCircle) {
+                var targetHeight = firstPip.offsetHeight + firstCircle.offsetHeight + 4;
+                document.querySelectorAll('.fpg-rect').forEach(function(rect) {
+                    rect.style.height = targetHeight + 'px';
+                });
+            }
+        });
+    </script>
+</body>
+</html>
