@@ -102,7 +102,7 @@ public class BodyList {
                     currentFloorBody = newBody;
                 } else {
                     System.out.println("[BodyList]   -> REJECTED at end (factor too low)");
-                    newBody.getPip().getActivePrimeIndex().deactivateRecursive(newBody);
+                    toDelete.add(newBody);
                 }
             } else {
                 if (newBody.getFactor().isBiggerThan(currentFloorBody.getFactor())) {
@@ -133,7 +133,7 @@ public class BodyList {
                     currentFloorBody = newBody;
                 } else {
                     System.out.println("[BodyList]   -> REJECTED in middle (factor too low)");
-                    newBody.getPip().getActivePrimeIndex().deactivateRecursive(newBody);
+                    toDelete.add(newBody);
                 }
             }
         }
