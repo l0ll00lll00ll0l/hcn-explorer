@@ -27,10 +27,11 @@ public class HcnFactory {
         }
 
         if (limitHcn == null) {
-            initializeHcnFactory();
+            initializeHcnFactory(lowLimit, upperLimit);
         }
 
         if (limitHcn.getValue().compareTo(lowLimit) > 0 && limitHcn.getValue().compareTo(upperLimit) < 1) {
+
             hcnList.add(limitHcn);
         }
 
@@ -54,17 +55,67 @@ public class HcnFactory {
         nextHcn.setFactor(limitHcn.getFactor().multiply(new ScientificNumber(2, 0)));
         previousHcns.add(limitHcn);
         limitHcn = nextHcn;
+
+
         if (limitHcn.getValue().compareTo(lowLimit) > 0 && limitHcn.getValue().compareTo(upperLimit) < 1) {
             hcnList.add(limitHcn);
         }
     }
 
-    private void initializeHcnFactory() {
+    private void initializeHcnFactory(ScientificNumber lowLimit, ScientificNumber upperLimit) {
 
-        int lastBodyIndex = hcnBody.getPip().getActivePrimeIndex().getIndex();
-        limitHcn = new Hcn(hcnBody, lastBodyIndex);
-        limitHcn.setValue(hcnBody.getValue());
-        limitHcn.setFactor(hcnBody.getFactor());
+        //System.out.println("Initialize " + this.hcnBody);
+        Hcn referenceHcn = null;
+        if (this.hcnBody.getSmallerBody() != null) {
+            //System.out.println("Initialize smallerBody exists " + this.hcnBody.getSmallerBody());
+
+            if (hcnBody.getSmallerBody().getHcnFactory().previousHcns.isEmpty()) {
+                referenceHcn = this.hcnBody.getSmallerBody().getHcnFactory().limitHcn;
+            } else {
+                //System.out.println("previous hcns: " + hcnBody.getSmallerBody().getHcnFactory().previousHcns.size());
+                referenceHcn = hcnBody.getSmallerBody().getHcnFactory().previousHcns.get(0);
+            }
+        }
+
+        if (referenceHcn == null) {
+            int lastBodyIndex = hcnBody.getPip().getActivePrimeIndex().getIndex();
+            limitHcn = new Hcn(hcnBody, lastBodyIndex);
+            limitHcn.setValue(hcnBody.getValue());
+            limitHcn.setFactor(hcnBody.getFactor());
+        } else if (referenceHcn.getLastActivePrime() < hcnBody.getPip().getActivePrimeIndex().getIndex()) {
+
+            int lastBodyIndex = hcnBody.getPip().getActivePrimeIndex().getIndex();
+            limitHcn = new Hcn(hcnBody, lastBodyIndex);
+            limitHcn.setValue(hcnBody.getValue());
+            limitHcn.setFactor(hcnBody.getFactor());
+        } else {
+
+            limitHcn = referenceHcn.createHcnByReference(hcnBody);
+
+            if (limitHcn.getValue().isBiggerThan(lowLimit)) {
+                //System.out.println("limHcn bigger than lowlimit " + limitHcn + ", " + lowLimit);
+                setLimitHcnFirstAftreLimit(lowLimit);
+                //System.out.println("limHcn now smaller than lowlimit " + limitHcn + ", " + lowLimit);
+            } else {
+                //System.out.println("limHcn already smaller than lowlimit " + limitHcn + ", " + lowLimit);
+            }
+        }
+    }
+
+    private void setLimitHcnFirstAftreLimit(ScientificNumber lowLimit) {
+        int lapi = limitHcn.getLastActivePrime();
+        ScientificNumber potentialValueBefore = limitHcn.getValue().divide(new ScientificNumber(PrimeCenter.getPrime(lapi), 0));
+        //System.out.println("potential value: " + potentialValueBefore);
+        //System.out.println("lapi: " + lapi);
+        //System.out.println("hcnBody.getPip().getActivePrimeIndex().getIndex(): " + hcnBody.getPip().getActivePrimeIndex().getIndex());
+        while (lapi > hcnBody.getPip().getActivePrimeIndex().getIndex() && potentialValueBefore.isBiggerThan(lowLimit)) {
+            lapi--;
+            limitHcn.setLastActivePrime(lapi);
+            limitHcn.setValue(potentialValueBefore);
+            limitHcn.setFactor(limitHcn.getFactor().divide(new ScientificNumber(2, 0)));
+            potentialValueBefore = limitHcn.getValue().divide(new ScientificNumber(PrimeCenter.getPrime(lapi), 0));
+            //System.out.println("  potential value: " + potentialValueBefore);
+        }
     }
 
 

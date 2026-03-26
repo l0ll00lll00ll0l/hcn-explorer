@@ -174,4 +174,41 @@ public class HcnBody implements Comparable<HcnBody> {
 
         return reactivateHcnBody;
     }
+
+    public ScientificNumber getValueMultiplier(HcnBody hcnBody) {
+        if (!this.pip.equals(hcnBody.pip)) {
+            int powerdiff = hcnBody.pip.getPower() - pip.getPower();
+            ScientificNumber localMultiplier = new ScientificNumber(Math.pow(PrimeCenter.getPrime(this.pip.getActivePrimeIndex().getIndex()), powerdiff), 0);
+            if (parent == null) {
+                return localMultiplier;
+            } else {
+                return parent.getValueMultiplier(hcnBody.getParent()).multiply(localMultiplier);
+            }
+        } else {
+            if (parent == null) {
+                return new ScientificNumber(1,0);
+            } else {
+                return parent.getValueMultiplier(hcnBody.getParent());
+            }
+        }
+    }
+
+    public ScientificNumber getFactorMultiplier(HcnBody hcnBody) {
+        if (!this.pip.equals(hcnBody.pip)) {
+
+            ScientificNumber localMultiplier = new ScientificNumber(((double) (hcnBody.pip.getPower() + 1) / (pip.getPower() + 1)), 0);
+
+            if (parent == null) {
+                return localMultiplier;
+            } else {
+                return parent.getFactorMultiplier(hcnBody.getParent()).multiply(localMultiplier);
+            }
+        } else {
+            if (parent == null) {
+                return new ScientificNumber(1,0);
+            } else {
+                return parent.getFactorMultiplier(hcnBody.getParent());
+            }
+        }
+    }
 }

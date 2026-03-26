@@ -39,6 +39,8 @@ public class Hcn implements Comparable<Hcn> {
         this.body = body;
     }
 
+    public void setLastActivePrime(int lastActivePrime) {this.lastActivePrime = lastActivePrime;}
+
     @Override
     public int compareTo(Hcn other) {
         return this.value.compareTo(other.value);
@@ -46,11 +48,18 @@ public class Hcn implements Comparable<Hcn> {
     
     @Override
     public String toString() {
-        return lastActivePrime + " v: " + value + " f: " + factor;
+        return this.body.parentChainString() + " " + lastActivePrime + " v: " + value + " f: " + factor;
     }
 
     public String fullPrint() {
         return body.parentChainString() + "|" + lastActivePrime + " v: " + value + " f: " + factor;
     }
 
+    public Hcn createHcnByReference(HcnBody hcnBody) {
+        Hcn newHcn = new Hcn(hcnBody, lastActivePrime);
+
+        newHcn.setValue(body.getValueMultiplier(hcnBody).multiply(value));
+        newHcn.setFactor(this.body.getFactorMultiplier(hcnBody).multiply(factor));
+        return newHcn;
+    }
 }

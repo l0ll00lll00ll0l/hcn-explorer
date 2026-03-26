@@ -46,7 +46,7 @@ public class Hcn implements Comparable<Hcn> {
     
     @Override
     public String toString() {
-        return lastActivePrime + " v: " + value + " f: " + factor;
+        return this.body.parentChainString() + " " + lastActivePrime + " v: " + value + " f: " + factor;
     }
 
     public String fullPrint() {
