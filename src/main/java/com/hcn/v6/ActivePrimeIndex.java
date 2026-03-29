@@ -1,6 +1,7 @@
 package com.hcn.v6;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
@@ -9,11 +10,13 @@ import java.util.stream.Collectors;
 public class ActivePrimeIndex {
     private int index;
     private TreeMap<Integer, PrimeIndexPower> pips = new TreeMap<>();
-    private FilteredHcnBodySet hcnBodyList = new FilteredHcnBodySet();
+    //private FilteredHcnBodySet hcnBodyList = new FilteredHcnBodySet();
+    private BodyList hcnBodyList = new BodyList();
     private ActivePrimeIndex nextActivePrimeIndex = null;
     private ActivePrimeIndex parentActivePrimeIndex = null;
     private FixedPowerGroup offspringFixedPowerGroup = null;
     private FixedPowerGroup parentFixedPowerGroup = null;
+    private BodyList bodyList = new BodyList();
     
     public ActivePrimeIndex(int index) {
         this.index = index;
@@ -27,9 +30,7 @@ public class ActivePrimeIndex {
         return pips;
     }
     
-    public FilteredHcnBodySet getHcnBodyList() {
-        return hcnBodyList;
-    }
+    public BodyList getHcnBodyList() {return hcnBodyList;}
 
     public ActivePrimeIndex getNextActivePrimeIndex() {
         return nextActivePrimeIndex;
@@ -68,16 +69,14 @@ public class ActivePrimeIndex {
         }
     }
     
-    public boolean extendMatrix(HcnBody provedBody) {
+    public List<HcnBody> extendMatrix(HcnBody provedBody) {
 
         if (provedBody.isProved()) {
-            return false;
+            return List.of();
         }
 
         provedBody.setProved(true);
-        boolean bodiesCreated = false;
-
-        //check if extension is required
+        List<HcnBody> newLeafBodies = new ArrayList<>();
 
         if (!provedBody.getPip().isProved()) {
             provedBody.getPip().setProved(true);
@@ -85,47 +84,44 @@ public class ActivePrimeIndex {
             if (provedBody.getPip().equals(getLastPip())) {
 
                 if (offspringFixedPowerGroup != null) {
-
                     reactivateFixedPowerGroupMember();
                     nextActivePrimeIndex.addNextPrimeIndexPower();
-                    integrateExistingBodiesAfterReactivate();
+                    newLeafBodies = mergeSortedBodies(newLeafBodies, integrateExistingBodiesAfterReactivate());
                 }
 
                 if (nextActivePrimeIndex != null) {
                     if (nextActivePrimeIndex.getLastPip().isProved()) {
                         if (nextActivePrimeIndex.pips.lastKey() < provedBody.getPip().getPower()) {
-                            extendNextActive();
-                            bodiesCreated = true;
+                            newLeafBodies = mergeSortedBodies(newLeafBodies, extendNextActive());
                         }
                     }
-
-
                 } else if (isLastActivePrimeIndex() && provedBody.getPip().getPower() == 2) {
-                    extendWithNextActivePrimeIndex();
-                    bodiesCreated = true;
+                    newLeafBodies = mergeSortedBodies(newLeafBodies, extendWithNextActivePrimeIndex());
                 }
 
                 boolean localExtensionRequired = parentActivePrimeIndex == null && parentFixedPowerGroup == null ||
                         parentActivePrimeIndex != null && parentActivePrimeIndex.getHighestProved() > getLastPip().getPower();
 
                 if (localExtensionRequired) {
-                    bodiesCreated = extendMatrixLocally();
+                    newLeafBodies = mergeSortedBodies(newLeafBodies, extendMatrixLocally());
                 }
             }
         }
 
         if (parentActivePrimeIndex != null) {
-            boolean parentBodiesCreated = parentActivePrimeIndex.extendMatrix(provedBody.getParent());
-            bodiesCreated = bodiesCreated || parentBodiesCreated;
+            if (provedBody.getParent() != null) {
+                newLeafBodies = mergeSortedBodies(newLeafBodies, parentActivePrimeIndex.extendMatrix(provedBody.getParent()));
+            }
         } else if (parentFixedPowerGroup != null) {
-            boolean parentBodiesCreated = parentFixedPowerGroup.getParentPrimeIndex().extendMatrix(provedBody.getParent());
-            bodiesCreated = bodiesCreated || parentBodiesCreated;
+            if (provedBody.getParent() != null) {
+                newLeafBodies = mergeSortedBodies(newLeafBodies, parentFixedPowerGroup.getParentPrimeIndex().extendMatrix(provedBody.getParent()));
+            }
         }
 
-        return bodiesCreated;
+        return newLeafBodies;
     }
 
-    private void extendNextActive() {
+    private List<HcnBody> extendNextActive() {
         nextActivePrimeIndex.addNextPrimeIndexPower();
 
         Set<HcnBody> createdBodies = this.pips.values().stream()
@@ -133,40 +129,98 @@ public class ActivePrimeIndex {
                 .flatMap(pip -> pip.getActiveHcnBodies().stream())
                 .map(parentBody -> new HcnBody(parentBody, nextActivePrimeIndex.getLastPip()))
                 .collect(Collectors.toSet());
-        Set<HcnBody> successfullyAdded = nextActivePrimeIndex.hcnBodyList.addGroup(createdBodies);
+        List<HcnBody> successfullyAdded = nextActivePrimeIndex.hcnBodyList.addGroup(createdBodies);
 
         if (nextActivePrimeIndex.nextActivePrimeIndex != null) {
-            nextActivePrimeIndex.nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
+            return nextActivePrimeIndex.nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
         }
+        return successfullyAdded;
     }
 
-    private void integrateExistingBodiesAfterReactivate() {
+    private List<HcnBody> integrateExistingBodiesAfterReactivate() {
         Set<HcnBody> createdBodies = this.pips.values().stream()
                 .filter(pip -> pip.getPower() >= nextActivePrimeIndex.getLastPip().getPower())
                 .flatMap(pip -> pip.getActiveHcnBodies().stream())
                 .map(parentBody -> new HcnBody(parentBody, nextActivePrimeIndex.getLastPip()))
                 .collect(Collectors.toSet());
-        Set<HcnBody> successfullyAdded = nextActivePrimeIndex.hcnBodyList.addGroup(createdBodies);
+        List<HcnBody> successfullyAdded = nextActivePrimeIndex.hcnBodyList.addGroup(createdBodies);
 
         if (nextActivePrimeIndex.offspringFixedPowerGroup != null) {
-            nextActivePrimeIndex.offspringFixedPowerGroup.getOffspringPrimeIndex().generateHcnBodies(successfullyAdded);
+            return nextActivePrimeIndex.offspringFixedPowerGroup.getOffspringPrimeIndex().generateHcnBodies(successfullyAdded);
         } else {
-            nextActivePrimeIndex.nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
+            return nextActivePrimeIndex.nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
         }
     }
 
-    private boolean extendMatrixLocally() {
-        boolean bodiesCreated;
+    private List<HcnBody> extendMatrixLocally() {
         addNextPrimeIndexPower();
 
         Set<HcnBody> createdBodies = generateLocalStarterBodies();
-        Set<HcnBody> successfullyAdded = hcnBodyList.addGroup(createdBodies);
-        bodiesCreated = !successfullyAdded.isEmpty();
+        List<HcnBody> successfullyAdded = hcnBodyList.addGroup(createdBodies);
 
         if (nextActivePrimeIndex != null) {
-            nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
+            return nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
         }
-        return bodiesCreated;
+        return successfullyAdded;
+    }
+
+    private List<HcnBody> extendWithNextActivePrimeIndex() {
+        nextActivePrimeIndex = new ActivePrimeIndex(index + 1);
+        nextActivePrimeIndex.parentActivePrimeIndex = this;
+
+        PrimeIndexPower pip1 = new PrimeIndexPower(nextActivePrimeIndex, 1);
+        nextActivePrimeIndex.pips.put(1, pip1);
+        pip1.setProved(true);
+
+        Set<HcnBody> pip1Bodies = hcnBodyList.stream().map(previousBody -> {
+            HcnBody newBody = new HcnBody(previousBody, pip1);
+            if (previousBody.isProved()) {
+                newBody.setProved(true);
+            }
+            return newBody;
+        }).collect(Collectors.toSet());
+
+        nextActivePrimeIndex.hcnBodyList.addGroup(pip1Bodies);
+
+        PrimeIndexPower pip2 = new PrimeIndexPower(nextActivePrimeIndex, 2);
+        nextActivePrimeIndex.pips.put(2, pip2);
+
+        Set<HcnBody> pip2Bodies = pips.values().stream()
+                .filter(pip -> pip.getPower() >= 2)
+                .flatMap(pip -> pip.getActiveHcnBodies().stream())
+                .map(parentBody -> new HcnBody(parentBody, pip2))
+                .collect(Collectors.toSet());
+
+        nextActivePrimeIndex.hcnBodyList.addGroup(pip2Bodies);
+
+        // only pip2 bodies are truly new — pip1 bodies inherited generatedHcns from parent
+        return nextActivePrimeIndex.hcnBodyList.stream()
+                .filter(body -> body.getPip().getPower() >= 2)
+                .collect(Collectors.toList());
+    }
+
+    public List<HcnBody> generateHcnBodies(Collection<HcnBody> previousBodies) {
+        Set<HcnBody> createdBodies = previousBodies.stream()
+                .flatMap(previousBody -> pips.values().stream()
+                        .filter(pip -> pip.getPower() <= previousBody.getPip().getPower())
+                        .map(pip -> new HcnBody(previousBody, pip)))
+                .collect(Collectors.toSet());
+
+        if (parentFixedPowerGroup != null) {
+            createdBodies.forEach(hcnBody -> {
+                hcnBody.setValue(hcnBody.getValue().multiply(parentFixedPowerGroup.getValue()));
+                hcnBody.setFactor(hcnBody.getFactor().multiply(parentFixedPowerGroup.getFactor()));
+            });
+        }
+
+        List<HcnBody> successfullyAdded = hcnBodyList.addGroup(createdBodies);
+
+        if (nextActivePrimeIndex != null) {
+            return nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
+        } else if (offspringFixedPowerGroup != null) {
+            return offspringFixedPowerGroup.getOffspringPrimeIndex().generateHcnBodies(successfullyAdded);
+        }
+        return successfullyAdded;
     }
 
     private Set<HcnBody> generateLocalStarterBodies() {
@@ -205,62 +259,45 @@ public class ActivePrimeIndex {
         }
     }
 
-    public void generateHcnBodies(Set<HcnBody> previousBodies) {
-        Set<HcnBody> createdBodies = previousBodies.stream()
-                .flatMap(previousBody -> pips.values().stream()
-                        .filter(pip -> pip.getPower() <= previousBody.getPip().getPower())
-                        .map(pip -> new HcnBody(previousBody, pip)))
-                .collect(Collectors.toSet());
+    static List<HcnBody> mergeSortedBodies(List<HcnBody> existing, List<HcnBody> newBodies) {
+        if (existing.isEmpty()) return newBodies;
+        if (newBodies.isEmpty()) return existing;
 
-        if (parentFixedPowerGroup != null) {
-            createdBodies.forEach(hcnBody -> {
-                hcnBody.setValue(hcnBody.getValue().multiply(parentFixedPowerGroup.getValue()));
-                hcnBody.setFactor(hcnBody.getFactor().multiply(parentFixedPowerGroup.getFactor()));
-            });
-        }
+        List<HcnBody> result = new ArrayList<>();
+        int e = 0, n = 0;
+        ScientificNumber maxFactor = null;
 
-        Set<HcnBody> successfullyAdded = hcnBodyList.addGroup(createdBodies);
-
-        if (nextActivePrimeIndex != null) {
-            nextActivePrimeIndex.generateHcnBodies(successfullyAdded);
-        } else if (offspringFixedPowerGroup != null) {
-            offspringFixedPowerGroup.getOffspringPrimeIndex().generateHcnBodies(successfullyAdded);
-        }
-    }
-
-    private void extendWithNextActivePrimeIndex() {
-        nextActivePrimeIndex = new ActivePrimeIndex(index + 1);
-        nextActivePrimeIndex.parentActivePrimeIndex = this;
-
-        PrimeIndexPower pip1 = new PrimeIndexPower(nextActivePrimeIndex, 1);
-        nextActivePrimeIndex.pips.put(1, pip1);
-        pip1.setProved(true);
-
-        // Create bodies with pip1 from all current bodies
-        Set<HcnBody> pip1Bodies = hcnBodyList.stream().map(previousBody -> {
-            HcnBody newBody = new HcnBody(previousBody, pip1);
-            if (previousBody.isProved()) {
-                newBody.setProved(true);
+        while (e < existing.size() && n < newBodies.size()) {
+            if (existing.get(e).getValue().isSmallerThan(newBodies.get(n).getValue())) {
+                HcnBody body = existing.get(e++);
+                if (maxFactor == null || body.getFactor().isBiggerThan(maxFactor)) {
+                    result.add(body);
+                    maxFactor = body.getFactor();
+                }
+            } else {
+                HcnBody body = newBodies.get(n++);
+                result.add(body);
+                maxFactor = body.getFactor();
             }
-            return newBody;
-        }).collect(Collectors.toSet());
+        }
 
-        nextActivePrimeIndex.hcnBodyList.addGroup(pip1Bodies);
+        while (e < existing.size()) {
+            HcnBody body = existing.get(e++);
+            if (maxFactor == null || body.getFactor().isBiggerThan(maxFactor)) {
+                result.add(body);
+                maxFactor = body.getFactor();
+            }
+        }
 
-        PrimeIndexPower pip2 = new PrimeIndexPower(nextActivePrimeIndex, 2);
-        nextActivePrimeIndex.pips.put(2, pip2);
+        while (n < newBodies.size()) {
+            result.add(newBodies.get(n++));
+        }
 
-        // Create bodies with pip2 from parent's pip2+ bodies
-        Set<HcnBody> pip2Bodies = pips.values().stream()
-                .filter(pip -> pip.getPower() >= 2)
-                .flatMap(pip -> pip.getActiveHcnBodies().stream())
-                .map(parentBody -> new HcnBody(parentBody, pip2))
-                .collect(Collectors.toSet());
-
-        nextActivePrimeIndex.hcnBodyList.addGroup(pip2Bodies);
+        return result;
     }
 
-    public void deactivateRecursive(HcnBody defeated, HcnBody superiorBody) {
+    public void deactivateRecursive(HcnBody defeated) {
+
 
         if (defeated.getPip().getActiveHcnBodies().isEmpty()) {
             // pip is deletable
@@ -280,7 +317,7 @@ public class ActivePrimeIndex {
             if (defeated.getParent().getOffsprings().isEmpty()) {
                 // parent is also deletable
                 defeated.getParent().deactivateFromLists();
-                defeated.getParent().getPip().getActivePrimeIndex().deactivateRecursive(defeated.getParent(), superiorBody.getParent());
+                defeated.getParent().getPip().getActivePrimeIndex().deactivateRecursive(defeated.getParent());
             }
         }
     }

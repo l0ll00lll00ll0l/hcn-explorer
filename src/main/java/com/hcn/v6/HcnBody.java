@@ -1,5 +1,6 @@
 package com.hcn.v6;
 
+import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -11,61 +12,54 @@ public class HcnBody implements Comparable<HcnBody> {
     private boolean proved = false;
     private ScientificNumber value;
     private ScientificNumber factor;
-    private HcnFactory hcnFactory = null;
+    private HcnBody smallerBody = null;
+    private HcnBody largerBody = null;
+    private LinkedHashMap<LastActivePrimeIndexGroup, Hcn> generatedHcns = new LinkedHashMap<>();
 
     public HcnBody getParent() {
         return parent;
     }
-
     public List<HcnBody> getOffsprings() {
         return offsprings;
     }
-
     public PrimeIndexPower getPip() {
         return pip;
     }
-
+    public void setPip(PrimeIndexPower pip) {
+        this.pip = pip;
+    }
     public ScientificNumber getValue() {
         return value;
     }
-
     public ScientificNumber getFactor() {
         return factor;
     }
-
     public void setValue(ScientificNumber value) {
         this.value = value;
     }
-
     public void setFactor(ScientificNumber factor) {
         this.factor = factor;
     }
-
-    public HcnFactory getHcnFactory() {
-        return hcnFactory;
-    }
-
-    public void setHcnFactory(HcnFactory hcnFactory) {
-        this.hcnFactory = hcnFactory;
-    }
-
     public boolean isProved() {
         return proved;
     }
-
     public void setProved(boolean proved) {
         this.proved = proved;
     }
-
+    public HcnBody getSmallerBody() {return smallerBody;}
+    public HcnBody getLargerBody() {return largerBody;}
+    public void setSmallerBody(HcnBody smallerBody) {this.smallerBody = smallerBody;}
+    public void setLargerBody(HcnBody largerBody) {this.largerBody = largerBody;}
     public boolean isDeactivated(){
         return !pip.getActiveHcnBodies().contains(this);
     }
-
     public String getBodyId() {
         return "p" + pip.getActivePrimeIndex().getIndex() + "^" + pip.getPower();
     }
-
     public String getOffspringPowers() {return offsprings.stream().map(o -> String.valueOf(o.pip.getPower())).collect(Collectors.joining(", "));}
+    public LinkedHashMap<LastActivePrimeIndexGroup, Hcn> getGeneratedHcns() {return generatedHcns;}
+
+    public HcnBody() {}
 
     public HcnBody(HcnBody parent, PrimeIndexPower pip) {
         this.parent = parent;
@@ -78,18 +72,14 @@ public class HcnBody implements Comparable<HcnBody> {
             value = parent.value.multiply(valueMultiplier);
             factor = parent.factor.multiply(factorMultiplier);
             parent.offsprings.add(this);
-            if (parent.hcnFactory != null) {
-                this.hcnFactory = parent.hcnFactory;
-                parent.hcnFactory = null;
-                this.hcnFactory.inheritAfterNewActivePrimeIndex(this);
+            if (!parent.generatedHcns.isEmpty()) {
+                generatedHcns = parent.generatedHcns;
+                parent.generatedHcns = new LinkedHashMap<>();
+                generatedHcns.values().forEach(hcn -> hcn.setBody(this));
             }
         } else {
             value = valueMultiplier;
             factor = factorMultiplier;
-        }
-
-        if (hcnFactory == null && pip.getActivePrimeIndex().isLastActivePrimeIndex()) {
-            hcnFactory = new HcnFactory(this);
         }
     }
 
@@ -99,9 +89,17 @@ public class HcnBody implements Comparable<HcnBody> {
     }
 
     @Override
-    public String toString() {return parentChainString() + ", value=" + value + ", factor=" + factor + ", limitHcn: " + (hcnFactory != null ? hcnFactory.getLimitHcn() : "null");}
+    public String toString() {return parentChainString() + "v=" + value + " f=" + factor;}
 
     public String parentChainString() {return getFullChain().stream().map(HcnBody::getBodyId).collect(Collectors.toList()).toString();}
+
+    public int lowestPossibleLapi() {
+        if (pip.getPower() < 2) {
+            return parent.lowestPossibleLapi();
+        } else {
+            return pip.getActivePrimeIndex().getIndex();
+        }
+    }
 
     private List<HcnBody> getFullChain() {
         List<HcnBody> chain = new ArrayList<>();
@@ -111,16 +109,6 @@ public class HcnBody implements Comparable<HcnBody> {
             current = current.parent;
         }
         return chain;
-    }
-
-    public List<Hcn> getHcnsBetween(ScientificNumber lowLimit, ScientificNumber upperLimit) {
-        if (hcnFactory == null) {
-            List<Hcn> returnList = new ArrayList<>();
-            offsprings.forEach(offspring -> returnList.addAll(offspring.getHcnsBetween(lowLimit, upperLimit)));
-            return returnList;
-        } else {
-            return hcnFactory.getHcnsBetween(lowLimit, upperLimit);
-        }
     }
 
     public void deactivateFromLists() {
@@ -157,5 +145,67 @@ public class HcnBody implements Comparable<HcnBody> {
         });
 
         return reactivateHcnBody;
+    }
+
+    public ScientificNumber getValueMultiplier(HcnBody hcnBody) {
+        if (!this.pip.equals(hcnBody.pip)) {
+            int powerdiff = hcnBody.pip.getPower() - pip.getPower();
+            ScientificNumber localMultiplier = new ScientificNumber(Math.pow(PrimeCenter.getPrime(this.pip.getActivePrimeIndex().getIndex()), powerdiff), 0);
+            if (parent == null) {
+                return localMultiplier;
+            } else {
+                return parent.getValueMultiplier(hcnBody.getParent()).multiply(localMultiplier);
+            }
+        } else {
+            if (parent == null) {
+                return new ScientificNumber(1,0);
+            } else {
+                return parent.getValueMultiplier(hcnBody.getParent());
+            }
+        }
+    }
+
+    public ScientificNumber getFactorMultiplier(HcnBody hcnBody) {
+        if (!this.pip.equals(hcnBody.pip)) {
+
+            ScientificNumber localMultiplier = new ScientificNumber(((double) (hcnBody.pip.getPower() + 1) / (pip.getPower() + 1)), 0);
+
+            if (parent == null) {
+                return localMultiplier;
+            } else {
+                return parent.getFactorMultiplier(hcnBody.getParent()).multiply(localMultiplier);
+            }
+        } else {
+            if (parent == null) {
+                return new ScientificNumber(1,0);
+            } else {
+                return parent.getFactorMultiplier(hcnBody.getParent());
+            }
+        }
+    }
+
+    public Hcn generateNextHcn(LastActivePrimeIndexGroup lapiGroup) {
+        if (generatedHcns.isEmpty()) {
+            HcnBody referenceBody = smallerBody;
+
+            while (!referenceBody.generatedHcns.containsKey(lapiGroup)) {
+                referenceBody = referenceBody.smallerBody;
+            }
+
+            Hcn referenceHcn = referenceBody.generatedHcns.get(lapiGroup);
+
+            Hcn newHcn = new Hcn(this, referenceHcn.getLastActivePrime());
+            newHcn.setValue(referenceHcn.getValue().multiply(referenceBody.getValueMultiplier(this)));
+            newHcn.setFactor(referenceHcn.getFactor().multiply(referenceBody.getFactorMultiplier(this)));
+            generatedHcns.put(lapiGroup, newHcn);
+            return newHcn;
+        } else {
+            Hcn preHcn = generatedHcns.get(lapiGroup.getLowerLapiGroup());
+            Hcn newHcn = new Hcn(this, preHcn.getLastActivePrime() + 1);
+            newHcn.setValue(preHcn.getValue().multiply(lapiGroup.getPrimeValue()));
+            newHcn.setFactor(preHcn.getFactor().multiply(new ScientificNumber(2, 0)));
+            generatedHcns.put(lapiGroup, newHcn);
+            return newHcn;
+        }
     }
 }

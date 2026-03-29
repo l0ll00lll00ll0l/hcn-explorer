@@ -1,10 +1,15 @@
 package com.hcn.v6;
 
+import java.util.LinkedHashMap;
+
 public class Hcn implements Comparable<Hcn> {
     private HcnBody body;
     private int lastActivePrime;
     private ScientificNumber value;
     private ScientificNumber factor;
+    private LinkedHashMap<LastActivePrimeIndexGroup, Hcn> smallerHcns = new LinkedHashMap<>();
+    private LinkedHashMap<LastActivePrimeIndexGroup, Hcn> largerHcns = new LinkedHashMap<>();
+    private Hcn superiorHcn;
     
     public Hcn(HcnBody body, int lastActivePrime) {
         this.body = body;
@@ -39,6 +44,14 @@ public class Hcn implements Comparable<Hcn> {
         this.body = body;
     }
 
+    public void setLastActivePrime(int lastActivePrime) {this.lastActivePrime = lastActivePrime;}
+
+    public LinkedHashMap<LastActivePrimeIndexGroup, Hcn> getSmallerHcns() { return smallerHcns; }
+    public LinkedHashMap<LastActivePrimeIndexGroup, Hcn> getLargerHcns() { return largerHcns; }
+    public Hcn getSuperiorHcn() { return superiorHcn; }
+    public void setSuperiorHcn(Hcn superiorHcn) { this.superiorHcn = superiorHcn; }
+    public boolean isDominated() { return superiorHcn != null; }
+
     @Override
     public int compareTo(Hcn other) {
         return this.value.compareTo(other.value);
@@ -51,6 +64,14 @@ public class Hcn implements Comparable<Hcn> {
 
     public String fullPrint() {
         return body.parentChainString() + "|" + lastActivePrime + " v: " + value + " f: " + factor;
+    }
+
+    public Hcn createHcnByReferenceOld(HcnBody hcnBody) {
+        Hcn newHcn = new Hcn(hcnBody, lastActivePrime);
+
+        newHcn.setValue(body.getValueMultiplier(hcnBody).multiply(value));
+        newHcn.setFactor(this.body.getFactorMultiplier(hcnBody).multiply(factor));
+        return newHcn;
     }
 
 }

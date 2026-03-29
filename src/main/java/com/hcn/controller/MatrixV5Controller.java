@@ -119,4 +119,13 @@ public class MatrixV5Controller {
                 .sum();
     }
 
+    public List<ActivePrimeIndex> getAllActivePrimeIndexes() {
+        List<ActivePrimeIndex> list = new ArrayList<>();
+        for (Object item : buildMatrixChain(matrix.getLastActivePrimeIndex())) {
+            if (item instanceof ActivePrimeIndex) list.add((ActivePrimeIndex) item);
+            else if (item instanceof FixedPowerGroup) list.addAll(((FixedPowerGroup) item).getFixedPowerGroup());
+        }
+        return list;
+    }
+
 }

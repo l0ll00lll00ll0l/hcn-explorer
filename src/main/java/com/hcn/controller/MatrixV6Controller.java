@@ -3,7 +3,9 @@ package com.hcn.controller;
 import com.hcn.v6.ActivePrimeIndex;
 import com.hcn.v6.FixedPowerGroup;
 import com.hcn.v6.HcnBody;
-import com.hcn.v6.Matrix;
+import com.hcn.v6.HcnGenerator;
+import com.hcn.v6.Hcn;
+import com.hcn.v6.LastActivePrimeIndexGroup;
 import com.hcn.v6.PrimeCenter;
 import com.hcn.v6.ScientificNumber;
 import org.springframework.stereotype.Controller;
@@ -19,36 +21,37 @@ import java.util.stream.Collectors;
 
 @Controller
 public class MatrixV6Controller {
-    private Matrix matrix = new Matrix();
+    private HcnGenerator hcnGenerator;
+
+    public MatrixV6Controller() {
+        hcnGenerator = new HcnGenerator();
+        hcnGenerator.initialize();
+    }
     
     @GetMapping("/v6")
-    public String index(Model model) {
-        model.addAttribute("matrix", matrix);
+    public String index(Model model, @RequestParam(defaultValue = "matrix") String tab) {
+        model.addAttribute("hcnGenerator", hcnGenerator);
         model.addAttribute("displayDecimals", ScientificNumber.getDisplayDecimals());
+        model.addAttribute("activeTab", tab);
         return "indexV6";
     }
     
-    @PostMapping("/v6/proveUntilIndex")
-    public String proveUntilIndex(@RequestParam int primeIndex) {
-        matrix.proveUntilPrimeIndex(primeIndex);
-        return "redirect:/v6";
-    }
-    
     @PostMapping("/v6/proveNext")
-    public String proveNext() {
-        matrix.proveNextHcn();
-        return "redirect:/v6";
+    public String proveNext(@RequestParam(defaultValue = "matrix") String activeTab) {
+        hcnGenerator.proveNextSuperior();
+        return "redirect:/v6?tab=" + activeTab;
     }
-    
-    @PostMapping("/v6/proveUntilCount")
-    public String proveUntilCount(@RequestParam int count) {
-        matrix.proveUntilCount(count);
+
+    @PostMapping("/v6/proveUntilLapi")
+    public String proveUntilLapi(@RequestParam int lapiIndex) {
+        hcnGenerator.proveUntilPrimeIndex(lapiIndex);
         return "redirect:/v6";
     }
     
     @PostMapping("/v6/reset")
     public String reset() {
-        matrix = new Matrix();
+        hcnGenerator = new HcnGenerator();
+        hcnGenerator.initialize();
         return "redirect:/v6";
     }
     
@@ -106,17 +109,32 @@ public class MatrixV6Controller {
         return first == last ? String.valueOf(first) : first + "-" + last;
     }
 
-    public int getGeneratorCount(HcnBody body) {
-        if (body.getHcnFactory() != null) return 1;
-        return body.getOffsprings().stream()
-                .mapToInt(this::getGeneratorCount)
-                .sum();
+    public List<ActivePrimeIndex> getAllActivePrimeIndexes() {
+        List<ActivePrimeIndex> list = new ArrayList<>();
+        for (Object item : buildMatrixChain(hcnGenerator.getLastActivePrimeIndex())) {
+            if (item instanceof ActivePrimeIndex) list.add((ActivePrimeIndex) item);
+        }
+        return list;
     }
 
-    public int getTotalGeneratorCount(com.hcn.v6.PrimeIndexPower pip) {
-        return pip.getActiveHcnBodies().stream()
-                .mapToInt(this::getGeneratorCount)
-                .sum();
+    public List<LastActivePrimeIndexGroup> getLapiGroupsReversed() {
+        List<LastActivePrimeIndexGroup> list = new ArrayList<>();
+        LastActivePrimeIndexGroup current = hcnGenerator.getHighestLapiGroup();
+        while (current != null) {
+            list.add(current);
+            current = current.getLowerLapiGroup();
+        }
+        return list;
+    }
+
+    public List<Hcn> getHcnsForLapiGroup(LastActivePrimeIndexGroup group) {
+        List<Hcn> hcns = new ArrayList<>();
+        Hcn current = group.getFirstHcn();
+        while (current != null) {
+            hcns.add(current);
+            current = current.getLargerHcns().get(group);
+        }
+        return hcns;
     }
 
 }

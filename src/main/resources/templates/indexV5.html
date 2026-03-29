@@ -95,6 +95,7 @@
         <div class="tab-bar">
             <button class="tab-btn active" onclick="switchTab('matrix')">Matrix</button>
             <button class="tab-btn" onclick="switchTab('hcnfilter')">HcnFilter</button>
+            <button class="tab-btn" onclick="switchTab('bodylist')">ActivePrimeIndex BodyList</button>
         </div>
         <div id="tab-matrix" class="tab-content active">
         <div class="matrix-info">
@@ -180,9 +181,38 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- HcnBody List dropdowns - temporarily hidden, code preserved for later use
+        <div id="tab-bodylist" class="tab-content">
+            <div th:with="allApi=${@matrixV5Controller.getAllActivePrimeIndexes()}" style="text-align: center;">
+                <div style="margin: 10px 0;">
+                    <button onclick="changeApi(-1)" style="font-size: 1.5em; padding: 4px 12px;">&#9664;</button>
+                    <span id="api-display" style="font-size: 2em; font-weight: bold; margin: 0 15px;"></span>
+                    <button onclick="changeApi(1)" style="font-size: 1.5em; padding: 4px 12px;">&#9654;</button>
+                </div>
+                <div th:each="api : ${allApi}" th:id="'bodylist-' + ${api.index}" style="display: none; text-align: left;">
+                    <table class="level-table">
+                        <thead>
+                            <tr><th>#</th><th>Chain</th><th>Value</th><th>Factor</th><th>Proved</th><th>Offspring</th><th>Factory</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="body, iter : ${@matrixV5Controller.getActiveBodies(api)}">
+                                <td th:text="${iter.index}"></td>
+                                <td th:text="${body.parentChainString()}"></td>
+                                <td th:text="${body.value}"></td>
+                                <td th:text="${body.factor}"></td>
+                                <td th:text="${body.proved}"></td>
+                                <td th:text="${body.offspringPowers}"></td>
+                                <td th:text="${body.hcnFactory != null ? body.hcnFactory.limitHcn : ''}"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <script th:inline="javascript">
+                    var apiList = [[${allApi.![index + ',' + T(com.hcn.v5.PrimeCenter).getPrime(index)]}]];
+                </script>
+            </div>
+        </div>
+    </div>
     <div class="section" th:with="matrixChain=${@matrixV5Controller.buildMatrixChain(matrix.lastActivePrimeIndex)}">
         <h2>HcnBody Lists</h2>
         <div th:each="item : ${matrixChain}">
@@ -261,7 +291,18 @@
             content.classList.toggle('active');
         }
 
+        var apiIndex = 0;
+        function changeApi(delta) {
+            if (!apiList || apiList.length === 0) return;
+            document.querySelectorAll('[id^="bodylist-"]').forEach(function(d) { d.style.display = 'none'; });
+            apiIndex = Math.max(0, Math.min(apiList.length - 1, apiIndex + delta));
+            var parts = apiList[apiIndex].split(',');
+            document.getElementById('api-display').textContent = parts[0] + ' (' + parts[1] + ')';
+            document.getElementById('bodylist-' + parts[0]).style.display = 'block';
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            if (typeof apiList !== 'undefined' && apiList.length > 0) changeApi(0);
             // Size FPG rects to match pip-cell + prime-circle height of neighbors
             var firstPip = document.querySelector('.pip-cell');
             var firstCircle = document.querySelector('.prime-circle');

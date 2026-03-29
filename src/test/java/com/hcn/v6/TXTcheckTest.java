@@ -11,11 +11,12 @@ public class TXTcheckTest {
         List<int[]> ref = txt.getReferenceHcns();
         int count = ref.size() - 1; // skip ref[0] which is HCN=1
 
-        Matrix matrix = new Matrix();
+        HcnGenerator hcnGenerator = new HcnGenerator();
+        hcnGenerator.initialize();
         long batchStart = System.currentTimeMillis();
 
         for (int i = 0; i < count; i++) {
-            Hcn provedHcn = matrix.proveNextHcn();
+            Hcn provedHcn = hcnGenerator.proveNextSuperior();
             int[] expected = ref.get(i + 1);
             int[] actual = TXTcheck.exponentSignature(provedHcn);
 

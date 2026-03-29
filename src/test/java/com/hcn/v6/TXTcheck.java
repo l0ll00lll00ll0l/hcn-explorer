@@ -11,7 +11,7 @@ public class TXTcheck {
     private final List<int[]> referenceHcns = new ArrayList<>();
 
     public TXTcheck() {
-        loadFromResource("hcn.txt");
+        loadFromResource("hcn50k.txt");
     }
 
     private void loadFromResource(String filename) {
