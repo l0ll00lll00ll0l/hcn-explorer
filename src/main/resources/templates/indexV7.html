@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>HCN Matrix V7</title>
+    <style>
+        body { font-family: monospace; margin: 20px; }
+        .section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .matrix-info { float: right; font-size: 0.85em; text-align: right; margin-bottom: 10px; }
+        .hcn-item { margin: 5px 0; font-size: 12px; }
+
+        .mainpanel { margin: 20px 0; border: 1px solid #ccc; }
+        .tab-bar { display: flex; border-bottom: 2px solid #ccc; background: #f0f0f0; }
+        .tab-btn { padding: 8px 16px; border: none; background: none; cursor: pointer; font-family: monospace; font-size: 1em; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+        .tab-btn:hover { background: #e0e0e0; }
+        .tab-btn.active { background: #fff; border-bottom: 2px solid #000; font-weight: bold; }
+        .tab-content { display: none; padding: 10px; }
+        .tab-content.active { display: block; }
+
+        .matrix-columns { display: flex; align-items: flex-end; gap: 6px; }
+        .matrix-col { display: flex; flex-direction: column; align-items: center; }
+        .pip-stack { display: flex; flex-direction: column; align-items: center; }
+
+        .prime-circle {
+            display: inline-block; width: 40px; height: 40px; line-height: 40px;
+            border-radius: 50%; border: 2px solid #000; text-align: center;
+            font-size: 1.3em; margin: 2px auto;
+        }
+        .fpg-rect {
+            border: 2px solid #ff8800; background: #ffcc99; text-align: center;
+            font-weight: bold; font-size: 1.3em;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            min-width: 44px; padding: 4px 8px; box-sizing: border-box;
+        }
+
+        .pip-cell {
+            display: inline-block; padding: 6px 8px; margin: 2px; border: 2px solid #000;
+            font-weight: bold; font-size: 1.3em; min-width: 30px;
+        }
+        .pip-proved { background-color: #90EE90; }
+        .pip-unproved { background-color: #FFFFFF; }
+
+        .pip-info { font-size: 0.7em; font-weight: normal; }
+
+        .collapsible { cursor: pointer; padding: 5px; background: #ddd; border: none; width: 100%; text-align: left; }
+        .collapsible:hover { background: #ccc; }
+        .content { display: none; padding: 10px; border: 1px solid #ddd; }
+        .content.active { display: block; }
+
+        .filter-layout { display: flex; gap: 10px; }
+        .level-list { min-width: 300px; max-height: 600px; overflow-y: auto; }
+        .level-detail { flex: 1; max-height: 600px; overflow-y: auto; }
+        .level-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .level-table th { background: #333; color: white; padding: 4px 6px; text-align: left; position: sticky; top: 0; }
+        .level-table td { padding: 4px 6px; border-bottom: 1px solid #ddd; }
+        .level-table tr:hover { background: #f5f5f5; }
+        .level-table tr.selected { background: #cce5ff; }
+        .level-table tr.level-max { background: #90EE90; }
+        .level-row { cursor: pointer; }
+        .hcn-dominated { background-color: #e8e8e8; }
+
+    </style>
+</head>
+<body>
+    <h1>HCN Matrix V7</h1>
+
+    <form method="post" action="/v7/proveNext" style="display: inline-block; margin-right: 10px;">
+        <input type="hidden" name="activeTab" class="activeTabField" value="matrix" />
+        <input type="hidden" name="lapiView" class="lapiViewField" value="chain" />
+        <label>Prove Count:
+            <input type="number" name="count" value="1" min="1" style="width: 80px;" />
+        </label>
+        <button type="submit">Prove Next</button>
+    </form>
+
+    <form method="post" action="/v7/proveUntilLapi" style="display: inline-block; margin-right: 10px;">
+        <input type="hidden" name="activeTab" class="activeTabField" value="matrix" />
+        <input type="hidden" name="lapiView" class="lapiViewField" value="chain" />
+        <label>Prove Lapi:
+            <input type="number" name="lapiIndex" value="10" min="0" style="width: 60px;" />
+        </label>
+        <button type="submit">Prove Lapi</button>
+    </form>
+
+    <form method="post" action="/v7/reset" style="display: inline-block; margin-right: 10px;">
+        <input type="hidden" name="activeTab" class="activeTabField" value="matrix" />
+        <input type="hidden" name="lapiView" class="lapiViewField" value="chain" />
+        <button type="submit" style="background-color: #ff6b6b; color: white;">Reset</button>
+    </form>
+
+    <form method="post" action="/v7/setDisplayDecimals" style="display: inline-block;">
+        <input type="hidden" name="activeTab" class="activeTabField" value="matrix" />
+        <input type="hidden" name="lapiView" class="lapiViewField" value="chain" />
+        <label>Display Decimals:
+            <input type="number" name="decimals" th:value="${displayDecimals}" min="0" max="15" style="width: 60px;" />
+        </label>
+        <button type="submit">Set</button>
+    </form>
+
+    <div class="mainpanel">
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="matrix" onclick="switchTab('matrix')">Matrix</button>
+            <button class="tab-btn" data-tab="hcnfilter" onclick="switchTab('hcnfilter')">LapiGroups</button>
+            <button class="tab-btn" data-tab="bodylist" onclick="switchTab('bodylist')">ActivePrimeIndex BodyList</button>
+        </div>
+        <div id="tab-matrix" class="tab-content active">
+        <div class="matrix-info">
+            <div>Proved: <span th:text="${hcnGenerator.provedCount}"></span></div>
+            <div>Last Active: p<span th:text="${hcnGenerator.lastActivePrimeIndex.index}"></span></div>
+            <div style="margin-top: 6px; border-top: 1px solid #ccc; padding-top: 4px;">Total: <span th:text="${hcnGenerator.totalMs}"></span> ms</div>
+            <div>ExtendMatrix: <span th:text="${hcnGenerator.extendMatrixMs}"></span> ms</div>
+            <div>LapiGroupOps: <span th:text="${hcnGenerator.lapiGroupMs}"></span> ms</div>
+            <div>CleanupJobs: <span th:text="${hcnGenerator.cleanupMs}"></span> ms</div>
+        </div>
+        <div th:with="matrixChain=${@matrixV7Controller.buildMatrixChain(hcnGenerator.lastActivePrimeIndex)}">
+            <div class="matrix-columns">
+                <div th:each="item : ${matrixChain}" class="matrix-col">
+                    <!-- ActivePrimeIndex: pip stack + prime circle -->
+                    <th:block th:if="${item.class.simpleName == 'ActivePrimeIndex'}">
+                        <div class="pip-stack">
+                            <div th:each="pip : ${item.pips.descendingMap().values()}"
+                                 class="pip-cell"
+                                 th:classappend="${pip.proved} ? 'pip-proved' : 'pip-unproved'">
+                                <span th:text="${pip.power}"></span>
+                                <div class="pip-info">
+                                    <span th:text="${pip.activeHcnBodies.size()}"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="prime-circle" style="cursor: pointer;"
+                             th:text="${T(com.hcn.v7.PrimeCenter).getPrime(item.index)}"
+                             th:onclick="'showBodyList(' + ${item.index} + ')'"></div>
+                    </th:block>
+                    <!-- FixedPowerGroup: single rectangle -->
+                    <th:block th:if="${item.class.simpleName == 'FixedPowerGroup' and !item.fixedPowerGroup.isEmpty()}">
+                        <div class="fpg-rect">
+                            <div th:text="${@matrixV7Controller.getPrimeRangeDisplay(item)}"></div>
+                            <div style="font-size: 0.7em; font-weight: normal;"
+                                 th:text="${@matrixV7Controller.getPrimeValueRangeDisplay(item)}"></div>
+                        </div>
+                    </th:block>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <div id="tab-hcnfilter" class="tab-content">
+            <div style="text-align: right; margin-bottom: 8px;">
+                <label><input type="radio" name="lapiView" value="chain" checked onclick="switchLapiView('chain')"> BodyChain</label>
+                <label style="margin-left: 10px;"><input type="radio" name="lapiView" value="dist" onclick="switchLapiView('dist')"> Distribution</label>
+            </div>
+            <div th:with="bodyOrder=${@matrixV7Controller.getBodyOrderMap()}, highestLapi=${hcnGenerator.highestLapiGroup}" style="display: flex; gap: 10px; overflow-x: auto; align-items: flex-start;">
+            <div th:each="group : ${@matrixV7Controller.getLapiGroupsReversed()}" style="min-width: 250px; flex-shrink: 0;">
+                <h3 style="margin: 10px 0 4px;">LastActivePrimeIndex: <span th:text="${group.lastActivePrimeIndex}"></span></h3>
+                <table class="level-table">
+                    <thead>
+                        <tr><th>#</th><th class="col-chain">Chain</th><th class="col-dist" style="display:none;">Body</th><th>Lapi</th><th>Value</th><th>Factor</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="hcn, iter : ${@matrixV7Controller.getHcnsForLapiGroup(group)}"
+                            th:style="${bodyOrder.get(hcn.body) == null ? 'background-color: #ffcccc;' : (hcn.smallerHcns.containsKey(highestLapi) ? 'background-color: #ccffcc;' : 'background-color: #ffffcc;')}">
+                            <td th:text="${iter.index}"></td>
+                            <td class="col-chain" th:text="${hcn.body.parentChainString()}"></td>
+                            <td class="col-dist" style="display:none;" th:text="${bodyOrder.get(hcn.body)}"></td>
+                            <td th:text="${hcn.lastActivePrime}"></td>
+                            <td th:text="${hcn.value}"></td>
+                            <td th:text="${hcn.factor}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            </div>
+        </div>
+
+        <div id="tab-bodylist" class="tab-content">
+            <div th:with="allApi=${@matrixV7Controller.getAllActivePrimeIndexes()}" style="text-align: center;">
+                <div style="margin: 10px 0;">
+                    <button onclick="changeApi(-1)" style="font-size: 1.5em; padding: 4px 12px;">&#9664;</button>
+                    <span id="api-display" style="font-size: 2em; font-weight: bold; margin: 0 15px;"></span>
+                    <button onclick="changeApi(1)" style="font-size: 1.5em; padding: 4px 12px;">&#9654;</button>
+                </div>
+                <div th:each="api : ${allApi}" th:id="'bodylist-' + ${api.index}" style="display: none; text-align: left;">
+                    <table class="level-table">
+                        <thead>
+                            <tr><th>#</th><th>Chain</th><th>Value</th><th>Factor</th><th>Proved</th><th>Offspring</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="body, iter : ${@matrixV7Controller.getActiveBodies(api)}"
+                                th:style="${body.proved ? 'background-color: #90EE90;' : ''}">
+                                <td th:text="${iter.index}"></td>
+                                <td th:text="${body.parentChainString()}"></td>
+                                <td th:text="${body.value}"></td>
+                                <td th:text="${body.factor}"></td>
+                                <td th:text="${body.proved}"></td>
+                                <td th:text="${body.offspringPowers}"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <script th:inline="javascript">
+                    var apiList = [[${allApi.![index + ',' + T(com.hcn.v7.PrimeCenter).getPrime(index)]}]];
+                </script>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showLevel(level) {
+            document.querySelectorAll('.level-detail > div').forEach(function(d) { d.style.display = 'none'; });
+            document.querySelectorAll('.level-row').forEach(function(r) { r.classList.remove('selected'); });
+            document.getElementById('level-' + level).style.display = 'block';
+            event.currentTarget.classList.add('selected');
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.querySelector('.tab-btn[data-tab="' + tabId + '"]').classList.add('active');
+            document.querySelectorAll('.activeTabField').forEach(function(f) { f.value = tabId; });
+        }
+
+        function toggleContent(id) {
+            var content = document.getElementById(id);
+            content.classList.toggle('active');
+        }
+
+        function switchLapiView(mode) {
+            var showChain = mode === 'chain';
+            document.querySelectorAll('#tab-hcnfilter .col-chain').forEach(function(el) { el.style.display = showChain ? '' : 'none'; });
+            document.querySelectorAll('#tab-hcnfilter .col-dist').forEach(function(el) { el.style.display = showChain ? 'none' : ''; });
+            document.querySelectorAll('.lapiViewField').forEach(function(f) { f.value = mode; });
+        }
+
+        function showBodyList(index) {
+            switchTab('bodylist');
+            document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelector('.tab-btn[onclick*="bodylist"]').classList.add('active');
+            if (typeof apiList !== 'undefined') {
+                for (var i = 0; i < apiList.length; i++) {
+                    if (apiList[i].split(',')[0] == index) { apiIndex = i; changeApi(0); return; }
+                }
+            }
+        }
+
+        var apiIndex = 0;
+        function changeApi(delta) {
+            if (!apiList || apiList.length === 0) return;
+            document.querySelectorAll('[id^="bodylist-"]').forEach(function(d) { d.style.display = 'none'; });
+            apiIndex = Math.max(0, Math.min(apiList.length - 1, apiIndex + delta));
+            var parts = apiList[apiIndex].split(',');
+            document.getElementById('api-display').textContent = parts[0] + ' (' + parts[1] + ')';
+            document.getElementById('bodylist-' + parts[0]).style.display = 'block';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof apiList !== 'undefined' && apiList.length > 0) changeApi(0);
+            var activeTab = '[[${activeTab}]]';
+            if (activeTab && activeTab !== 'matrix') switchTab(activeTab);
+            var lapiView = '[[${lapiView}]]';
+            if (lapiView && lapiView !== 'chain') {
+                switchLapiView(lapiView);
+                document.querySelector('input[name="lapiView"][value="' + lapiView + '"]').checked = true;
+            }
+            // Size FPG rects to match pip-cell + prime-circle height of neighbors
+            var firstPip = document.querySelector('.pip-cell');
+            var firstCircle = document.querySelector('.prime-circle');
+            if (firstPip && firstCircle) {
+                var targetHeight = firstPip.offsetHeight + firstCircle.offsetHeight + 4;
+                document.querySelectorAll('.fpg-rect').forEach(function(rect) {
+                    rect.style.height = targetHeight + 'px';
+                });
+            }
+        });
+    </script>
+</body>
+</html>

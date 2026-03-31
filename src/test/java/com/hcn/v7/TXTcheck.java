@@ -1,4 +1,4 @@
-package com.hcn.v5;
+package com.hcn.v7;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -42,7 +42,8 @@ public class TXTcheck {
         return exponents.stream().mapToInt(Integer::intValue).toArray();
     }
 
-    public static int[] exponentSignature(Hcn hcn) {
+    public static int[] exponentSignature(Hcn hcn, ActivePrimeIndex lastActivePrimeIndex) {
+        // only check active prime indexes from the body chain
         List<int[]> pairs = new ArrayList<>();
         HcnBody current = hcn.getBody();
         while (current != null) {
@@ -52,29 +53,29 @@ public class TXTcheck {
             });
             current = current.getParent();
         }
+        return pairs.stream().mapToInt(p -> p[1]).toArray();
+    }
 
-        int primeCount = hcn.getLastActivePrime() + 1;
-        int[] result = new int[primeCount];
-
-        int resultIdx = 0;
-        for (int[] pair : pairs) {
-            int primeIdx = pair[0];
-            int power = pair[1];
-            if (resultIdx < primeIdx && resultIdx < primeCount) {
-                int gapPower = resultIdx > 0 ? result[resultIdx - 1] : power;
-                while (resultIdx < primeIdx && resultIdx < primeCount) {
-                    result[resultIdx++] = gapPower;
-                }
-            }
-            if (resultIdx < primeCount) {
-                result[resultIdx++] = power;
+    public static int[] referenceAtActiveIndexes(int[] fullRef, int[] activeIndexes) {
+        int[] result = new int[activeIndexes.length];
+        for (int i = 0; i < activeIndexes.length; i++) {
+            if (activeIndexes[i] < fullRef.length) {
+                result[i] = fullRef[activeIndexes[i]];
+            } else {
+                result[i] = 1;
             }
         }
-        while (resultIdx < primeCount) {
-            result[resultIdx++] = 1;
-        }
-
         return result;
+    }
+
+    public static int[] getActiveIndexes(Hcn hcn) {
+        List<Integer> indexes = new ArrayList<>();
+        HcnBody current = hcn.getBody();
+        while (current != null) {
+            indexes.add(0, current.getPip().getActivePrimeIndex().getIndex());
+            current = current.getParent();
+        }
+        return indexes.stream().mapToInt(Integer::intValue).toArray();
     }
 
     public List<int[]> getReferenceHcns() {
