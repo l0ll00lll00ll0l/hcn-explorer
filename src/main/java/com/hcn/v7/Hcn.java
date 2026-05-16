@@ -7,8 +7,6 @@ public class Hcn implements Comparable<Hcn> {
     private int lastActivePrime;
     private ScientificNumber value;
     private ScientificNumber factor;
-    private LinkedHashMap<LastActivePrimeIndexGroup, Hcn> smallerHcns = new LinkedHashMap<>();
-    private LinkedHashMap<LastActivePrimeIndexGroup, Hcn> largerHcns = new LinkedHashMap<>();
     
     public Hcn(HcnBody body, int lastActivePrime) {
         this.body = body;
@@ -45,8 +43,6 @@ public class Hcn implements Comparable<Hcn> {
 
     public void setLastActivePrime(int lastActivePrime) {this.lastActivePrime = lastActivePrime;}
 
-    public LinkedHashMap<LastActivePrimeIndexGroup, Hcn> getSmallerHcns() { return smallerHcns; }
-    public LinkedHashMap<LastActivePrimeIndexGroup, Hcn> getLargerHcns() { return largerHcns; }
 
     @Override
     public int compareTo(Hcn other) {
@@ -55,6 +51,10 @@ public class Hcn implements Comparable<Hcn> {
     
     @Override
     public String toString() {
+        if (this.body == null) {
+            return "nullbody " + lastActivePrime + " v: " + value + " f: " + factor;
+        }
+
         return this.body.parentChainString() + " " + lastActivePrime + " v: " + value + " f: " + factor;
     }
 

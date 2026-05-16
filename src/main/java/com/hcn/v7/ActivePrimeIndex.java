@@ -35,10 +35,12 @@ public class ActivePrimeIndex {
     public ActivePrimeIndex getNextActivePrimeIndex() {
         return nextActivePrimeIndex;
     }
+    public void setNextActivePrimeIndex(ActivePrimeIndex next) { this.nextActivePrimeIndex = next; }
 
     public ActivePrimeIndex getParentActivePrimeIndex() {
         return parentActivePrimeIndex;
     }
+    public void setParentActivePrimeIndex(ActivePrimeIndex parent) { this.parentActivePrimeIndex = parent; }
 
     public FixedPowerGroup getOffspringFixedPowerGroup() {
         return offspringFixedPowerGroup;

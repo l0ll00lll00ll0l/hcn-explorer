@@ -135,13 +135,7 @@ public class MatrixV7Controller {
     }
 
     public List<Hcn> getHcnsForLapiGroup(LastActivePrimeIndexGroup group) {
-        List<Hcn> hcns = new ArrayList<>();
-        Hcn current = group.getFirstHcn();
-        while (current != null) {
-            hcns.add(current);
-            current = current.getLargerHcns().get(group);
-        }
-        return hcns;
+        return new ArrayList<>();
     }
 
     public java.util.Map<HcnBody, Integer> getBodyOrderMap() {

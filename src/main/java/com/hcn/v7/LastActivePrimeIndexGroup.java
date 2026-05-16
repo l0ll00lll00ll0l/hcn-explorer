@@ -1,216 +1,37 @@
 package com.hcn.v7;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 public class LastActivePrimeIndexGroup {
     private int lastActivePrimeIndex;
     private ScientificNumber primeValue;
-    private Hcn firstHcn;
-    private LastActivePrimeIndexGroup lowerLapiGroup;
-    private LastActivePrimeIndexGroup higherLapiGroup;
+    private LastActivePrimeIndexGroup lowerLapiGroup = null;
+    private LastActivePrimeIndexGroup higherLapiGroup = null;
+    private HcnBody walkerBody = null;
+    private ArrayList<Hcn> hcnList = new ArrayList<>();
 
     public int getLastActivePrimeIndex() {return lastActivePrimeIndex;}
     public ScientificNumber getPrimeValue() {return primeValue;}
     public void setLastActivePrimeIndex(int lastActivePrimeIndex) {this.lastActivePrimeIndex = lastActivePrimeIndex;}
-    public Hcn getFirstHcn() {return firstHcn;}
-    public void setFirstHcn(Hcn firstHcn) {this.firstHcn = firstHcn;}
     public LastActivePrimeIndexGroup getLowerLapiGroup() {return lowerLapiGroup;}
     public void setLowerLapiGroup(LastActivePrimeIndexGroup lowerLapiGroup) {this.lowerLapiGroup = lowerLapiGroup;}
     public LastActivePrimeIndexGroup getHigherLapiGroup() {return higherLapiGroup;}
     public void setHigherLapiGroup(LastActivePrimeIndexGroup higherLapiGroup) {this.higherLapiGroup = higherLapiGroup;}
+    public ArrayList<Hcn> getHcnList() {return hcnList;}
+    public HcnBody getWalkerBody() {return walkerBody;}
+    public void setWalkerBody(HcnBody walkerBody) {this.walkerBody = walkerBody;}
 
-    public LastActivePrimeIndexGroup(int lastActivePrimeIndex) {
+    public LastActivePrimeIndexGroup(int lastActivePrimeIndex, HcnBody currentLowBody) {
         primeValue = new ScientificNumber(PrimeCenter.getPrime(lastActivePrimeIndex), 0);
         this.lastActivePrimeIndex = lastActivePrimeIndex;
+        this.walkerBody = currentLowBody;
+        currentLowBody.setWalkerBodyForLapi(this);
     }
 
-    public void generateHcnsForNewLapiGroup(BodyList bodyList, java.util.Set<HcnBody> deactivationBin) {
-        copyHcnsFromLowerLapiGroup();
-        mergeNewGeneratedHcns(bodyList, deactivationBin);
-    }
 
-    void copyHcnsFromLowerLapiGroup() {
-        Hcn lowerHcn = lowerLapiGroup.firstHcn;
-        firstHcn = lowerHcn;
-        firstHcn.getSmallerHcns().put(this, null);
-
-        while (lowerHcn.getLargerHcns().get(lowerLapiGroup) != null) {
-            Hcn nextHcn = lowerHcn.getLargerHcns().get(lowerLapiGroup);
-            lowerHcn.getLargerHcns().put(this, nextHcn);
-            nextHcn.getSmallerHcns().put(this, lowerHcn);
-            lowerHcn = nextHcn;
-        }
-        lowerHcn.getLargerHcns().put(this, null);
-    }
-
-    private void mergeNewGeneratedHcns(BodyList bodyList, java.util.Set<HcnBody> deactivationBin) {
-        Hcn currentFloor = firstHcn;
-        HcnBody body = bodyList.getSmallestBody();
-        while (body != null) {
-            Hcn newHcn = body.generateNextHcn(this);
-            currentFloor = mergeOneHcn(currentFloor, newHcn, deactivationBin);
-            body = body.getLargerBody();
-        }
-    }
-
-    void mergeNewHcns(java.util.List<Hcn> sortedNewHcns) {
-        Hcn currentFloor = firstHcn;
-        for (Hcn newHcn : sortedNewHcns) {
-            currentFloor = mergeOneHcn(currentFloor, newHcn, null);
-        }
-    }
-
-    private Hcn mergeOneHcn(Hcn currentFloor, Hcn newHcn, Set<HcnBody> deactivationBin) {
-        // advance floor to just before newHcn's position
-        while (currentFloor.getLargerHcns().get(this) != null
-                && currentFloor.getLargerHcns().get(this).getValue().isSmallerThan(newHcn.getValue())) {
-            currentFloor = currentFloor.getLargerHcns().get(this);
-        }
-
-        if (!newHcn.getFactor().isBiggerThan(currentFloor.getFactor())) {
-            // dominated — don't insert
-            if (deactivationBin != null) {
-                checkDeactivation(newHcn, currentFloor, deactivationBin);
-            }
-            return currentFloor;
-        }
-
-        // remove dominated ceiling Hcns
-        Hcn ceiling = currentFloor.getLargerHcns().get(this);
-        while (ceiling != null && ceiling.getFactor().isNotBiggerThan(newHcn.getFactor())) {
-            if (deactivationBin != null) {
-                checkDeactivation(ceiling, newHcn, deactivationBin);
-            }
-            Hcn next = ceiling.getLargerHcns().get(this);
-            ceiling.getSmallerHcns().remove(this);
-            ceiling.getLargerHcns().remove(this);
-            ceiling = next;
-        }
-
-        // insert newHcn between floor and ceiling
-        currentFloor.getLargerHcns().put(this, newHcn);
-        newHcn.getSmallerHcns().put(this, currentFloor);
-        newHcn.getLargerHcns().put(this, ceiling);
-        if (ceiling != null) ceiling.getSmallerHcns().put(this, newHcn);
-
-        return newHcn;
-    }
-
-    /**
-     * Insert newHcn into this level's chain using anchor from lower level.
-     * Returns true if accepted, false if dominated.
-     */
-    boolean insertIntoChain(Hcn newHcn, LastActivePrimeIndexGroup lowerLevel, Set<HcnBody> deactivationBin) {
-        // find anchor: walk backwards on lower level to find an Hcn that exists in this level
-        Hcn anchor = null;
-        if (lowerLevel != null) {
-            Hcn walker = newHcn.getSmallerHcns().get(lowerLevel);
-            while (walker != null) {
-                if (walker.getSmallerHcns().containsKey(this)) {
-                    anchor = walker;
-                    break;
-                }
-                walker = walker.getSmallerHcns().get(lowerLevel);
-            }
-        }
-
-        // find floor: from anchor, walk forward in this level to find position
-        Hcn prev;
-        if (anchor != null) {
-            prev = anchor;
-            Hcn next = prev.getLargerHcns().get(this);
-            while (next != null && next.getValue().isSmallerThan(newHcn.getValue())) {
-                prev = next;
-                next = prev.getLargerHcns().get(this);
-            }
-        } else {
-            // no anchor found — newHcn might go before firstHcn, or walk from start
-            if (firstHcn == null || !firstHcn.getValue().isSmallerThan(newHcn.getValue())) {
-                prev = null;
-            } else {
-                prev = firstHcn;
-                Hcn next = prev.getLargerHcns().get(this);
-                while (next != null && next.getValue().isSmallerThan(newHcn.getValue())) {
-                    prev = next;
-                    next = prev.getLargerHcns().get(this);
-                }
-            }
-        }
-
-        // check if dominated by floor
-        if (prev != null && !newHcn.getFactor().isBiggerThan(prev.getFactor())) {
-            if (deactivationBin != null) {
-                checkDeactivation(newHcn, prev, deactivationBin);
-            }
-            return false;
-        }
-
-        // link newHcn into chain
-        Hcn current = (prev != null) ? prev.getLargerHcns().get(this) : firstHcn;
-        if (prev != null) {
-            prev.getLargerHcns().put(this, newHcn);
-        } else {
-            firstHcn = newHcn;
-        }
-        newHcn.getSmallerHcns().put(this, prev);
-
-        // remove dominated ceiling Hcns
-        Hcn ceiling = current;
-        while (ceiling != null && ceiling.getFactor().isNotBiggerThan(newHcn.getFactor())) {
-            if (deactivationBin != null) {
-                checkDeactivation(ceiling, newHcn, deactivationBin);
-            }
-            Hcn next = ceiling.getLargerHcns().get(this);
-            ceiling.getSmallerHcns().remove(this);
-            ceiling.getLargerHcns().remove(this);
-            ceiling = next;
-        }
-
-        newHcn.getLargerHcns().put(this, ceiling);
-        if (ceiling != null) ceiling.getSmallerHcns().put(this, newHcn);
-
-        return true;
-    }
-
-    public boolean isBodyAllowedToGenerate(HcnBody newBody) {
-        return newBody.lowestPossibleLapi() <= this.lastActivePrimeIndex;
-    }
-
-    public boolean insertHcnIntoAllLevels(Hcn newHcn, Set<HcnBody> deactivationBin) {
-        LastActivePrimeIndexGroup group = this;
-        LastActivePrimeIndexGroup lowerLevel = this.lowerLapiGroup;
-        while (group != null) {
-            if (!group.insertIntoChain(newHcn, lowerLevel, deactivationBin)) {
-                return false;
-            }
-            lowerLevel = group;
-            group = group.getHigherLapiGroup();
-        }
-        return true;
-    }
-
-    private void checkDeactivation(Hcn defeated, Hcn superior, Set<HcnBody> deactivationBin) {
-        if (defeated.getBody() == null || defeated.getBody().isDeactivated()) return;
-        if (defeated.getBody().isProved() || superior.getLastActivePrime() <= defeated.getLastActivePrime()) {
-            deactivationBin.add(defeated.getBody());
-        }
-    }
-
-    public void removeFirstHcn(Hcn provedHcn) {
-
-        Hcn deleted;
-
-        do {
-            deleted = firstHcn;
-            Hcn next = firstHcn.getLargerHcns().get(this);
-            firstHcn = next;
-            firstHcn.getSmallerHcns().put(this, null);
-            deleted.getSmallerHcns().remove(this);
-            deleted.getLargerHcns().remove(this);
-        } while (deleted != provedHcn);
-
-        if (lowerLapiGroup != null && lowerLapiGroup.lastActivePrimeIndex >= provedHcn.getLastActivePrime()) lowerLapiGroup.removeFirstHcn(provedHcn);
-    }
 
     @Override
     public String toString() {
@@ -219,29 +40,133 @@ public class LastActivePrimeIndexGroup {
                 '}';
     }
 
-    public void remove() {
-        // clean up all Hcns in this group's chain
-        Hcn current = firstHcn;
-        while (current != null) {
-            Hcn next = current.getLargerHcns().get(this);
-            current.getSmallerHcns().remove(this);
-            current.getLargerHcns().remove(this);
-            if (current.getBody() != null) {
-                current.getBody().getGeneratedHcns().remove(this);
-            }
-            current = next;
-        }
-        firstHcn = null;
-        higherLapiGroup.lowerLapiGroup = null;
-        higherLapiGroup = null;
+    public Hcn getFirstHcn() {
+        return null;
     }
 
     public boolean isReadyToDelete() {
-        Hcn current = firstHcn;
-        while (current != null) {
-            if (current.getSmallerHcns().containsKey(higherLapiGroup)) return false;
-            current = current.getLargerHcns().get(this);
+        return false;
+    }
+
+    public void generateHcnList(ScientificNumber provedLimit, ScientificNumber targetValue) {
+
+        System.out.println("");
+        System.out.println("Generate Hcn list for lapigroup: " + this.lastActivePrimeIndex);
+        //System.out.println("walkerBody " + this.walkerBody);
+        System.out.println("ProvedLimit " + provedLimit + " - TargetValue " + targetValue);
+        HcnBody prevWalker = walkerBody;
+
+        // first local hcns might be dominated by lower lapi hcn recorder
+        if (lowerLapiGroup != null) {
+            //check needed only if local recorder is from lower lapi
+            if (hcnList.get(hcnList.size() - 1).getLastActivePrime() < lastActivePrimeIndex) {
+                while (walkerBody.getLastGeneratedHcn().getFactor().isNotBiggerThan(hcnList.get(hcnList.size() - 1).getFactor())) {
+                    //System.out.println("Hcn PRESKIPPEDt: " + walkerBody.getLastGeneratedHcn());
+                    walkerBody.gotDominated();
+                    walkerBody = walkerBody.getLargerBody();
+                    walkerBody.generateNextHcn(this);
+                }
+
+            }
+
         }
-        return true;
+
+        //After making sure about starterHcn from now on all local HCN can be added
+        while (walkerBody.getLastGeneratedHcn().getValue().isSmallerThan(targetValue)) {
+            //System.out.println("Hcn added to lapi hcnlist: " + walkerBody.getLastGeneratedHcn());
+            hcnList.add(walkerBody.getLastGeneratedHcn());
+            walkerBody = walkerBody.getLargerBody();
+            walkerBody.generateNextHcn(this);
+            //System.out.println("Walkerbody hcn for lapi " + this.lastActivePrimeIndex + ": " + walkerBody.getLastGeneratedHcn());
+        }
+
+        //If lower lapi exists, their hcns must be checked locally
+        if (lowerLapiGroup != null) {
+            mergeLowerHcnlist(provedLimit, targetValue);
+        }
+
+        prevWalker.setWalkerBodyForLapi(null);
+        walkerBody.setWalkerBodyForLapi(this);
+        //System.out.println("hcnlist after generateHcnList: " + hcnList);
+
+        if (higherLapiGroup != null) {
+            higherLapiGroup.generateHcnList(provedLimit, targetValue);
+        }
+    }
+
+    private void mergeLowerHcnlist(ScientificNumber provedLimit, ScientificNumber targetValue) {
+
+        int localSuperiorIndex = 0;
+        int lowerLapiNextHcnIndex = computeLowerLapiNextHcnIndex(provedLimit);
+
+
+        while (lowerLapiNextHcnIndex < lowerLapiGroup.hcnList.size()) {
+
+            Hcn lowerLapiNextHcn = lowerLapiGroup.hcnList.get(lowerLapiNextHcnIndex);
+
+            while ((hcnList.size() > localSuperiorIndex + 1) && hcnList.get(localSuperiorIndex + 1).getValue().isSmallerThan(lowerLapiNextHcn.getValue())) {
+                localSuperiorIndex++;
+            }
+
+            Hcn localSuperiorHcn = hcnList.get(localSuperiorIndex);
+
+            if (lowerLapiNextHcn.getFactor().isBiggerThan(localSuperiorHcn.getFactor())) {
+                System.out.println("localSuperiorIndex: " + localSuperiorIndex);
+                System.out.println("localSuperiorHcn: " + localSuperiorHcn);
+                System.out.println("lowerLapiNextHcnIndex: " + lowerLapiNextHcnIndex);
+                System.out.println("lowerLapiNextHcnIndex hcn: " + lowerLapiNextHcn);
+                hcnList.add(localSuperiorIndex + 1, lowerLapiNextHcn);
+                int indexToFactorCheck = localSuperiorIndex + 2;
+                System.out.println("hcn index to factor check: " + indexToFactorCheck);
+                while (indexToFactorCheck < hcnList.size() && hcnList.get(indexToFactorCheck).getFactor().isNotBiggerThan(lowerLapiNextHcn.getFactor())) {
+                    //delete body
+                    hcnList.get(indexToFactorCheck).getBody().gotDominated();
+                    System.out.println("hcn removed" + hcnList.get(indexToFactorCheck));
+                    hcnList.remove(indexToFactorCheck);
+                }
+            }
+
+            lowerLapiNextHcnIndex++;
+
+
+        }
+        //System.out.println("hcnlist after mergeLowerHcnlist: " + hcnList);
+    }
+
+    private int computeLowerLapiNextHcnIndex(ScientificNumber provedLimit) {
+        for (int i = 0; i < lowerLapiGroup.hcnList.size(); i++ ) {
+            if (lowerLapiGroup.hcnList.get(i).getValue().isBiggerThan(provedLimit)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public void extendExistingRangeWithNewBodies(ScientificNumber provedLimit, List<HcnBody> newBodies) {
+
+
+        for (HcnBody newBody : newBodies) {
+            if (newBody.getValue().isNotSmallerThan(walkerBody.getValue())) {
+                break;
+            }
+            System.out.println("newBody: " + newBody);
+            System.out.println("walkerBody: " + walkerBody);
+            if (newBody.getValue().isBiggerThan(provedLimit)) {
+                System.out.println("inserting new body into existing range: " + newBody);
+            }
+        }
+        
+        if (higherLapiGroup != null) {
+            higherLapiGroup.extendExistingRangeWithNewBodies(provedLimit, newBodies);
+        }
+    }
+
+    public void maintainAfterInterval(ScientificNumber provedLimit) {
+
+        Hcn last = hcnList.get(hcnList.size()-1);
+        hcnList.clear();
+        hcnList.add(last);
+
+        System.out.println("hcnlist after: " + hcnList);
     }
 }
