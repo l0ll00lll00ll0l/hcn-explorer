@@ -113,16 +113,4 @@ public class BodyList {
         body.getPip().addActiveHcnBody(body);
         size++;
     }
-
-    public HcnBody getLargestProvedBody() {
-        HcnBody largest = smallestBody;
-        HcnBody current = smallestBody;
-        while (current.getLargerBody() != null) {
-            current = current.getLargerBody();
-            if (current.isProved()) {
-                largest = current;
-            }
-        }
-        return largest;
-    }
 }

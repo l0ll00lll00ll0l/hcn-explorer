@@ -7,6 +7,13 @@ public class ScientificNumber implements Comparable<ScientificNumber> {
     
     private double mantissa;
     private long exponent;
+
+    public double getMantissa() {
+        return mantissa;
+    }
+    public long getExponent() {
+        return exponent;
+    }
     
     public ScientificNumber(double mantissa, long exponent) {
         this.mantissa = mantissa;
@@ -127,31 +134,17 @@ public class ScientificNumber implements Comparable<ScientificNumber> {
         return scientificForm;
     }
     
-    public double getMantissa() {
-        return mantissa;
-    }
-    
-    public long getExponent() {
-        return exponent;
-    }
-    
     public boolean isBiggerThan(ScientificNumber other) {
         return this.compareTo(other) > 0;
     }
-    
     public boolean isNotBiggerThan(ScientificNumber other) {
         return this.compareTo(other) <= 0;
     }
-    
     public boolean isSmallerThan(ScientificNumber other) {
         return this.compareTo(other) < 0;
     }
-    
     public boolean isNotSmallerThan(ScientificNumber other) {
         return this.compareTo(other) >= 0;
     }
-    
-    public boolean isEqualTo(ScientificNumber other) {
-        return this.compareTo(other) == 0;
-    }
+
 }

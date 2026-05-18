@@ -49,7 +49,7 @@ public class MatrixV7Controller {
     @PostMapping("/v7/proveUntilLapi")
     public String proveUntilLapi(@RequestParam int lapiIndex, @RequestParam(defaultValue = "matrix") String activeTab,
                                   @RequestParam(defaultValue = "chain") String lapiView) {
-        hcnGenerator.proveUntilPrimeIndex(lapiIndex);
+        hcnGenerator.proveLapi(lapiIndex);
         return "redirect:/v7?tab=" + activeTab + "&lapiView=" + lapiView;
     }
     
@@ -135,7 +135,7 @@ public class MatrixV7Controller {
     }
 
     public List<Hcn> getHcnsForLapiGroup(LastActivePrimeIndexGroup group) {
-        return new ArrayList<>();
+        return group.getHcnList();
     }
 
     public java.util.Map<HcnBody, Integer> getBodyOrderMap() {

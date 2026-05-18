@@ -16,12 +16,12 @@ public class HcnGenerator {
 
     private int provedCount = 0;
     private int lastProvedPrimeIndex = -1;
-    private int lowestProvedLapiWithinInterval;
+    private int lowestProvedLapiWithinInterval = 1;
 
     private long totalNanos = 0;
     private long extendMatrixNanos = 0;
-    private long lapiGroupNanos = 0;
-    private long cleanupJobs = 0;
+    private long generateHcnListNanos = 0;
+
 
     public ActivePrimeIndex getLastActivePrimeIndex() { return lastActivePrimeIndex; }
     public int getProvedCount() { return provedCount; }
@@ -29,8 +29,7 @@ public class HcnGenerator {
     public LastActivePrimeIndexGroup getHighestLapiGroup() { return highestLapiGroup; }
     public long getTotalMs() { return totalNanos / 1_000_000; }
     public long getExtendMatrixMs() { return extendMatrixNanos / 1_000_000; }
-    public long getLapiGroupMs() { return lapiGroupNanos / 1_000_000; }
-    public long getCleanupMs() { return cleanupJobs / 1_000_000; }
+    public long getGenerateHcnListMs() { return generateHcnListNanos / 1_000_000; }
 
     public void initialize() {
 
@@ -147,10 +146,18 @@ public class HcnGenerator {
         hcn3.setValue(new ScientificNumber(6, 0));
         hcn3.setFactor(new ScientificNumber(4, 0));
 
+        Hcn hcn4 = new Hcn(b_p1_21, 1);
+        hcn4.setValue(new ScientificNumber(12, 0));
+        hcn4.setFactor(new ScientificNumber(6, 0));
+
         b_p1_11.setLastGeneratedHcn(hcn3);
+        b_p1_21.setLastGeneratedHcn(hcn4);
 
         // === LapiGroup ===
-        highestLapiGroup = new LastActivePrimeIndexGroup(1, b_p1_11);
+        nextLapiGroup = new LastActivePrimeIndexGroup(1, b_p1_21);
+        nextLapiGroup.getHcnList().add(hcn2);
+        nextLapiGroup.getHcnList().add(hcn3);
+        highestLapiGroup = new LastActivePrimeIndexGroup(0, b_p1_11);
         highestLapiGroup.getHcnList().add(hcn2);
         lowestLapiGroup = highestLapiGroup;
 
@@ -167,90 +174,81 @@ public class HcnGenerator {
         }
     }
 
-    public void proveNextSuperior() {
-        // create nextLapiGroup
-        System.out.println("");
-        System.out.println("NEW LAPIGROUP");
+    public void proveLapi(int count) {
+        for (int i = 0; i < count; i++) {
+            proveNextLapi();
+        }
+    }
+
+    public void proveNextLapi() {
+        long t0 = System.nanoTime();
+        maintainLapiGroups();
 
         nextLapiGroup = new LastActivePrimeIndexGroup(highestLapiGroup.getLastActivePrimeIndex() + 1, lastActivePrimeIndex.getHcnBodyList().getSmallestBody());
+        Hcn largestGeneratedSuperiorHcn;
         ScientificNumber targetValue =  nextLapiGroup.getPrimeValue().multiply(lastActivePrimeIndex.getHcnBodyList().getSmallestBody().getLastGeneratedHcn().getValue());
+        boolean candidateIsSuperior;
 
-        lowestLapiGroup.generateHcnList(provedLimit, targetValue);
+        do {
+            long tGen = System.nanoTime();
+            lowestLapiGroup.generateHcnList(provedLimit, targetValue);
+            generateHcnListNanos += System.nanoTime() - tGen;
 
-        highestLapiGroup.getHcnList().forEach(hcn -> {
-            if (!hcn.getBody().isDeactivated()) {
-                List<HcnBody> newBodies = lastActivePrimeIndex.extendMatrix(hcn.getBody());
-                if (!newBodies.isEmpty()) {
+            long tExt = System.nanoTime();
+            highestLapiGroup.getHcnList().forEach(hcn -> {
+                if (!hcn.getBody().isDeactivated()) {
+                    lastActivePrimeIndex.extendMatrix(hcn.getBody());
                     if (!lastActivePrimeIndex.isLastActivePrimeIndex()) {
                         lastActivePrimeIndex = lastActivePrimeIndex.getNextActivePrimeIndex();
                     }
-                    lowestLapiGroup.extendExistingRangeWithNewBodies(provedLimit, newBodies);
-                }
-
-            }
-        });
-
-        Hcn largestGeneratedSuperiorHcn = highestLapiGroup.getHcnList().get(highestLapiGroup.getHcnList().size()-1);
-        System.out.println("largestGeneratedSuperiorHcn: " + largestGeneratedSuperiorHcn);
-
-        Hcn targetHcn = nextLapiGroup.getWalkerBody().generateNextHcn(nextLapiGroup);
-        System.out.println("targetHcn: " + targetHcn);
-        //nextLapiGroup.getHcnList().add(targetHcn);
-
-
-        while (largestGeneratedSuperiorHcn.getFactor().isNotSmallerThan(targetHcn.getFactor())) {
-            provedLimit = targetHcn.getValue();
-            nextLapiGroup.getWalkerBody().setWalkerBodyForLapi(null);
-            nextLapiGroup.setWalkerBody(nextLapiGroup.getWalkerBody().getLargerBody());
-            nextLapiGroup.getWalkerBody().setWalkerBodyForLapi(nextLapiGroup);
-            targetHcn.getBody().gotDominated();
-            targetHcn = nextLapiGroup.getWalkerBody().generateNextHcn(nextLapiGroup);
-            //nextLapiGroup.getHcnList().clear();
-            //nextLapiGroup.getHcnList().add(targetHcn);
-
-            lowestLapiGroup.generateHcnList(provedLimit, targetHcn.getValue());
-
-            highestLapiGroup.getHcnList().forEach(hcn -> {
-                if (!hcn.getBody().isDeactivated()) {
-                    List<HcnBody> newBodies = lastActivePrimeIndex.extendMatrix(hcn.getBody());
-                    if (!newBodies.isEmpty()) {
-                        if (!lastActivePrimeIndex.isLastActivePrimeIndex()) {
-                            lastActivePrimeIndex = lastActivePrimeIndex.getNextActivePrimeIndex();
-                        }
-                        lowestLapiGroup.extendExistingRangeWithNewBodies(provedLimit, newBodies);
-                    }
-
                 }
             });
-            largestGeneratedSuperiorHcn = highestLapiGroup.getHcnList().get(highestLapiGroup.getHcnList().size()-1);
-            System.out.println("targetHcn set to: " + targetHcn);
-            System.out.println("largestGeneratedSuperiorHcn is: " + largestGeneratedSuperiorHcn);
-        }
+            extendMatrixNanos += System.nanoTime() - tExt;
+
+            largestGeneratedSuperiorHcn = highestLapiGroup.getHcnList().get(highestLapiGroup.getHcnList().size() - 1);
+            provedLimit = targetValue;
+            candidateIsSuperior = true;
+            Hcn targetHcn = nextLapiGroup.getWalkerBody().generateNextHcn(nextLapiGroup);
+
+            if (largestGeneratedSuperiorHcn.getFactor().isNotSmallerThan(targetHcn.getFactor())) {
+                candidateIsSuperior = false;
+                nextLapiGroup.getWalkerBody().removeWalkerBodyForLapi(nextLapiGroup);
+                nextLapiGroup.setWalkerBody(nextLapiGroup.getWalkerBody().getLargerBody());
+                nextLapiGroup.getWalkerBody().addWalkerBodyForLapi(nextLapiGroup);
+                targetHcn.getBody().gotDominated();
+                targetValue =  nextLapiGroup.getPrimeValue().multiply(nextLapiGroup.getWalkerBody().getLastGeneratedHcn().getValue());
+            }
+
+        } while (!candidateIsSuperior);
 
         nextLapiGroup.getHcnList().add(largestGeneratedSuperiorHcn);
-
         highestLapiGroup.getHcnList().remove(0);
         lowestProvedLapiWithinInterval = Integer.MAX_VALUE;
         highestLapiGroup.getHcnList().forEach(hcn -> {
             if (hcn.getLastActivePrime() < lowestProvedLapiWithinInterval) {
                 lowestProvedLapiWithinInterval = hcn.getLastActivePrime();
             }
-            provedHcns.add(hcn);
+            provedCount++;
+            //provedHcns.add(hcn);
         });
-
-        maintainLapiGroups(largestGeneratedSuperiorHcn.getValue());
-        provedLimit = targetHcn.getValue();
-
-        System.out.println(provedHcns);
+        lastProvedPrimeIndex++;
+        totalNanos += System.nanoTime() - t0;
     }
 
-    private void maintainLapiGroups(ScientificNumber provedLimit) {
+    public Hcn proveNextSuperior() {
+        if (provedHcns.isEmpty()) {
+            proveNextLapi();
+        }
+        return provedHcns.remove(0);
+    }
+
+    private void maintainLapiGroups() {
 
         LastActivePrimeIndexGroup lapi = lowestLapiGroup;
-        lapi.maintainAfterInterval(provedLimit);
+        lapi.maintainAfterInterval();
         while (lapi.getHigherLapiGroup() != null) {
             lapi = lapi.getHigherLapiGroup();
-            lapi.maintainAfterInterval(provedLimit);
+            lapi.maintainAfterInterval();
         }
 
         nextLapiGroup.setLowerLapiGroup(highestLapiGroup);
@@ -259,61 +257,13 @@ public class HcnGenerator {
         nextLapiGroup = null;
 
         while (lowestProvedLapiWithinInterval > lowestLapiGroup.getLastActivePrimeIndex()) {
-            System.out.println("Deleted LapiGroup: " + lowestLapiGroup.getLastActivePrimeIndex());
             LastActivePrimeIndexGroup lapiToRemove = lowestLapiGroup;
-
+            lapiToRemove.getWalkerBody().removeWalkerBodyForLapi(lapiToRemove);
+            lapiToRemove.setWalkerBody(null);
             lowestLapiGroup = lowestLapiGroup.getHigherLapiGroup();
             lapiToRemove.setHigherLapiGroup(null);
             lowestLapiGroup.setLowerLapiGroup(null);
-            lowestLapiGroup = lowestLapiGroup.getHigherLapiGroup();
         }
-    }
-
-    public Hcn proveNextSuperiorOld() {
-        long t0 = System.nanoTime();
-
-        Hcn provedHcn = highestLapiGroup.getFirstHcn();
-
-        provedCount++;
-
-        if (provedHcn.getLastActivePrime() == highestLapiGroup.getLastActivePrimeIndex()) {
-            addNewLapiGroup();
-        }
-
-        if (!provedHcn.getBody().isDeactivated()) {
-            long tExt = System.nanoTime();
-            List<HcnBody> newLeafBodies = lastActivePrimeIndex.extendMatrix(provedHcn.getBody());
-            if (!lastActivePrimeIndex.isLastActivePrimeIndex()) {
-                lastActivePrimeIndex = lastActivePrimeIndex.getNextActivePrimeIndex();
-            }
-            extendMatrixNanos += System.nanoTime() - tExt;
-
-            long tLapi = System.nanoTime();
-            //newLeafBodies.forEach(newBody -> insertNewBodyHcns(newBody));
-            lapiGroupNanos += System.nanoTime() - tLapi;
-        }
-
-
-        if (provedHcn.getLastActivePrime() > lastProvedPrimeIndex) {
-            lastProvedPrimeIndex = provedHcn.getLastActivePrime();
-        }
-        //highestLapiGroup.removeFirstHcn(provedHcn);
-
-        if (lowestLapiGroup.isReadyToDelete()) {
-            lowestLapiGroup = lowestLapiGroup.getHigherLapiGroup();
-            //lowestLapiGroup.getLowerLapiGroup().remove();
-        }
-        return provedHcn;
-    }
-
-
-
-    private void addNewLapiGroup() {
-        LastActivePrimeIndexGroup newGroup = new LastActivePrimeIndexGroup(highestLapiGroup.getLastActivePrimeIndex() + 1, lastActivePrimeIndex.getHcnBodyList().getSmallestBody());
-        newGroup.setLowerLapiGroup(highestLapiGroup);
-        highestLapiGroup.setHigherLapiGroup(newGroup);
-        highestLapiGroup = newGroup;
-       // highestLapiGroup.generateHcnsForNewLapiGroup(lastActivePrimeIndex.getHcnBodyList(), deactivationBin);
     }
 
 }

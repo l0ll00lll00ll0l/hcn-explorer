@@ -108,8 +108,7 @@
             <div>Last Active: p<span th:text="${hcnGenerator.lastActivePrimeIndex.index}"></span></div>
             <div style="margin-top: 6px; border-top: 1px solid #ccc; padding-top: 4px;">Total: <span th:text="${hcnGenerator.totalMs}"></span> ms</div>
             <div>ExtendMatrix: <span th:text="${hcnGenerator.extendMatrixMs}"></span> ms</div>
-            <div>LapiGroupOps: <span th:text="${hcnGenerator.lapiGroupMs}"></span> ms</div>
-            <div>CleanupJobs: <span th:text="${hcnGenerator.cleanupMs}"></span> ms</div>
+            <div>GenerateHcnList: <span th:text="${hcnGenerator.generateHcnListMs}"></span> ms</div>
         </div>
         <div th:with="matrixChain=${@matrixV7Controller.buildMatrixChain(hcnGenerator.lastActivePrimeIndex)}">
             <div class="matrix-columns">
@@ -156,8 +155,7 @@
                         <tr><th>#</th><th class="col-chain">Chain</th><th class="col-dist" style="display:none;">Body</th><th>Lapi</th><th>Value</th><th>Factor</th></tr>
                     </thead>
                     <tbody>
-                        <tr th:each="hcn, iter : ${@matrixV7Controller.getHcnsForLapiGroup(group)}"
-                            th:style="${bodyOrder.get(hcn.body) == null ? 'background-color: #ffcccc;' : (hcn.smallerHcns.containsKey(highestLapi) ? 'background-color: #ccffcc;' : 'background-color: #ffffcc;')}">
+                        <tr th:each="hcn, iter : ${@matrixV7Controller.getHcnsForLapiGroup(group)}">
                             <td th:text="${iter.index}"></td>
                             <td class="col-chain" th:text="${hcn.body.parentChainString()}"></td>
                             <td class="col-dist" style="display:none;" th:text="${bodyOrder.get(hcn.body)}"></td>

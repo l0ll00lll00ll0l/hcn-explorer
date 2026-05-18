@@ -7,7 +7,7 @@ public class TXTcheckTest {
 
     @Test
     public void findFirstMismatchAgainstReference() {
-        /*
+
         TXTcheck txt = new TXTcheck();
         List<int[]> ref = txt.getReferenceHcns();
         int count = ref.size() - 1; // skip ref[0] which is HCN=1
@@ -41,6 +41,6 @@ public class TXTcheckTest {
         }
         System.out.println("All " + count + " HCNs match the reference!");
 
-         */
+
     }
 }
