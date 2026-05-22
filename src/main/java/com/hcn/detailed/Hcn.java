@@ -1,0 +1,56 @@
+package com.hcn.detailed;
+
+import java.util.LinkedHashMap;
+
+public class Hcn implements Comparable<Hcn> {
+    private HcnBody body;
+    private int lastActivePrime;
+    private ScientificNumber value;
+    private ScientificNumber factor;
+    
+    public Hcn(HcnBody body, int lastActivePrime) {
+        this.body = body;
+        this.lastActivePrime = lastActivePrime;
+    }
+    
+    public HcnBody getBody() {
+        return body;
+    }
+    public int getLastActivePrime() {
+        return lastActivePrime;
+    }
+    public ScientificNumber getValue() {
+        return value;
+    }
+    public void setValue(ScientificNumber value) {
+        this.value = value;
+    }
+    public ScientificNumber getFactor() {
+        return factor;
+    }
+    public void setFactor(ScientificNumber factor) {
+        this.factor = factor;
+    }
+    public void setBody(HcnBody body) {
+        this.body = body;
+    }
+    public void setLastActivePrime(int lastActivePrime) {this.lastActivePrime = lastActivePrime;}
+
+    @Override
+    public int compareTo(Hcn other) {
+        return this.value.compareTo(other.value);
+    }
+    
+    @Override
+    public String toString() {
+        if (this.body == null) {
+            return "nullbody " + lastActivePrime + " v: " + value + " f: " + factor;
+        }
+
+        return this.body.parentChainString() + " " + lastActivePrime + " v: " + value + " f: " + factor;
+    }
+
+    public String fullPrint() {
+        return body.parentChainString() + "|" + lastActivePrime + " v: " + value + " f: " + factor;
+    }
+}

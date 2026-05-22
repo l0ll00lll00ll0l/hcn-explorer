@@ -1,4 +1,6 @@
-package com.hcn.core;
+package com.hcn.detailed;
+
+import com.hcn.detailed.optional.ExtendedHcnBodyData;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -165,9 +167,28 @@ public class HcnGenerator {
         provedCount = 3;
         lastProvedPrimeIndex = 0;
         provedLimit = new ScientificNumber(6, 0);
+
+        // detailed specific codes
+        if (GeneratorConfig.isExtendedHcnBodyData()) {
+            b_p1_11.setExtendedHcnBodyData(new ExtendedHcnBodyData());
+            b_p1_11.getExtendedHcnBodyData().setFirstGeneratedHcn(hcn1);
+            b_p1_11.getExtendedHcnBodyData().setFirstSuperiorHcn(hcn1);
+
+            b_p1_21.setExtendedHcnBodyData(new ExtendedHcnBodyData());
+            b_p1_21.getExtendedHcnBodyData().setFirstGeneratedHcn(hcn2);
+            b_p1_21.getExtendedHcnBodyData().setFirstSuperiorHcn(hcn2);
+
+            b_p1_31.setExtendedHcnBodyData(new ExtendedHcnBodyData());
+            b_p1_22.setExtendedHcnBodyData(new ExtendedHcnBodyData());
+            b_p1_32.setExtendedHcnBodyData(new ExtendedHcnBodyData());
+        }
     }
 
     public void proveLapi(int count) {
+        if (!GeneratorConfig.isLocked()) {
+            GeneratorConfig.lock();
+            initialize();
+        }
         for (int i = 0; i < count; i++) {
             proveNextLapi();
         }
@@ -195,6 +216,13 @@ public class HcnGenerator {
                 lowestProvedLapiWithinInterval = hcn.getLastActivePrime();
             }
             provedCount++;
+
+            // detailed specific codes
+            if (GeneratorConfig.isExtendedHcnBodyData()) {
+                if (hcn.getBody().getExtendedHcnBodyData().getFirstSuperiorHcn() == null) {
+                    hcn.getBody().getExtendedHcnBodyData().setFirstSuperiorHcn(hcn);
+                }
+            }
         });
     }
 

@@ -10,7 +10,7 @@ public class TXTcheckTest {
 
         TXTcheck txt = new TXTcheck();
         List<int[]> ref = txt.getReferenceHcns();
-        int count = ref.size() - 1; // skip ref[0] which is HCN=1
+        int count = ref.size();
 
         HcnGenerator hcnGenerator = new HcnGenerator();
         hcnGenerator.initialize();
@@ -18,8 +18,9 @@ public class TXTcheckTest {
 
         for (int i = 0; i < count; i++) {
             Hcn provedHcn = hcnGenerator.proveNextSuperior();
-            int[] fullExpected = ref.get(i + 1);
+            int[] fullExpected = ref.get(i);
             int[] activeIndexes = TXTcheck.getActiveIndexes(provedHcn);
+            if (activeIndexes.length == 0) continue;
             int[] expected = TXTcheck.referenceAtActiveIndexes(fullExpected, activeIndexes);
             int[] actual = TXTcheck.exponentSignature(provedHcn, hcnGenerator.getLastActivePrimeIndex());
 

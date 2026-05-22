@@ -1,4 +1,6 @@
-package com.hcn.core;
+package com.hcn.detailed;
+
+import com.hcn.detailed.optional.ExtendedHcnBodyData;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +17,7 @@ public class HcnBody implements Comparable<HcnBody> {
     private HcnBody largerBody = null;
     private Hcn lastGeneratedHcn = null;
     private List<LastActivePrimeIndexGroup> walkerBodyForLapi = new ArrayList<>();
+    private ExtendedHcnBodyData extendedHcnBodyData = null;
 
     public HcnBody getParent() {
         return parent;
@@ -63,6 +66,8 @@ public class HcnBody implements Comparable<HcnBody> {
     public List<LastActivePrimeIndexGroup> getWalkerBodyForLapi() {return walkerBodyForLapi;}
     public void addWalkerBodyForLapi(LastActivePrimeIndexGroup walkerBodyForLapi) {this.walkerBodyForLapi.add(walkerBodyForLapi);}
     public void removeWalkerBodyForLapi(LastActivePrimeIndexGroup walkerBodyForLapi) {this.walkerBodyForLapi.remove(walkerBodyForLapi);}
+    public ExtendedHcnBodyData getExtendedHcnBodyData() {return extendedHcnBodyData;}
+    public void setExtendedHcnBodyData(ExtendedHcnBodyData extendedHcnBodyData) {this.extendedHcnBodyData = extendedHcnBodyData;}
 
     public HcnBody() {}
 
@@ -87,9 +92,25 @@ public class HcnBody implements Comparable<HcnBody> {
                 parent.walkerBodyForLapi.clear();
                 walkerBodyForLapi.forEach(lapi -> lapi.setWalkerBody(this));
             }
+
+            // detailed specific codes
+            if (GeneratorConfig.isExtendedHcnBodyData()) {
+                if (parent.extendedHcnBodyData == null) {
+                    extendedHcnBodyData = new ExtendedHcnBodyData();
+                } else {
+                    extendedHcnBodyData = parent.extendedHcnBodyData;
+                    parent.extendedHcnBodyData = new ExtendedHcnBodyData();
+                }
+
+            }
         } else {
             value = valueMultiplier;
             factor = factorMultiplier;
+
+            // detailed specific codes
+            if (GeneratorConfig.isExtendedHcnBodyData()) {
+                extendedHcnBodyData = new ExtendedHcnBodyData();
+            }
         }
     }
 
@@ -102,14 +123,6 @@ public class HcnBody implements Comparable<HcnBody> {
     public String toString() {return parentChainString() + " v=" + value + " f=" + factor;}
 
     public String parentChainString() {return getFullChain().stream().map(HcnBody::getBodyId).collect(Collectors.toList()).toString();}
-
-    public int lowestPossibleLapi() {
-        if (pip.getPower() < 2) {
-            return parent.lowestPossibleLapi();
-        } else {
-            return pip.getActivePrimeIndex().getIndex();
-        }
-    }
 
     private List<HcnBody> getFullChain() {
         List<HcnBody> chain = new ArrayList<>();
@@ -193,10 +206,24 @@ public class HcnBody implements Comparable<HcnBody> {
     }
 
     public Hcn generateNextHcn(LastActivePrimeIndexGroup lapiGroup) {
+
+        // detailed specific codes
+        boolean isFirstHcn = false;
+        if (GeneratorConfig.isExtendedHcnBodyData()) {
+            if (lastGeneratedHcn == null) {
+                isFirstHcn = true;
+            }
+        }
+
         if (canExtendFromPreviousLapi(lapiGroup)) {
             lastGeneratedHcn = extendFromPreviousLapi(lapiGroup);
         } else {
             lastGeneratedHcn = computeFromReference(lapiGroup);
+        }
+
+        // detailed specific codes
+        if (isFirstHcn) {
+            extendedHcnBodyData.setFirstGeneratedHcn(lastGeneratedHcn);
         }
         return lastGeneratedHcn;
     }
@@ -245,5 +272,14 @@ public class HcnBody implements Comparable<HcnBody> {
     public void gotDominated() {
         deactivateFromLists();
         pip.getActivePrimeIndex().deactivateRecursive(this);
+
+        // detailed specific codes
+        if (GeneratorConfig.isExtendedHcnBodyData()) {
+            if (extendedHcnBodyData.getFirstSuperiorHcn() == null) {
+                extendedHcnBodyData.setFirstPreProvedNonSuperiorHcn(lastGeneratedHcn);
+            } else {
+                extendedHcnBodyData.setFirstPostProvedNonSuperiorHcn(lastGeneratedHcn);
+            }
+        }
     }
 }

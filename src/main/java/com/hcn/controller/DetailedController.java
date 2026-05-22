@@ -1,13 +1,13 @@
 package com.hcn.controller;
 
-import com.hcn.core.ActivePrimeIndex;
-import com.hcn.core.FixedPowerGroup;
-import com.hcn.core.HcnBody;
-import com.hcn.core.HcnGenerator;
-import com.hcn.core.Hcn;
-import com.hcn.core.LastActivePrimeIndexGroup;
-import com.hcn.core.PrimeCenter;
-import com.hcn.core.ScientificNumber;
+import com.hcn.detailed.ActivePrimeIndex;
+import com.hcn.detailed.FixedPowerGroup;
+import com.hcn.detailed.HcnBody;
+import com.hcn.detailed.HcnGenerator;
+import com.hcn.detailed.Hcn;
+import com.hcn.detailed.LastActivePrimeIndexGroup;
+import com.hcn.detailed.PrimeCenter;
+import com.hcn.detailed.ScientificNumber;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,52 +20,65 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Controller
-public class MatrixController {
+public class DetailedController {
     private HcnGenerator hcnGenerator;
 
-    public MatrixController() {
+    public DetailedController() {
         hcnGenerator = new HcnGenerator();
-        hcnGenerator.initialize();
     }
     
-    @GetMapping("/core")
-    public String index(Model model, @RequestParam(defaultValue = "matrix") String tab,
+    @GetMapping("/detailed")
+    public String index(Model model, @RequestParam(defaultValue = "config") String tab,
                         @RequestParam(defaultValue = "chain") String lapiView) {
+        if (!com.hcn.detailed.GeneratorConfig.isLocked()) {
+            com.hcn.detailed.GeneratorConfig.lock();
+            hcnGenerator.initialize();
+        }
         model.addAttribute("hcnGenerator", hcnGenerator);
+        model.addAttribute("configLocked", com.hcn.detailed.GeneratorConfig.isLocked());
+        model.addAttribute("extendedHcnBodyData", com.hcn.detailed.GeneratorConfig.isExtendedHcnBodyData());
         model.addAttribute("displayDecimals", ScientificNumber.getDisplayDecimals());
         model.addAttribute("activeTab", tab);
         model.addAttribute("lapiView", lapiView);
-        return "index";
+        return "indexDetailed";
+    }
+
+    @PostMapping("/detailed/updateConfig")
+    public String updateConfig(@RequestParam(defaultValue = "false") boolean extendedHcnBodyData,
+                               @RequestParam(defaultValue = "config") String activeTab,
+                               @RequestParam(defaultValue = "chain") String lapiView) {
+        com.hcn.detailed.GeneratorConfig.setExtendedHcnBodyData(extendedHcnBodyData);
+        return "redirect:/detailed?tab=" + activeTab + "&lapiView=" + lapiView;
     }
     
-    @PostMapping("/core/proveNext")
+    @PostMapping("/detailed/proveNext")
     public String proveNext(@RequestParam(defaultValue = "1") int count,
                             @RequestParam(defaultValue = "matrix") String activeTab,
                             @RequestParam(defaultValue = "chain") String lapiView) {
         for (int i = 0; i < count; i++) hcnGenerator.proveNextSuperior();
-        return "redirect:/core?tab=" + activeTab + "&lapiView=" + lapiView;
+        return "redirect:/detailed?tab=" + activeTab + "&lapiView=" + lapiView;
     }
 
-    @PostMapping("/core/proveUntilLapi")
+    @PostMapping("/detailed/proveUntilLapi")
     public String proveUntilLapi(@RequestParam int lapiIndex, @RequestParam(defaultValue = "matrix") String activeTab,
                                   @RequestParam(defaultValue = "chain") String lapiView) {
         hcnGenerator.proveLapi(lapiIndex);
-        return "redirect:/core?tab=" + activeTab + "&lapiView=" + lapiView;
+        return "redirect:/detailed?tab=" + activeTab + "&lapiView=" + lapiView;
     }
     
-    @PostMapping("/core/reset")
+    @PostMapping("/detailed/reset")
     public String reset(@RequestParam(defaultValue = "matrix") String activeTab,
                         @RequestParam(defaultValue = "chain") String lapiView) {
         hcnGenerator = new HcnGenerator();
-        hcnGenerator.initialize();
-        return "redirect:/core?tab=" + activeTab + "&lapiView=" + lapiView;
+        com.hcn.detailed.GeneratorConfig.reset();
+        return "redirect:/detailed?tab=" + activeTab + "&lapiView=" + lapiView;
     }
     
-    @PostMapping("/core/setDisplayDecimals")
+    @PostMapping("/detailed/setDisplayDecimals")
     public String setDisplayDecimals(@RequestParam int decimals, @RequestParam(defaultValue = "matrix") String activeTab,
                                       @RequestParam(defaultValue = "chain") String lapiView) {
         ScientificNumber.setDisplayDecimals(decimals);
-        return "redirect:/core?tab=" + activeTab + "&lapiView=" + lapiView;
+        return "redirect:/detailed?tab=" + activeTab + "&lapiView=" + lapiView;
     }
     
     public List<Object> buildMatrixChain(ActivePrimeIndex lastActivePrimeIndex) {

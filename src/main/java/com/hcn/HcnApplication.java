@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication
 public class HcnApplication {
     public static void main(String[] args) {
+        PostgresAutoStart.ensureRunning();
         SpringApplication.run(HcnApplication.class, args);
     }
     
