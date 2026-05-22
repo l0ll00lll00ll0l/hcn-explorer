@@ -11,7 +11,6 @@ public class Matrix {
     private LastActivePrimeIndexGroup lowestLapiGroup;
     private LastActivePrimeIndexGroup highestLapiGroup;
     private LastActivePrimeIndexGroup nextLapiGroup;
-    private Set<HcnBody> deactivationBin = new HashSet<>();
     private List<Hcn> provedHcns = new ArrayList<>();
     private ScientificNumber provedLimit;
 
