@@ -97,7 +97,7 @@
     </form>
 
     <div class="mainpanel">
-      <th:block th:if="${hcnGenerator.lastActivePrimeIndex != null}">
+      <th:block th:if="${matrix.lastActivePrimeIndex != null}">
         <div class="tab-bar">
             <button class="tab-btn active" data-tab="matrix" onclick="switchTab('matrix')">Matrix</button>
             <button class="tab-btn" data-tab="hcnfilter" onclick="switchTab('hcnfilter')">LapiGroups</button>
@@ -105,13 +105,13 @@
         </div>
         <div id="tab-matrix" class="tab-content">
         <div class="matrix-info">
-            <div>Proved: <span th:text="${hcnGenerator.provedCount}"></span></div>
-            <div>Last Active: p<span th:text="${hcnGenerator.lastActivePrimeIndex.index}"></span></div>
-            <div style="margin-top: 6px; border-top: 1px solid #ccc; padding-top: 4px;">Total: <span th:text="${hcnGenerator.totalMs}"></span> ms</div>
-            <div>ExtendMatrix: <span th:text="${hcnGenerator.extendMatrixMs}"></span> ms</div>
-            <div>GenerateHcnList: <span th:text="${hcnGenerator.generateHcnListMs}"></span> ms</div>
+            <div>Proved: <span th:text="${matrix.provedCount}"></span></div>
+            <div>Last Active: p<span th:text="${matrix.lastActivePrimeIndex.index}"></span></div>
+            <div style="margin-top: 6px; border-top: 1px solid #ccc; padding-top: 4px;">Total: <span th:text="${matrix.totalMs}"></span> ms</div>
+            <div>ExtendMatrix: <span th:text="${matrix.extendMatrixMs}"></span> ms</div>
+            <div>GenerateHcnList: <span th:text="${matrix.generateHcnListMs}"></span> ms</div>
         </div>
-        <div th:with="matrixChain=${@detailedController.buildMatrixChain(hcnGenerator.lastActivePrimeIndex)}">
+        <div th:with="matrixChain=${@detailedController.buildMatrixChain(matrix.lastActivePrimeIndex)}">
             <div class="matrix-columns">
                 <div th:each="item : ${matrixChain}" class="matrix-col">
                     <!-- ActivePrimeIndex: pip stack + prime circle -->
@@ -149,7 +149,7 @@
                 <label><input type="radio" name="lapiView" value="chain" checked onclick="switchLapiView('chain')"> BodyChain</label>
                 <label style="margin-left: 10px;"><input type="radio" name="lapiView" value="dist" onclick="switchLapiView('dist')"> Distribution</label>
             </div>
-            <div th:with="bodyOrder=${@detailedController.getBodyOrderMap()}, highestLapi=${hcnGenerator.highestLapiGroup}" style="display: flex; gap: 10px; overflow-x: auto; align-items: flex-start;">
+            <div th:with="bodyOrder=${@detailedController.getBodyOrderMap()}, highestLapi=${matrix.highestLapiGroup}" style="display: flex; gap: 10px; overflow-x: auto; align-items: flex-start;">
             <div th:each="group : ${@detailedController.getLapiGroupsReversed()}" style="min-width: 250px; flex-shrink: 0;">
                 <h3 style="margin: 10px 0 4px;">LastActivePrimeIndex: <span th:text="${group.lastActivePrimeIndex}"></span></h3>
                 <table class="level-table">
@@ -172,7 +172,7 @@
         </div>
 
         <div id="tab-bodylist" class="tab-content">
-            <div th:with="allApi=${@detailedController.getAllActivePrimeIndexes()}, lastApiIndex=${hcnGenerator.lastActivePrimeIndex.index}" style="text-align: center;">
+            <div th:with="allApi=${@detailedController.getAllActivePrimeIndexes()}, lastApiIndex=${matrix.lastActivePrimeIndex.index}" style="text-align: center;">
                 <div style="margin: 10px 0;">
                     <button onclick="changeApi(-1)" style="font-size: 1.5em; padding: 4px 12px;">&#9664;</button>
                     <span id="api-display" style="font-size: 2em; font-weight: bold; margin: 0 15px;"></span>
@@ -203,10 +203,6 @@
                         <thead>
                             <tr>
                                 <th>#</th><th>Chain</th><th>Value</th><th>Factor</th><th>Proved</th><th>LastGen</th>
-                                <th th:if="${extendedHcnBodyData}">1stGen</th>
-                                <th th:if="${extendedHcnBodyData}">1stSup</th>
-                                <th th:if="${extendedHcnBodyData}">1stPostNS</th>
-                                <th th:if="${extendedHcnBodyData}">1stPreNS</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -219,16 +215,6 @@
                                 <td th:text="${body.proved}"></td>
                                 <td th:if="${body.lastGeneratedHcn != null}" th:title="${body.lastGeneratedHcn.toString()}" th:text="${body.lastGeneratedHcn.lastActivePrime}"></td>
                                 <td th:if="${body.lastGeneratedHcn == null}"></td>
-                                <th:block th:if="${extendedHcnBodyData}">
-                                    <td th:if="${body.extendedHcnBodyData != null && body.extendedHcnBodyData.firstGeneratedHcn != null}" th:title="${body.extendedHcnBodyData.firstGeneratedHcn.toString()}" th:text="${body.extendedHcnBodyData.firstGeneratedHcn.lastActivePrime}"></td>
-                                    <td th:if="${body.extendedHcnBodyData == null || body.extendedHcnBodyData.firstGeneratedHcn == null}"></td>
-                                    <td th:if="${body.extendedHcnBodyData != null && body.extendedHcnBodyData.firstSuperiorHcn != null}" th:title="${body.extendedHcnBodyData.firstSuperiorHcn.toString()}" th:text="${body.extendedHcnBodyData.firstSuperiorHcn.lastActivePrime}"></td>
-                                    <td th:if="${body.extendedHcnBodyData == null || body.extendedHcnBodyData.firstSuperiorHcn == null}"></td>
-                                    <td th:if="${body.extendedHcnBodyData != null && body.extendedHcnBodyData.firstPostProvedNonSuperiorHcn != null}" th:title="${body.extendedHcnBodyData.firstPostProvedNonSuperiorHcn.toString()}" th:text="${body.extendedHcnBodyData.firstPostProvedNonSuperiorHcn.lastActivePrime}"></td>
-                                    <td th:if="${body.extendedHcnBodyData == null || body.extendedHcnBodyData.firstPostProvedNonSuperiorHcn == null}"></td>
-                                    <td th:if="${body.extendedHcnBodyData != null && body.extendedHcnBodyData.firstPreProvedNonSuperiorHcn != null}" th:title="${body.extendedHcnBodyData.firstPreProvedNonSuperiorHcn.toString()}" th:text="${body.extendedHcnBodyData.firstPreProvedNonSuperiorHcn.lastActivePrime}"></td>
-                                    <td th:if="${body.extendedHcnBodyData == null || body.extendedHcnBodyData.firstPreProvedNonSuperiorHcn == null}"></td>
-                                </th:block>
                             </tr>
                         </tbody>
                     </table>

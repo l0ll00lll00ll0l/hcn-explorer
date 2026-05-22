@@ -27,10 +27,8 @@ public class LandingController {
         if ("withdb".equals(dbMode)) {
             HcnApplication app = new HcnApplication();
             app.setName("HCN-" + System.currentTimeMillis());
-            app.setExtendedHcnBodyData(extendedHcnBodyData);
             hcnApplicationRepository.save(app);
 
-            com.hcn.detailed.GeneratorConfig.setExtendedHcnBodyData(extendedHcnBodyData);
             return "redirect:/detailed";
         }
         return "redirect:/core";

@@ -12,17 +12,17 @@ public class TXTcheckTest {
         List<int[]> ref = txt.getReferenceHcns();
         int count = ref.size();
 
-        HcnGenerator hcnGenerator = new HcnGenerator();
-        hcnGenerator.initialize();
+        Matrix matrix = new Matrix();
+        matrix.initialize();
         long batchStart = System.currentTimeMillis();
 
         for (int i = 0; i < count; i++) {
-            Hcn provedHcn = hcnGenerator.proveNextSuperior();
+            Hcn provedHcn = matrix.proveNextSuperior();
             int[] fullExpected = ref.get(i);
             int[] activeIndexes = TXTcheck.getActiveIndexes(provedHcn);
             if (activeIndexes.length == 0) continue;
             int[] expected = TXTcheck.referenceAtActiveIndexes(fullExpected, activeIndexes);
-            int[] actual = TXTcheck.exponentSignature(provedHcn, hcnGenerator.getLastActivePrimeIndex());
+            int[] actual = TXTcheck.exponentSignature(provedHcn, matrix.getLastActivePrimeIndex());
 
             if (!TXTcheck.signaturesEqual(expected, actual)) {
                 System.out.println("FIRST MISMATCH at HCN #" + (i + 1));

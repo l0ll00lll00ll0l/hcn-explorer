@@ -3,7 +3,7 @@ package com.hcn.controller;
 import com.hcn.core.ActivePrimeIndex;
 import com.hcn.core.FixedPowerGroup;
 import com.hcn.core.HcnBody;
-import com.hcn.core.HcnGenerator;
+import com.hcn.core.Matrix;
 import com.hcn.core.Hcn;
 import com.hcn.core.LastActivePrimeIndexGroup;
 import com.hcn.core.PrimeCenter;
@@ -21,17 +21,17 @@ import java.util.stream.Collectors;
 
 @Controller
 public class MatrixController {
-    private HcnGenerator hcnGenerator;
+    private Matrix matrix;
 
     public MatrixController() {
-        hcnGenerator = new HcnGenerator();
-        hcnGenerator.initialize();
+        matrix = new Matrix();
+        matrix.initialize();
     }
     
     @GetMapping("/core")
     public String index(Model model, @RequestParam(defaultValue = "matrix") String tab,
                         @RequestParam(defaultValue = "chain") String lapiView) {
-        model.addAttribute("hcnGenerator", hcnGenerator);
+        model.addAttribute("matrix", matrix);
         model.addAttribute("displayDecimals", ScientificNumber.getDisplayDecimals());
         model.addAttribute("activeTab", tab);
         model.addAttribute("lapiView", lapiView);
@@ -42,22 +42,22 @@ public class MatrixController {
     public String proveNext(@RequestParam(defaultValue = "1") int count,
                             @RequestParam(defaultValue = "matrix") String activeTab,
                             @RequestParam(defaultValue = "chain") String lapiView) {
-        for (int i = 0; i < count; i++) hcnGenerator.proveNextSuperior();
+        for (int i = 0; i < count; i++) matrix.proveNextSuperior();
         return "redirect:/core?tab=" + activeTab + "&lapiView=" + lapiView;
     }
 
     @PostMapping("/core/proveUntilLapi")
     public String proveUntilLapi(@RequestParam int lapiIndex, @RequestParam(defaultValue = "matrix") String activeTab,
                                   @RequestParam(defaultValue = "chain") String lapiView) {
-        hcnGenerator.proveLapi(lapiIndex);
+        matrix.proveLapi(lapiIndex);
         return "redirect:/core?tab=" + activeTab + "&lapiView=" + lapiView;
     }
     
     @PostMapping("/core/reset")
     public String reset(@RequestParam(defaultValue = "matrix") String activeTab,
                         @RequestParam(defaultValue = "chain") String lapiView) {
-        hcnGenerator = new HcnGenerator();
-        hcnGenerator.initialize();
+        matrix = new Matrix();
+        matrix.initialize();
         return "redirect:/core?tab=" + activeTab + "&lapiView=" + lapiView;
     }
     
@@ -118,7 +118,7 @@ public class MatrixController {
 
     public List<ActivePrimeIndex> getAllActivePrimeIndexes() {
         List<ActivePrimeIndex> list = new ArrayList<>();
-        for (Object item : buildMatrixChain(hcnGenerator.getLastActivePrimeIndex())) {
+        for (Object item : buildMatrixChain(matrix.getLastActivePrimeIndex())) {
             if (item instanceof ActivePrimeIndex) list.add((ActivePrimeIndex) item);
         }
         return list;
@@ -126,7 +126,7 @@ public class MatrixController {
 
     public List<LastActivePrimeIndexGroup> getLapiGroupsReversed() {
         List<LastActivePrimeIndexGroup> list = new ArrayList<>();
-        LastActivePrimeIndexGroup current = hcnGenerator.getHighestLapiGroup();
+        LastActivePrimeIndexGroup current = matrix.getHighestLapiGroup();
         while (current != null) {
             list.add(current);
             current = current.getLowerLapiGroup();
@@ -141,7 +141,7 @@ public class MatrixController {
     public java.util.Map<HcnBody, Integer> getBodyOrderMap() {
         java.util.Map<HcnBody, Integer> map = new java.util.LinkedHashMap<>();
         int index = 0;
-        HcnBody current = hcnGenerator.getLastActivePrimeIndex().getHcnBodyList().getSmallestBody();
+        HcnBody current = matrix.getLastActivePrimeIndex().getHcnBodyList().getSmallestBody();
         while (current != null) {
             map.put(current, index++);
             current = current.getLargerBody();

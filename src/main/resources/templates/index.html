@@ -104,13 +104,13 @@
         </div>
         <div id="tab-matrix" class="tab-content active">
         <div class="matrix-info">
-            <div>Proved: <span th:text="${hcnGenerator.provedCount}"></span></div>
-            <div>Last Active: p<span th:text="${hcnGenerator.lastActivePrimeIndex.index}"></span></div>
-            <div style="margin-top: 6px; border-top: 1px solid #ccc; padding-top: 4px;">Total: <span th:text="${hcnGenerator.totalMs}"></span> ms</div>
-            <div>ExtendMatrix: <span th:text="${hcnGenerator.extendMatrixMs}"></span> ms</div>
-            <div>GenerateHcnList: <span th:text="${hcnGenerator.generateHcnListMs}"></span> ms</div>
+            <div>Proved: <span th:text="${matrix.provedCount}"></span></div>
+            <div>Last Active: p<span th:text="${matrix.lastActivePrimeIndex.index}"></span></div>
+            <div style="margin-top: 6px; border-top: 1px solid #ccc; padding-top: 4px;">Total: <span th:text="${matrix.totalMs}"></span> ms</div>
+            <div>ExtendMatrix: <span th:text="${matrix.extendMatrixMs}"></span> ms</div>
+            <div>GenerateHcnList: <span th:text="${matrix.generateHcnListMs}"></span> ms</div>
         </div>
-        <div th:with="matrixChain=${@matrixController.buildMatrixChain(hcnGenerator.lastActivePrimeIndex)}">
+        <div th:with="matrixChain=${@matrixController.buildMatrixChain(matrix.lastActivePrimeIndex)}">
             <div class="matrix-columns">
                 <div th:each="item : ${matrixChain}" class="matrix-col">
                     <!-- ActivePrimeIndex: pip stack + prime circle -->
@@ -147,7 +147,7 @@
                 <label><input type="radio" name="lapiView" value="chain" checked onclick="switchLapiView('chain')"> BodyChain</label>
                 <label style="margin-left: 10px;"><input type="radio" name="lapiView" value="dist" onclick="switchLapiView('dist')"> Distribution</label>
             </div>
-            <div th:with="bodyOrder=${@matrixController.getBodyOrderMap()}, highestLapi=${hcnGenerator.highestLapiGroup}" style="display: flex; gap: 10px; overflow-x: auto; align-items: flex-start;">
+            <div th:with="bodyOrder=${@matrixController.getBodyOrderMap()}, highestLapi=${matrix.highestLapiGroup}" style="display: flex; gap: 10px; overflow-x: auto; align-items: flex-start;">
             <div th:each="group : ${@matrixController.getLapiGroupsReversed()}" style="min-width: 250px; flex-shrink: 0;">
                 <h3 style="margin: 10px 0 4px;">LastActivePrimeIndex: <span th:text="${group.lastActivePrimeIndex}"></span></h3>
                 <table class="level-table">
