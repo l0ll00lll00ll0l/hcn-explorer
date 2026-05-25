@@ -1,7 +1,6 @@
 package com.hcn.controller;
 
-import com.hcn.db.HcnApplication;
-import com.hcn.db.HcnApplicationRepository;
+import com.hcn.db.DatabaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -13,30 +12,26 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class LandingController {
 
     @Autowired
-    private HcnApplicationRepository hcnApplicationRepository;
+    private DatabaseService databaseService;
 
     @GetMapping("/")
     public String landing(Model model) {
-        model.addAttribute("applications", hcnApplicationRepository.findAll());
+        model.addAttribute("databases", databaseService.listDatabases());
         return "landing";
     }
 
     @PostMapping("/start")
-    public String start(@RequestParam String dbMode,
-                        @RequestParam(defaultValue = "false") boolean extendedHcnBodyData) {
+    public String start(@RequestParam String dbMode) {
+        String dbName = databaseService.createDatabase();
         if ("withdb".equals(dbMode)) {
-            HcnApplication app = new HcnApplication();
-            app.setName("HCN-" + System.currentTimeMillis());
-            hcnApplicationRepository.save(app);
-
-            return "redirect:/detailed";
+            return "redirect:/detailed?new=true&dbName=" + dbName;
         }
-        return "redirect:/core";
+        return "redirect:/core?new=true&dbName=" + dbName;
     }
 
     @PostMapping("/delete")
-    public String delete(@RequestParam Long appId) {
-        hcnApplicationRepository.deleteById(appId);
+    public String delete(@RequestParam String dbName) {
+        databaseService.deleteDatabase(dbName);
         return "redirect:/";
     }
 }

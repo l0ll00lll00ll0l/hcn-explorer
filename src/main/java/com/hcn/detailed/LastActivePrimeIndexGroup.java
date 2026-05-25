@@ -12,7 +12,10 @@ public class LastActivePrimeIndexGroup {
 
     public int getLastActivePrimeIndex() {return lastActivePrimeIndex;}
     public ScientificNumber getPrimeValue() {return primeValue;}
-    public void setLastActivePrimeIndex(int lastActivePrimeIndex) {this.lastActivePrimeIndex = lastActivePrimeIndex;}
+    public void setLastActivePrimeIndex(int lastActivePrimeIndex) {
+        this.lastActivePrimeIndex = lastActivePrimeIndex;
+        this.primeValue = new ScientificNumber(PrimeCenter.getPrime(lastActivePrimeIndex), 0);
+    }
     public LastActivePrimeIndexGroup getLowerLapiGroup() {return lowerLapiGroup;}
     public void setLowerLapiGroup(LastActivePrimeIndexGroup lowerLapiGroup) {this.lowerLapiGroup = lowerLapiGroup;}
     public LastActivePrimeIndexGroup getHigherLapiGroup() {return higherLapiGroup;}
@@ -20,6 +23,8 @@ public class LastActivePrimeIndexGroup {
     public ArrayList<Hcn> getHcnList() {return hcnList;}
     public HcnBody getWalkerBody() {return walkerBody;}
     public void setWalkerBody(HcnBody walkerBody) {this.walkerBody = walkerBody;}
+
+    public LastActivePrimeIndexGroup() {}
 
     public LastActivePrimeIndexGroup(int lastActivePrimeIndex, HcnBody currentLowBody) {
         primeValue = new ScientificNumber(PrimeCenter.getPrime(lastActivePrimeIndex), 0);

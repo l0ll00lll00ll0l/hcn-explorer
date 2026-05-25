@@ -22,6 +22,16 @@ import java.util.stream.Collectors;
 @Controller
 public class DetailedController {
     private Matrix matrix;
+    private String dbName;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.hcn.db.MatrixSaveService matrixSaveService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.hcn.db.SaveProgress saveProgress;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.hcn.db.MatrixLoadService matrixLoadService;
 
     public DetailedController() {
         matrix = new Matrix();
@@ -29,7 +39,20 @@ public class DetailedController {
     
     @GetMapping("/detailed")
     public String index(Model model, @RequestParam(defaultValue = "config") String tab,
-                        @RequestParam(defaultValue = "chain") String lapiView) {
+                        @RequestParam(defaultValue = "chain") String lapiView,
+                        @RequestParam(value = "new", defaultValue = "false") boolean isNew,
+                        @RequestParam(required = false) String dbName) {
+        if (isNew) {
+            matrix = new Matrix();
+            com.hcn.detailed.GeneratorConfig.reset();
+            if (dbName != null) {
+                this.dbName = dbName;
+            }
+        } else if (dbName != null) {
+            this.dbName = dbName;
+            matrix = matrixLoadService.loadDetailed(dbName);
+            com.hcn.detailed.GeneratorConfig.lock();
+        }
         if (!com.hcn.detailed.GeneratorConfig.isLocked()) {
             com.hcn.detailed.GeneratorConfig.lock();
             matrix.initialize();
@@ -76,6 +99,14 @@ public class DetailedController {
     public String setDisplayDecimals(@RequestParam int decimals, @RequestParam(defaultValue = "matrix") String activeTab,
                                       @RequestParam(defaultValue = "chain") String lapiView) {
         ScientificNumber.setDisplayDecimals(decimals);
+        return "redirect:/detailed?tab=" + activeTab + "&lapiView=" + lapiView;
+    }
+
+    @PostMapping("/detailed/save")
+    public String save(@RequestParam(defaultValue = "matrix") String activeTab,
+                       @RequestParam(defaultValue = "chain") String lapiView) {
+        saveProgress.start();
+        new Thread(() -> matrixSaveService.save(matrix, dbName)).start();
         return "redirect:/detailed?tab=" + activeTab + "&lapiView=" + lapiView;
     }
     

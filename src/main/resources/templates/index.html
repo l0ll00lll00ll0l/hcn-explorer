@@ -96,6 +96,14 @@
         <button type="submit">Set</button>
     </form>
 
+    <form method="post" action="/core/save" style="display: inline-block; margin-left: 10px;">
+        <input type="hidden" name="activeTab" class="activeTabField" value="matrix" />
+        <input type="hidden" name="lapiView" class="lapiViewField" value="chain" />
+        <button type="submit" style="background-color: #4CAF50; color: white;">Save</button>
+    </form>
+
+    <a href="/" style="margin-left: 10px;"><button type="button" style="background-color: #666; color: white;">Back</button></a>
+
     <div class="mainpanel">
         <div class="tab-bar">
             <button class="tab-btn active" data-tab="matrix" onclick="switchTab('matrix')">Matrix</button>

@@ -6,7 +6,6 @@
         body { font-family: monospace; margin: 40px; }
         .config-panel { border: 1px solid #ccc; padding: 30px; max-width: 500px; margin-bottom: 30px; }
         .option { margin: 12px 0; }
-        .sub-options { margin-left: 30px; margin-top: 8px; display: none; }
         button { margin-top: 20px; padding: 8px 20px; font-family: monospace; font-size: 1em; }
         table { border-collapse: collapse; font-size: 12px; }
         th { background: #333; color: white; padding: 6px 10px; text-align: left; }
@@ -21,52 +20,39 @@
         <h3>Start New HCN Application</h3>
         <form method="post" action="/start">
             <div class="option">
-                <label><input type="radio" name="dbMode" value="nodb" checked onchange="toggleDbOptions()"> No DB (fast core version)</label>
+                <label><input type="radio" name="dbMode" value="nodb" checked> No DB (fast core version)</label>
             </div>
             <div class="option">
-                <label><input type="radio" name="dbMode" value="withdb" onchange="toggleDbOptions()"> With DB (detailed version)</label>
-            </div>
-            <div id="dbOptions" class="sub-options">
-                <label><input type="checkbox" name="extendedHcnBodyData" value="true"> Extended HcnBody data</label>
+                <label><input type="radio" name="dbMode" value="withdb"> With DB (detailed version)</label>
             </div>
             <button type="submit">Start</button>
         </form>
     </div>
 
-    <div th:if="${!applications.isEmpty()}">
-        <h3>Existing HCN Applications</h3>
+    <div>
+        <h3>Existing Databases</h3>
         <table>
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Created</th>
-                    <th>Extended Data</th>
+                    <th>Database</th>
+                    <th>Mode</th>
                     <th>Proved</th>
                     <th>Last Prime Index</th>
+                    <th></th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
-                <tr th:each="app : ${applications}">
-                    <td th:text="${app.id}"></td>
-                    <td th:text="${app.name}"></td>
-                    <td th:text="${app.createdAt}"></td>
-                    <td th:text="${app.extendedHcnBodyData}"></td>
-                    <td th:text="${app.provedCount}"></td>
-                    <td th:text="${app.lastProvedPrimeIndex}"></td>
-                    <td><a th:href="@{/detailed(appId=${app.id})}">Load</a></td>
-                    <td><form method="post" action="/delete" style="display:inline;"><input type="hidden" name="appId" th:value="${app.id}"/><button type="submit" style="color:red; border:none; background:none; cursor:pointer; font-family:monospace;">Delete</button></form></td>
+                <tr th:each="db : ${databases}">
+                    <td th:text="${db.name}"></td>
+                    <td th:text="${db.mode}"></td>
+                    <td th:text="${db.provedCount}"></td>
+                    <td th:text="${db.lastProvedPrimeIndex}"></td>
+                    <td><a th:href="${db.mode == 'core' ? '/core?dbName=' + db.name : '/detailed?dbName=' + db.name}">Load</a></td>
+                    <td><form method="post" action="/delete" style="display:inline;"><input type="hidden" name="dbName" th:value="${db.name}"/><button type="submit" style="color:red; border:none; background:none; cursor:pointer; font-family:monospace;">Delete</button></form></td>
                 </tr>
             </tbody>
         </table>
     </div>
-
-    <script>
-        function toggleDbOptions() {
-            var withDb = document.querySelector('input[name="dbMode"][value="withdb"]').checked;
-            document.getElementById('dbOptions').style.display = withDb ? 'block' : 'none';
-        }
-    </script>
 </body>
 </html>

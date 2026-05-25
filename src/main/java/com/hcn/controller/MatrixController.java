@@ -22,6 +22,13 @@ import java.util.stream.Collectors;
 @Controller
 public class MatrixController {
     private Matrix matrix;
+    private String dbName;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.hcn.db.MatrixSaveService matrixSaveService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.hcn.db.SaveProgress saveProgress;
 
     public MatrixController() {
         matrix = new Matrix();
@@ -30,7 +37,18 @@ public class MatrixController {
     
     @GetMapping("/core")
     public String index(Model model, @RequestParam(defaultValue = "matrix") String tab,
-                        @RequestParam(defaultValue = "chain") String lapiView) {
+                        @RequestParam(defaultValue = "chain") String lapiView,
+                        @RequestParam(value = "new", defaultValue = "false") boolean isNew,
+                        @RequestParam(required = false) String dbName) {
+        if (isNew) {
+            matrix = new Matrix();
+            matrix.initialize();
+            if (dbName != null) {
+                this.dbName = dbName;
+            }
+        } else if (dbName != null) {
+            this.dbName = dbName;
+        }
         model.addAttribute("matrix", matrix);
         model.addAttribute("displayDecimals", ScientificNumber.getDisplayDecimals());
         model.addAttribute("activeTab", tab);
@@ -65,6 +83,14 @@ public class MatrixController {
     public String setDisplayDecimals(@RequestParam int decimals, @RequestParam(defaultValue = "matrix") String activeTab,
                                       @RequestParam(defaultValue = "chain") String lapiView) {
         ScientificNumber.setDisplayDecimals(decimals);
+        return "redirect:/core?tab=" + activeTab + "&lapiView=" + lapiView;
+    }
+
+    @PostMapping("/core/save")
+    public String save(@RequestParam(defaultValue = "matrix") String activeTab,
+                       @RequestParam(defaultValue = "chain") String lapiView) {
+        saveProgress.start();
+        new Thread(() -> matrixSaveService.save(matrix, dbName)).start();
         return "redirect:/core?tab=" + activeTab + "&lapiView=" + lapiView;
     }
     

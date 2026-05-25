@@ -24,7 +24,9 @@ public class ActivePrimeIndex {
     public ActivePrimeIndex getParentActivePrimeIndex() {return parentActivePrimeIndex;}
     public void setParentActivePrimeIndex(ActivePrimeIndex parent) { this.parentActivePrimeIndex = parent; }
     public FixedPowerGroup getOffspringFixedPowerGroup() {return offspringFixedPowerGroup;}
+    public void setOffspringFixedPowerGroupForLoad(FixedPowerGroup fpg) {this.offspringFixedPowerGroup = fpg;}
     public FixedPowerGroup getParentFixedPowerGroup() {return parentFixedPowerGroup;}
+    public void setParentFixedPowerGroupForLoad(FixedPowerGroup fpg) {this.parentFixedPowerGroup = fpg;}
     public PrimeIndexPower getLastPip() {return pips.get(pips.lastKey());}
     public boolean isLastActivePrimeIndex() {return nextActivePrimeIndex == null && offspringFixedPowerGroup == null;}
     @Override

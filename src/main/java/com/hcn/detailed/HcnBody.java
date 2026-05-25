@@ -52,6 +52,7 @@ public class HcnBody implements Comparable<HcnBody> {
     public void setSmallerBody(HcnBody smallerBody) {this.smallerBody = smallerBody;}
     public void setLargerBody(HcnBody largerBody) {this.largerBody = largerBody;}
     public void setParent(HcnBody parent) {this.parent = parent;}
+    public void setParentForLoad(HcnBody parent) {this.parent = parent;}
     public boolean isDeactivated(){
         return !pip.getActiveHcnBodies().contains(this);
     }
