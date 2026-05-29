@@ -1,4 +1,4 @@
-package com.hcn.detailed;
+package com.hcn.core;
 
 import java.util.ArrayList;
 import java.util.List;

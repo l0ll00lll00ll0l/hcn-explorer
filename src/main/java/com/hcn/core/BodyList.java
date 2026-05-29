@@ -13,6 +13,7 @@ public class BodyList {
     private HcnBody smallestBody = null;
 
     public HcnBody getSmallestBody() { return smallestBody; }
+    public void setSmallestBodyForLoad(HcnBody body) { this.smallestBody = body; }
 
     public void clear() {
         smallestBody = null;

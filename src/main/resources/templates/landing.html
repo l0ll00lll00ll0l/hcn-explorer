@@ -20,14 +20,24 @@
         <h3>Start New HCN Application</h3>
         <form method="post" action="/start">
             <div class="option">
-                <label><input type="radio" name="dbMode" value="nodb" checked> No DB (fast core version)</label>
+                <label><input type="radio" name="dbMode" value="nodb" checked onchange="toggleDbOptions()"> No DB (fast core version)</label>
             </div>
             <div class="option">
-                <label><input type="radio" name="dbMode" value="withdb"> With DB (detailed version)</label>
+                <label><input type="radio" name="dbMode" value="withdb" onchange="toggleDbOptions()"> With DB (detailed version)</label>
+            </div>
+            <div id="dbOptions" style="margin-left: 30px; margin-top: 8px; display: none;">
+                <label><input type="checkbox" name="basicData" value="true" checked> Basic HCN Data</label>
             </div>
             <button type="submit">Start</button>
         </form>
     </div>
+
+    <script>
+        function toggleDbOptions() {
+            var withDb = document.querySelector('input[name="dbMode"][value="withdb"]').checked;
+            document.getElementById('dbOptions').style.display = withDb ? 'block' : 'none';
+        }
+    </script>
 
     <div>
         <h3>Existing Databases</h3>

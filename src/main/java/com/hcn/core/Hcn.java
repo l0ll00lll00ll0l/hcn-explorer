@@ -1,7 +1,5 @@
 package com.hcn.core;
 
-import java.util.LinkedHashMap;
-
 public class Hcn implements Comparable<Hcn> {
     private HcnGenerator hcnGenerator;
     private int lastActivePrime;

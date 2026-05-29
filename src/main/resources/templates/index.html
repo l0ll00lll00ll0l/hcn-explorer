@@ -96,11 +96,23 @@
         <button type="submit">Set</button>
     </form>
 
-    <form method="post" action="/core/save" style="display: inline-block; margin-left: 10px;">
+    <form method="post" action="/core/save" style="display: inline-block; margin-left: 10px;" id="saveForm" onsubmit="startSaveWithProgress(event)">
         <input type="hidden" name="activeTab" class="activeTabField" value="matrix" />
         <input type="hidden" name="lapiView" class="lapiViewField" value="chain" />
         <button type="submit" style="background-color: #4CAF50; color: white;">Save</button>
     </form>
+
+    <!-- Save Progress Overlay -->
+    <div id="saveOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+        <div style="background:white; padding:30px; border-radius:8px; min-width:350px; font-family:monospace; text-align:center;">
+            <h3 style="margin-top:0;">Saving...</h3>
+            <div id="progressPhase" style="margin-bottom:10px;">Starting...</div>
+            <div style="background:#ddd; border-radius:4px; height:24px; overflow:hidden;">
+                <div id="progressBar" style="background:#4CAF50; height:100%; width:0%; transition:width 0.3s;"></div>
+            </div>
+            <div id="progressDetail" style="margin-top:8px; font-size:11px; color:#666;"></div>
+        </div>
+    </div>
 
     <a href="/" style="margin-left: 10px;"><button type="button" style="background-color: #666; color: white;">Back</button></a>
 
@@ -277,6 +289,41 @@
                 });
             }
         });
+    </script>
+    <script>
+        function startSaveWithProgress(event) {
+            event.preventDefault();
+            document.getElementById('saveOverlay').style.display = 'flex';
+            var form = document.getElementById('saveForm');
+            fetch(form.action, {
+                method: 'POST',
+                body: new URLSearchParams(new FormData(form))
+            }).then(function() {
+                pollProgress();
+            });
+        }
+
+        function pollProgress() {
+            fetch('/api/save-progress')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    document.getElementById('progressBar').style.width = data.percentage + '%';
+                    document.getElementById('progressPhase').textContent = 'Phase ' + data.phaseNumber + '/' + data.totalPhases + ': ' + data.phase;
+                    document.getElementById('progressDetail').textContent = data.itemsTotal > 0 ? data.itemsDone + ' / ' + data.itemsTotal : '';
+                    if (data.error) {
+                        document.getElementById('progressPhase').textContent = 'ERROR: ' + data.error;
+                        document.getElementById('progressBar').style.background = '#f44336';
+                        return;
+                    }
+                    if (data.active) {
+                        setTimeout(pollProgress, 200);
+                    } else {
+                        document.getElementById('progressPhase').textContent = 'Done!';
+                        document.getElementById('progressBar').style.width = '100%';
+                        setTimeout(function() { document.getElementById('saveOverlay').style.display = 'none'; }, 500);
+                    }
+                });
+        }
     </script>
 </body>
 </html>

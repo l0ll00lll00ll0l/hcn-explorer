@@ -51,6 +51,7 @@ public class HcnBody implements Comparable<HcnBody> {
     public void setSmallerBody(HcnBody smallerBody) {this.smallerBody = smallerBody;}
     public void setLargerBody(HcnBody largerBody) {this.largerBody = largerBody;}
     public void setParent(HcnBody parent) {this.parent = parent;}
+    public void setParentForLoad(HcnBody parent) {this.parent = parent;}
     public boolean isDeactivated(){
         return !pip.getActiveHcnBodies().contains(this);
     }
@@ -83,10 +84,9 @@ public class HcnBody implements Comparable<HcnBody> {
             factor = parent.factor.multiply(factorMultiplier);
             parent.offsprings.add(this);
             if (parent.getLastGeneratedHcn() != null) {
-                hcnGenerator = new HcnGenerator(this);
-                hcnGenerator.setLastGeneratedHcn(parent.getLastGeneratedHcn());
-                hcnGenerator.getLastGeneratedHcn().setHcnGenerator(hcnGenerator);
+                hcnGenerator = parent.hcnGenerator;
                 parent.hcnGenerator = null;
+                hcnGenerator.setCurrentHcnBody(this);
             }
             if (!parent.walkerBodyForLapi.isEmpty()) {
                 this.walkerBodyForLapi.addAll(parent.walkerBodyForLapi);
@@ -108,14 +108,6 @@ public class HcnBody implements Comparable<HcnBody> {
     public String toString() {return parentChainString() + " v=" + value + " f=" + factor;}
 
     public String parentChainString() {return getFullChain().stream().map(HcnBody::getBodyId).collect(Collectors.toList()).toString();}
-
-    public int lowestPossibleLapi() {
-        if (pip.getPower() < 2) {
-            return parent.lowestPossibleLapi();
-        } else {
-            return pip.getActivePrimeIndex().getIndex();
-        }
-    }
 
     private List<HcnBody> getFullChain() {
         List<HcnBody> chain = new ArrayList<>();

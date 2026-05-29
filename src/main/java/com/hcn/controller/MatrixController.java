@@ -90,7 +90,7 @@ public class MatrixController {
     public String save(@RequestParam(defaultValue = "matrix") String activeTab,
                        @RequestParam(defaultValue = "chain") String lapiView) {
         saveProgress.start();
-        new Thread(() -> matrixSaveService.save(matrix, dbName)).start();
+        new Thread(() -> matrixSaveService.save(matrix, dbName, "core")).start();
         return "redirect:/core?tab=" + activeTab + "&lapiView=" + lapiView;
     }
     

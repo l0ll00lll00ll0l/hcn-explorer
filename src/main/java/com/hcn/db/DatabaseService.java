@@ -111,8 +111,8 @@ public class DatabaseService {
             stmt.execute("""
                 CREATE TABLE fixed_power_group (
                     id BIGSERIAL PRIMARY KEY,
-                    value_id BIGINT REFERENCES scientific_number(id),
-                    factor_id BIGINT REFERENCES scientific_number(id),
+                    value_id BIGINT,
+                    factor_id BIGINT,
                     parent_prime_index_id BIGINT,
                     offspring_prime_index_id BIGINT
                 )
@@ -122,23 +122,18 @@ public class DatabaseService {
                     id BIGSERIAL PRIMARY KEY,
                     prime_index INT NOT NULL,
                     smallest_body_id BIGINT,
-                    next_active_prime_index_id BIGINT REFERENCES active_prime_index(id),
-                    parent_active_prime_index_id BIGINT REFERENCES active_prime_index(id),
-                    offspring_fixed_power_group_id BIGINT REFERENCES fixed_power_group(id),
-                    parent_fixed_power_group_id BIGINT REFERENCES fixed_power_group(id),
-                    member_of_fixed_power_group_id BIGINT REFERENCES fixed_power_group(id),
+                    next_active_prime_index_id BIGINT,
+                    parent_active_prime_index_id BIGINT,
+                    offspring_fixed_power_group_id BIGINT,
+                    parent_fixed_power_group_id BIGINT,
+                    member_of_fixed_power_group_id BIGINT,
                     fixed_power_group_order INT
                 )
             """);
             stmt.execute("""
-                ALTER TABLE fixed_power_group
-                    ADD CONSTRAINT fk_fpg_parent_pi FOREIGN KEY (parent_prime_index_id) REFERENCES active_prime_index(id),
-                    ADD CONSTRAINT fk_fpg_offspring_pi FOREIGN KEY (offspring_prime_index_id) REFERENCES active_prime_index(id)
-            """);
-            stmt.execute("""
                 CREATE TABLE prime_index_power (
                     id BIGSERIAL PRIMARY KEY,
-                    prime_index_id BIGINT NOT NULL REFERENCES active_prime_index(id),
+                    prime_index_id BIGINT NOT NULL,
                     power INT NOT NULL,
                     proved BOOLEAN DEFAULT FALSE
                 )
@@ -146,46 +141,38 @@ public class DatabaseService {
             stmt.execute("""
                 CREATE TABLE hcn_body (
                     id BIGSERIAL PRIMARY KEY,
-                    parent_id BIGINT REFERENCES hcn_body(id),
-                    pip_id BIGINT REFERENCES prime_index_power(id),
+                    parent_id BIGINT,
+                    pip_id BIGINT,
                     proved BOOLEAN DEFAULT FALSE,
-                    value_id BIGINT REFERENCES scientific_number(id),
-                    factor_id BIGINT REFERENCES scientific_number(id),
-                    smaller_body_id BIGINT REFERENCES hcn_body(id),
-                    larger_body_id BIGINT REFERENCES hcn_body(id),
+                    value_id BIGINT,
+                    factor_id BIGINT,
+                    smaller_body_id BIGINT,
+                    larger_body_id BIGINT,
                     last_generated_hcn_id BIGINT
                 )
             """);
             stmt.execute("""
-                ALTER TABLE active_prime_index
-                    ADD CONSTRAINT fk_api_smallest_body FOREIGN KEY (smallest_body_id) REFERENCES hcn_body(id)
-            """);
-            stmt.execute("""
                 CREATE TABLE hcn (
                     id BIGSERIAL PRIMARY KEY,
-                    body_id BIGINT REFERENCES hcn_body(id),
+                    body_id BIGINT,
                     last_active_prime INT,
-                    value_id BIGINT REFERENCES scientific_number(id),
-                    factor_id BIGINT REFERENCES scientific_number(id)
+                    value_id BIGINT,
+                    factor_id BIGINT
                 )
-            """);
-            stmt.execute("""
-                ALTER TABLE hcn_body
-                    ADD CONSTRAINT fk_body_last_gen_hcn FOREIGN KEY (last_generated_hcn_id) REFERENCES hcn(id)
             """);
             stmt.execute("""
                 CREATE TABLE last_active_prime_index_group (
                     id BIGSERIAL PRIMARY KEY,
                     last_active_prime_index INT,
-                    walker_body_id BIGINT REFERENCES hcn_body(id),
-                    lower_lapi_group_id BIGINT REFERENCES last_active_prime_index_group(id),
-                    higher_lapi_group_id BIGINT REFERENCES last_active_prime_index_group(id)
+                    walker_body_id BIGINT,
+                    lower_lapi_group_id BIGINT,
+                    higher_lapi_group_id BIGINT
                 )
             """);
             stmt.execute("""
                 CREATE TABLE lapi_hcn_list (
-                    lapi_group_id BIGINT REFERENCES last_active_prime_index_group(id),
-                    hcn_id BIGINT REFERENCES hcn(id),
+                    lapi_group_id BIGINT,
+                    hcn_id BIGINT,
                     order_in_list INT,
                     PRIMARY KEY (lapi_group_id, hcn_id)
                 )
@@ -194,11 +181,11 @@ public class DatabaseService {
                 CREATE TABLE matrix (
                     id BIGSERIAL PRIMARY KEY,
                     mode VARCHAR(10) NOT NULL DEFAULT 'detailed',
-                    last_active_prime_index_id BIGINT REFERENCES active_prime_index(id),
-                    lowest_lapi_group_id BIGINT REFERENCES last_active_prime_index_group(id),
-                    highest_lapi_group_id BIGINT REFERENCES last_active_prime_index_group(id),
-                    next_lapi_group_id BIGINT REFERENCES last_active_prime_index_group(id),
-                    proved_limit_id BIGINT REFERENCES scientific_number(id),
+                    last_active_prime_index_id BIGINT,
+                    lowest_lapi_group_id BIGINT,
+                    highest_lapi_group_id BIGINT,
+                    next_lapi_group_id BIGINT,
+                    proved_limit_id BIGINT,
                     proved_count INT DEFAULT 0,
                     last_proved_prime_index INT DEFAULT -1,
                     lowest_proved_lapi_within_interval INT DEFAULT 1

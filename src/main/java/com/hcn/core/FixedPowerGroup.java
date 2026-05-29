@@ -54,4 +54,8 @@ public class FixedPowerGroup {
         this.parentPrimeIndex = parentPrimeIndex;
     }
 
+    public void setValueForLoad(ScientificNumber value) { this.value = value; }
+    public void setFactorForLoad(ScientificNumber factor) { this.factor = factor; }
+    public void setOffspringPrimeIndexForLoad(ActivePrimeIndex offspringPrimeIndex) { this.offspringPrimeIndex = offspringPrimeIndex; }
+
 }

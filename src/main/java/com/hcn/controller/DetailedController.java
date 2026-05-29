@@ -1,13 +1,14 @@
 package com.hcn.controller;
 
-import com.hcn.detailed.ActivePrimeIndex;
-import com.hcn.detailed.FixedPowerGroup;
-import com.hcn.detailed.HcnBody;
-import com.hcn.detailed.Matrix;
-import com.hcn.detailed.Hcn;
-import com.hcn.detailed.LastActivePrimeIndexGroup;
-import com.hcn.detailed.PrimeCenter;
-import com.hcn.detailed.ScientificNumber;
+import com.hcn.core.ActivePrimeIndex;
+import com.hcn.core.FixedPowerGroup;
+import com.hcn.core.GeneratorConfig;
+import com.hcn.core.HcnBody;
+import com.hcn.core.Matrix;
+import com.hcn.core.Hcn;
+import com.hcn.core.LastActivePrimeIndexGroup;
+import com.hcn.core.PrimeCenter;
+import com.hcn.core.ScientificNumber;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,24 +42,26 @@ public class DetailedController {
     public String index(Model model, @RequestParam(defaultValue = "config") String tab,
                         @RequestParam(defaultValue = "chain") String lapiView,
                         @RequestParam(value = "new", defaultValue = "false") boolean isNew,
-                        @RequestParam(required = false) String dbName) {
+                        @RequestParam(required = false) String dbName,
+                        @RequestParam(defaultValue = "true") boolean basicData) {
         if (isNew) {
             matrix = new Matrix();
-            com.hcn.detailed.GeneratorConfig.reset();
+            GeneratorConfig.reset();
+            GeneratorConfig.setBasicData(basicData);
             if (dbName != null) {
                 this.dbName = dbName;
             }
         } else if (dbName != null) {
             this.dbName = dbName;
-            matrix = matrixLoadService.loadDetailed(dbName);
-            com.hcn.detailed.GeneratorConfig.lock();
+            matrix = matrixLoadService.load(dbName);
+            GeneratorConfig.lock();
         }
-        if (!com.hcn.detailed.GeneratorConfig.isLocked()) {
-            com.hcn.detailed.GeneratorConfig.lock();
+        if (!GeneratorConfig.isLocked()) {
+            GeneratorConfig.lock();
             matrix.initialize();
         }
         model.addAttribute("matrix", matrix);
-        model.addAttribute("configLocked", com.hcn.detailed.GeneratorConfig.isLocked());
+        model.addAttribute("configLocked", GeneratorConfig.isLocked());
         model.addAttribute("displayDecimals", ScientificNumber.getDisplayDecimals());
         model.addAttribute("activeTab", tab);
         model.addAttribute("lapiView", lapiView);
@@ -91,7 +94,7 @@ public class DetailedController {
     public String reset(@RequestParam(defaultValue = "matrix") String activeTab,
                         @RequestParam(defaultValue = "chain") String lapiView) {
         matrix = new Matrix();
-        com.hcn.detailed.GeneratorConfig.reset();
+        GeneratorConfig.reset();
         return "redirect:/detailed?tab=" + activeTab + "&lapiView=" + lapiView;
     }
     
@@ -106,7 +109,7 @@ public class DetailedController {
     public String save(@RequestParam(defaultValue = "matrix") String activeTab,
                        @RequestParam(defaultValue = "chain") String lapiView) {
         saveProgress.start();
-        new Thread(() -> matrixSaveService.save(matrix, dbName)).start();
+        new Thread(() -> matrixSaveService.save(matrix, dbName, "detailed")).start();
         return "redirect:/detailed?tab=" + activeTab + "&lapiView=" + lapiView;
     }
     

@@ -1,16 +1,13 @@
 package com.hcn.core;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class Matrix {
     private ActivePrimeIndex lastActivePrimeIndex;
     private LastActivePrimeIndexGroup lowestLapiGroup;
     private LastActivePrimeIndexGroup highestLapiGroup;
     private LastActivePrimeIndexGroup nextLapiGroup;
-    private Set<HcnBody> deactivationBin = new HashSet<>();
     private List<Hcn> provedHcns = new ArrayList<>();
     private ScientificNumber provedLimit;
 
@@ -25,11 +22,30 @@ public class Matrix {
 
     public ActivePrimeIndex getLastActivePrimeIndex() { return lastActivePrimeIndex; }
     public int getProvedCount() { return provedCount; }
+    public int getLastProvedPrimeIndex() { return lastProvedPrimeIndex; }
+    public ScientificNumber getProvedLimit() { return provedLimit; }
     public LastActivePrimeIndexGroup getLowestLapiGroup() { return lowestLapiGroup; }
     public LastActivePrimeIndexGroup getHighestLapiGroup() { return highestLapiGroup; }
+    public LastActivePrimeIndexGroup getNextLapiGroup() { return nextLapiGroup; }
     public long getTotalMs() { return totalNanos / 1_000_000; }
     public long getExtendMatrixMs() { return extendMatrixNanos / 1_000_000; }
     public long getGenerateHcnListMs() { return generateHcnListNanos / 1_000_000; }
+
+    public static Matrix fromLoad(ActivePrimeIndex lastApi, LastActivePrimeIndexGroup lowestLapi,
+                                   LastActivePrimeIndexGroup highestLapi, LastActivePrimeIndexGroup nextLapi,
+                                   ScientificNumber provedLimit,
+                                   int provedCount, int lastProvedPrimeIndex, int lowestProvedLapi) {
+        Matrix m = new Matrix();
+        m.lastActivePrimeIndex = lastApi;
+        m.lowestLapiGroup = lowestLapi;
+        m.highestLapiGroup = highestLapi;
+        m.nextLapiGroup = nextLapi;
+        m.provedLimit = provedLimit;
+        m.provedCount = provedCount;
+        m.lastProvedPrimeIndex = lastProvedPrimeIndex;
+        m.lowestProvedLapiWithinInterval = lowestProvedLapi;
+        return m;
+    }
 
     public void initialize() {
 
@@ -178,6 +194,10 @@ public class Matrix {
     }
 
     public void proveLapi(int count) {
+        if (!GeneratorConfig.isLocked()) {
+            GeneratorConfig.lock();
+            initialize();
+        }
         for (int i = 0; i < count; i++) {
             proveNextLapi();
         }

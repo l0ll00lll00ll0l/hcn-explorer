@@ -3,6 +3,7 @@ package com.hcn.core;
 public class HcnGenerator {
     private Hcn lastGeneratedHcn = null;
     private HcnBody currentHcnBody;
+    private Body body = null;
 
     public HcnGenerator(HcnBody currentHcnBody) {
         this.currentHcnBody = currentHcnBody;
@@ -12,6 +13,10 @@ public class HcnGenerator {
     public void setLastGeneratedHcn(Hcn hcn) { this.lastGeneratedHcn = hcn; }
     public HcnBody getCurrentHcnBody() { return currentHcnBody; }
     public void setCurrentHcnBody(HcnBody currentHcnBody) { this.currentHcnBody = currentHcnBody; }
+    public Body getBody() {
+        if (body == null) body = new Body(currentHcnBody);
+        return body;
+    }
 
     public Hcn generateNextHcn(LastActivePrimeIndexGroup lapiGroup) {
         if (canExtendFromPreviousLapi(lapiGroup)) {

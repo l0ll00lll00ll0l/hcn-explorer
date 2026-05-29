@@ -1,6 +1,6 @@
 package com.hcn.db;
 
-import com.hcn.detailed.*;
+import com.hcn.core.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +22,7 @@ public class MatrixLoadService {
     private Map<Long, FixedPowerGroup> fpgs;
     private Map<Long, LastActivePrimeIndexGroup> lapiGroups;
 
-    public com.hcn.detailed.Matrix loadDetailed(String dbName) {
+    public Matrix load(String dbName) {
         scientificNumbers = new HashMap<>();
         activePrimeIndexes = new HashMap<>();
         pips = new HashMap<>();
@@ -271,7 +271,7 @@ public class MatrixLoadService {
         }
     }
 
-    private com.hcn.detailed.Matrix assembleMatrix(Connection conn) throws SQLException {
+    private Matrix assembleMatrix(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_id, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval FROM matrix LIMIT 1")) {
             if (!rs.next()) throw new RuntimeException("No matrix row found");
