@@ -60,10 +60,6 @@ public class HcnBody implements Comparable<HcnBody> {
     }
     public String getOffspringPowers() {return offsprings.stream().map(o -> String.valueOf(o.pip.getPower())).collect(Collectors.joining(", "));}
     public Hcn getLastGeneratedHcn() {return hcnGenerator != null ? hcnGenerator.getLastGeneratedHcn() : null;}
-    public void setLastGeneratedHcn(Hcn hcn) {
-        if (hcnGenerator == null) hcnGenerator = new HcnGenerator(this);
-        hcnGenerator.setLastGeneratedHcn(hcn);
-    }
     public HcnGenerator getHcnGenerator() {return hcnGenerator;}
     public void setHcnGenerator(HcnGenerator hcnGenerator) {this.hcnGenerator = hcnGenerator;}
     public List<LastActivePrimeIndexGroup> getWalkerBodyForLapi() {return walkerBodyForLapi;}

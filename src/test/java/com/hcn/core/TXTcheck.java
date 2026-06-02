@@ -45,7 +45,7 @@ public class TXTcheck {
     public static int[] exponentSignature(Hcn hcn, ActivePrimeIndex lastActivePrimeIndex) {
         // only check active prime indexes from the body chain
         List<int[]> pairs = new ArrayList<>();
-        HcnBody current = hcn.getBody();
+        HcnBody current = hcn.getHcnBody();
         while (current != null) {
             pairs.add(0, new int[]{
                     current.getPip().getActivePrimeIndex().getIndex(),
@@ -70,7 +70,7 @@ public class TXTcheck {
 
     public static int[] getActiveIndexes(Hcn hcn) {
         List<Integer> indexes = new ArrayList<>();
-        HcnBody current = hcn.getBody();
+        HcnBody current = hcn.getHcnBody();
         while (current != null) {
             indexes.add(0, current.getPip().getActivePrimeIndex().getIndex());
             current = current.getParent();

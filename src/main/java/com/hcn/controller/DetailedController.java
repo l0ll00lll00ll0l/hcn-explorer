@@ -34,12 +34,15 @@ public class DetailedController {
     @org.springframework.beans.factory.annotation.Autowired
     private com.hcn.db.MatrixLoadService matrixLoadService;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.hcn.db.IntervalStorageService intervalStorageService;
+
     public DetailedController() {
         matrix = new Matrix();
     }
     
     @GetMapping("/detailed")
-    public String index(Model model, @RequestParam(defaultValue = "config") String tab,
+    public String index(Model model, @RequestParam(defaultValue = "matrix") String tab,
                         @RequestParam(defaultValue = "chain") String lapiView,
                         @RequestParam(value = "new", defaultValue = "false") boolean isNew,
                         @RequestParam(required = false) String dbName,
@@ -48,11 +51,15 @@ public class DetailedController {
             matrix = new Matrix();
             GeneratorConfig.reset();
             GeneratorConfig.setBasicData(basicData);
+            GeneratorConfig.setIntervalStorageService(intervalStorageService);
             if (dbName != null) {
                 this.dbName = dbName;
+                GeneratorConfig.setDbName(dbName);
             }
         } else if (dbName != null) {
             this.dbName = dbName;
+            GeneratorConfig.setDbName(dbName);
+            GeneratorConfig.setIntervalStorageService(intervalStorageService);
             matrix = matrixLoadService.load(dbName);
             GeneratorConfig.lock();
         }
@@ -62,6 +69,7 @@ public class DetailedController {
         }
         model.addAttribute("matrix", matrix);
         model.addAttribute("configLocked", GeneratorConfig.isLocked());
+        model.addAttribute("basicData", GeneratorConfig.isBasicData());
         model.addAttribute("displayDecimals", ScientificNumber.getDisplayDecimals());
         model.addAttribute("activeTab", tab);
         model.addAttribute("lapiView", lapiView);

@@ -1,6 +1,7 @@
 package com.hcn.db;
 
 import com.hcn.core.*;
+import com.hcn.core.dbspecific.Interval;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,8 @@ public class MatrixLoadService {
     private Map<Long, ActivePrimeIndex> activePrimeIndexes;
     private Map<Long, PrimeIndexPower> pips;
     private Map<Long, HcnBody> bodies;
+    private Map<Long, int[]> bodyGeneratorInfo;
+    private Map<Integer, HcnGenerator> generatorById;
     private Map<Long, Hcn> hcns;
     private Map<Long, FixedPowerGroup> fpgs;
     private Map<Long, LastActivePrimeIndexGroup> lapiGroups;
@@ -27,6 +30,8 @@ public class MatrixLoadService {
         activePrimeIndexes = new HashMap<>();
         pips = new HashMap<>();
         bodies = new HashMap<>();
+        bodyGeneratorInfo = new HashMap<>();
+        generatorById = new HashMap<>();
         hcns = new HashMap<>();
         fpgs = new HashMap<>();
         lapiGroups = new HashMap<>();
@@ -39,6 +44,7 @@ public class MatrixLoadService {
             loadFixedPowerGroups(conn);
             loadHcns(conn);
             loadLapiGroups(conn);
+            buildGeneratorByIdMap();
             return assembleMatrix(conn);
         } catch (SQLException e) {
             throw new RuntimeException("Load failed for " + dbName, e);
@@ -93,7 +99,7 @@ public class MatrixLoadService {
     private void loadHcnBodies(Connection conn) throws SQLException {
         // First pass: create all bodies with basic fields
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, pip_id, proved, value_id, factor_id FROM hcn_body")) {
+             ResultSet rs = stmt.executeQuery("SELECT id, pip_id, proved, value_id, factor_id, generator_id, stored_in_db FROM hcn_body")) {
             while (rs.next()) {
                 long id = rs.getLong(1);
                 HcnBody body = new HcnBody();
@@ -104,7 +110,13 @@ public class MatrixLoadService {
                 if (!rs.wasNull()) body.setValue(scientificNumbers.get(valueId));
                 long factorId = rs.getLong(5);
                 if (!rs.wasNull()) body.setFactor(scientificNumbers.get(factorId));
+                int generatorId = rs.getInt(6);
+                boolean hasGeneratorId = !rs.wasNull();
+                boolean genStoredInDb = rs.getBoolean(7);
                 bodies.put(id, body);
+                if (hasGeneratorId) {
+                    bodyGeneratorInfo.put(id, new int[]{generatorId, genStoredInDb ? 1 : 0});
+                }
             }
         }
         // Second pass: wire parent, smaller, larger
@@ -194,7 +206,13 @@ public class MatrixLoadService {
         Map<Long, HcnGenerator> bodyIdToGenerator = new HashMap<>();
         for (Map.Entry<Long, Long> entry : bodyToLastHcnId.entrySet()) {
             HcnBody body = bodies.get(entry.getKey());
-            HcnGenerator gen = new HcnGenerator(body);
+            int[] genInfo = bodyGeneratorInfo.get(entry.getKey());
+            int genId = genInfo != null ? genInfo[0] : -1;
+            HcnGenerator gen = new HcnGenerator(body, genId);
+            if (genInfo != null) {
+                gen.setStoredInDb(genInfo[1] == 1);
+                generatorById.put(genInfo[0], gen);
+            }
             body.setHcnGenerator(gen);
             bodyIdToGenerator.put(entry.getKey(), gen);
         }
@@ -210,7 +228,7 @@ public class MatrixLoadService {
 
                 HcnGenerator gen = bodyIdToGenerator.get(bodyId);
                 if (gen == null) {
-                    gen = new HcnGenerator(body);
+                    gen = new HcnGenerator(body, -1);
                 }
                 Hcn hcn = new Hcn(gen, lastActivePrime);
 
@@ -271,9 +289,60 @@ public class MatrixLoadService {
         }
     }
 
+    private void buildGeneratorByIdMap() {
+        generatorById.clear();
+        // Create generators for bodies that have generator_id but no generator yet
+        for (Map.Entry<Long, int[]> entry : bodyGeneratorInfo.entrySet()) {
+            HcnBody body = bodies.get(entry.getKey());
+            if (body != null && body.getHcnGenerator() == null) {
+                HcnGenerator gen = new HcnGenerator(body, entry.getValue()[0]);
+                gen.setStoredInDb(entry.getValue()[1] == 1);
+                body.setHcnGenerator(gen);
+            }
+        }
+        // Collect all generators
+        for (HcnBody body : bodies.values()) {
+            if (body.getHcnGenerator() != null && body.getHcnGenerator().getId() >= 0) {
+                generatorById.put(body.getHcnGenerator().getId(), body.getHcnGenerator());
+            }
+        }
+    }
+
+    private Interval loadReferenceInterval(Connection conn) throws SQLException {
+        // Check if reference_interval_hcn table has data
+        ResultSet tables = conn.getMetaData().getTables(null, null, "reference_interval_hcn", null);
+        if (!tables.next()) return null;
+
+        // Load HCN ids in order
+        List<Long> hcnIds = new ArrayList<>();
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT hcn_id FROM reference_interval_hcn ORDER BY order_in_list")) {
+            while (rs.next()) {
+                hcnIds.add(rs.getLong(1));
+            }
+        }
+        if (hcnIds.isEmpty()) return null;
+
+        // Build interval from saved HCNs
+        List<Hcn> hcnList = new ArrayList<>();
+        for (Long hcnId : hcnIds) {
+            Hcn hcn = hcns.get(hcnId);
+            if (hcn != null) hcnList.add(hcn);
+        }
+        if (hcnList.isEmpty()) return null;
+
+        Interval interval = Interval.fromLoad(
+            hcnList.get(0).getLastActivePrime(),
+            hcnList.get(0).getValue(),
+            hcnList.get(0).getFactor());
+        interval.setReferenceIntervalForLoad(interval);
+        interval.getHcnList().addAll(hcnList);
+        return interval;
+    }
+
     private Matrix assembleMatrix(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_id, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval FROM matrix LIMIT 1")) {
+             ResultSet rs = stmt.executeQuery("SELECT last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_id, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval, basic_data, total_nanos, extend_matrix_nanos, generate_hcn_list_nanos, db_nanos, global_id_counter FROM matrix LIMIT 1")) {
             if (!rs.next()) throw new RuntimeException("No matrix row found");
 
             ActivePrimeIndex lastApi = activePrimeIndexes.get(rs.getLong(1));
@@ -286,8 +355,19 @@ public class MatrixLoadService {
             int provedCount = rs.getInt(6);
             int lastProvedPrimeIndex = rs.getInt(7);
             int lowestProvedLapi = rs.getInt(8);
+            boolean basicData = rs.getBoolean(9);
+            long totalNanos = rs.getLong(10);
+            long extendMatrixNanos = rs.getLong(11);
+            long generateHcnListNanos = rs.getLong(12);
+            long dbNanos = rs.getLong(13);
+            int globalIdCounter = rs.getInt(14);
 
-            return Matrix.fromLoad(lastApi, lowestLapi, highestLapi, nextLapi, provedLimit, provedCount, lastProvedPrimeIndex, lowestProvedLapi);
+            GeneratorConfig.setBasicData(basicData);
+            HcnGenerator.setGlobalIdCounter(globalIdCounter);
+
+            Interval referenceInterval = GeneratorConfig.isBasicData() ? loadReferenceInterval(conn) : null;
+
+            return Matrix.fromLoad(lastApi, lowestLapi, highestLapi, nextLapi, provedLimit, provedCount, lastProvedPrimeIndex, lowestProvedLapi, new ArrayList<>(), referenceInterval, totalNanos, extendMatrixNanos, generateHcnListNanos, dbNanos);
         }
     }
 }

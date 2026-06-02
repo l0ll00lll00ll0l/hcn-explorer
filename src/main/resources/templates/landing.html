@@ -46,6 +46,7 @@
                 <tr>
                     <th>Database</th>
                     <th>Mode</th>
+                    <th>Basic Data</th>
                     <th>Proved</th>
                     <th>Last Prime Index</th>
                     <th></th>
@@ -56,6 +57,7 @@
                 <tr th:each="db : ${databases}">
                     <td th:text="${db.name}"></td>
                     <td th:text="${db.mode}"></td>
+                    <td th:text="${db.basicData}"></td>
                     <td th:text="${db.provedCount}"></td>
                     <td th:text="${db.lastProvedPrimeIndex}"></td>
                     <td><a th:href="${db.mode == 'core' ? '/core?dbName=' + db.name : '/detailed?dbName=' + db.name}">Load</a></td>

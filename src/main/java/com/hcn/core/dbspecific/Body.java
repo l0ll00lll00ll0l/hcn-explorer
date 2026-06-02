@@ -1,4 +1,7 @@
-package com.hcn.core;
+package com.hcn.core.dbspecific;
+
+import com.hcn.core.HcnBody;
+import com.hcn.core.HcnGenerator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,8 +10,8 @@ public class Body {
     private int[] head;
     private int[] tail;
 
-    public Body(HcnBody hcnBody) {
-        computeHeadAndTail(hcnBody);
+    public Body(HcnGenerator hcnGenerator) {
+        computeHeadAndTail(hcnGenerator.getCurrentHcnBody());
     }
 
     public int[] getHead() { return head; }

@@ -177,8 +177,8 @@
                     <tbody>
                         <tr th:each="hcn, iter : ${@matrixController.getHcnsForLapiGroup(group)}">
                             <td th:text="${iter.index}"></td>
-                            <td class="col-chain" th:text="${hcn.body.parentChainString()}"></td>
-                            <td class="col-dist" style="display:none;" th:text="${bodyOrder.get(hcn.body)}"></td>
+                            <td class="col-chain" th:text="${hcn.hcnBody.parentChainString()}"></td>
+                            <td class="col-dist" style="display:none;" th:text="${bodyOrder.get(hcn.hcnBody)}"></td>
                             <td th:text="${hcn.lastActivePrime}"></td>
                             <td th:text="${hcn.value}"></td>
                             <td th:text="${hcn.factor}"></td>

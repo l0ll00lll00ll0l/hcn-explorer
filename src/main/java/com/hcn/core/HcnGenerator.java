@@ -1,20 +1,42 @@
 package com.hcn.core;
 
+import com.hcn.core.dbspecific.Body;
+
 public class HcnGenerator {
     private Hcn lastGeneratedHcn = null;
     private HcnBody currentHcnBody;
     private Body body = null;
+    private int id;
+    private boolean storedInDb = false;
+    private static int globalIdCounter = -1;
+
+    public static int getGlobalIdCounter() { return globalIdCounter; }
+    public static void setGlobalIdCounter(int counter) { globalIdCounter = counter; }
 
     public HcnGenerator(HcnBody currentHcnBody) {
         this.currentHcnBody = currentHcnBody;
+
+        if (GeneratorConfig.isBasicData()) {
+            id = globalIdCounter++;
+        }
+    }
+
+    public HcnGenerator(HcnBody currentHcnBody, int id) {
+        this.currentHcnBody = currentHcnBody;
+        this.id = id;
     }
 
     public Hcn getLastGeneratedHcn() { return lastGeneratedHcn; }
     public void setLastGeneratedHcn(Hcn hcn) { this.lastGeneratedHcn = hcn; }
     public HcnBody getCurrentHcnBody() { return currentHcnBody; }
     public void setCurrentHcnBody(HcnBody currentHcnBody) { this.currentHcnBody = currentHcnBody; }
+    public int getId() {return id;}
+    public void setId(int id) { this.id = id; }
+    public boolean isStoredInDb() { return storedInDb; }
+    public void setStoredInDb(boolean storedInDb) { this.storedInDb = storedInDb; }
+
     public Body getBody() {
-        if (body == null) body = new Body(currentHcnBody);
+        if (body == null) body = new Body(this);
         return body;
     }
 

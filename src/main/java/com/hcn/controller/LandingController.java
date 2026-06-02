@@ -23,10 +23,11 @@ public class LandingController {
     @PostMapping("/start")
     public String start(@RequestParam String dbMode,
                         @RequestParam(defaultValue = "false") boolean basicData) {
-        String dbName = databaseService.createDatabase();
         if ("withdb".equals(dbMode)) {
+            String dbName = databaseService.createDatabase(basicData);
             return "redirect:/detailed?new=true&dbName=" + dbName + "&basicData=" + basicData;
         }
+        String dbName = databaseService.createDatabase(false);
         return "redirect:/core?new=true&dbName=" + dbName;
     }
 

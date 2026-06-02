@@ -62,11 +62,13 @@ public class MatrixSaveService {
         progress.startPhase(2, "ActivePrimeIndexes", allApis.size());
         saveActivePrimeIndexesBatch(conn, allApis);
 
+        // Collect bodies early so we can find extra PIPs from deactivated bodies
+        List<HcnBody> allBodies = collectAllBodies(m);
+
         int pipCount = allApis.stream().mapToInt(a -> a.getPips().size()).sum();
         progress.startPhase(3, "PrimeIndexPowers", pipCount);
-        savePrimeIndexPowersBatch(conn);
+        savePrimeIndexPowersBatch(conn, allBodies);
 
-        List<HcnBody> allBodies = collectAllBodies(m);
         progress.startPhase(4, "HcnBodies", allBodies.size());
         saveHcnBodiesBatch(conn, allBodies);
 
@@ -75,11 +77,12 @@ public class MatrixSaveService {
 
         progress.startPhase(6, "HCNs", 0);
         saveHcnsBatch(conn, m);
+        saveReferenceIntervalHcns(conn, m);
 
         progress.startPhase(7, "LapiGroups", 0);
         saveLapiGroups(conn, m);
 
-        progress.startPhase(8, "Back-fill references", savedActivePrimeIndexes.size() + savedBodies.size());
+        progress.startPhase(9, "Back-fill references", savedActivePrimeIndexes.size() + savedBodies.size());
         backfillReferencesBatch(conn, m);
 
         progress.startPhase(9, "Matrix", 1);
@@ -89,7 +92,7 @@ public class MatrixSaveService {
 
     private void clearAll(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
-            stmt.execute("TRUNCATE TABLE lapi_hcn_list, matrix, last_active_prime_index_group, hcn, hcn_body, prime_index_power, fixed_power_group, active_prime_index, scientific_number");
+            stmt.execute("TRUNCATE TABLE reference_interval_hcn, lapi_hcn_list, matrix, last_active_prime_index_group, hcn, hcn_body, prime_index_power, fixed_power_group, active_prime_index, scientific_number");
         }
     }
 
@@ -161,24 +164,32 @@ public class MatrixSaveService {
     }
 
     // --- Phase 3: PrimeIndexPowers (batch) ---
-    private void savePrimeIndexPowersBatch(Connection conn) throws SQLException {
-        List<PrimeIndexPower> allPips = new ArrayList<>();
+    private void savePrimeIndexPowersBatch(Connection conn, List<HcnBody> allBodies) throws SQLException {
+        // Collect all PIPs from active APIs
+        Set<PrimeIndexPower> pipSet = new LinkedHashSet<>();
+        for (ActivePrimeIndex api : savedActivePrimeIndexes.keySet()) {
+            pipSet.addAll(api.getPips().values());
+        }
+        // Also collect PIPs from deactivated bodies
+        for (HcnBody body : allBodies) {
+            if (body.getPip() != null) pipSet.add(body.getPip());
+        }
+
+        List<PrimeIndexPower> allPips = new ArrayList<>(pipSet);
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO prime_index_power (prime_index_id, power, proved) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
-            for (Map.Entry<ActivePrimeIndex, Long> entry : savedActivePrimeIndexes.entrySet()) {
-                ActivePrimeIndex api = entry.getKey();
-                long apiId = entry.getValue();
-                for (PrimeIndexPower pip : api.getPips().values()) {
-                    ps.setLong(1, apiId);
-                    ps.setInt(2, pip.getPower());
-                    ps.setBoolean(3, pip.isProved());
-                    ps.addBatch();
-                    allPips.add(pip);
-                }
+            for (PrimeIndexPower pip : allPips) {
+                Long apiId = savedActivePrimeIndexes.get(pip.getActivePrimeIndex());
+                if (apiId == null) continue; // skip if API not saved
+                ps.setLong(1, apiId);
+                ps.setInt(2, pip.getPower());
+                ps.setBoolean(3, pip.isProved());
+                ps.addBatch();
             }
             ps.executeBatch();
             ResultSet keys = ps.getGeneratedKeys();
             for (PrimeIndexPower pip : allPips) {
+                if (savedActivePrimeIndexes.get(pip.getActivePrimeIndex()) == null) continue;
                 keys.next();
                 savedPips.put(pip, keys.getLong(1));
             }
@@ -200,7 +211,7 @@ public class MatrixSaveService {
 
         // Batch insert bodies (parent_id requires topological order, so parents have IDs already)
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO hcn_body (parent_id, pip_id, proved, value_id, factor_id) VALUES (?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                "INSERT INTO hcn_body (parent_id, pip_id, proved, value_id, factor_id, generator_id, stored_in_db) VALUES (?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             for (HcnBody body : ordered) {
                 Long parentId = body.getParent() != null ? savedBodies.get(body.getParent()) : null;
                 Long pipId = savedPips.get(body.getPip());
@@ -212,6 +223,13 @@ public class MatrixSaveService {
                 ps.setBoolean(3, body.isProved());
                 setNullableLong(ps, 4, valueId > 0 ? valueId : null);
                 setNullableLong(ps, 5, factorId > 0 ? factorId : null);
+                if (body.getHcnGenerator() != null) {
+                    ps.setInt(6, body.getHcnGenerator().getId());
+                    ps.setBoolean(7, body.getHcnGenerator().isStoredInDb());
+                } else {
+                    ps.setNull(6, Types.INTEGER);
+                    ps.setBoolean(7, false);
+                }
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -314,6 +332,9 @@ public class MatrixSaveService {
                 allHcns.add(body.getLastGeneratedHcn());
             }
         }
+        if (m.getReferenceInterval() != null) {
+            allHcns.addAll(m.getReferenceInterval().getHcnList());
+        }
 
         List<Hcn> hcnList = new ArrayList<>(allHcns);
 
@@ -329,7 +350,7 @@ public class MatrixSaveService {
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO hcn (body_id, last_active_prime, value_id, factor_id) VALUES (?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             for (Hcn hcn : hcnList) {
-                Long bodyId = hcn.getBody() != null ? savedBodies.get(hcn.getBody()) : null;
+                Long bodyId = hcn.getHcnBody() != null ? savedBodies.get(hcn.getHcnBody()) : null;
                 long valueId = getOrSaveScientificNumber(hcn.getValue());
                 long factorId = getOrSaveScientificNumber(hcn.getFactor());
                 setNullableLong(ps, 1, bodyId);
@@ -344,6 +365,23 @@ public class MatrixSaveService {
                 keys.next();
                 savedHcns.put(hcn, keys.getLong(1));
             }
+        }
+    }
+
+    private void saveReferenceIntervalHcns(Connection conn, Matrix m) throws SQLException {
+        if (m.getReferenceInterval() == null || m.getReferenceInterval().getHcnList().isEmpty()) return;
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO reference_interval_hcn (order_in_list, hcn_id) VALUES (?, ?)")) {
+            int order = 0;
+            for (Hcn hcn : m.getReferenceInterval().getHcnList()) {
+                Long hcnId = savedHcns.get(hcn);
+                if (hcnId != null) {
+                    ps.setInt(1, order++);
+                    ps.setLong(2, hcnId);
+                    ps.addBatch();
+                }
+            }
+            ps.executeBatch();
         }
     }
 
@@ -463,7 +501,7 @@ public class MatrixSaveService {
         }
 
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO matrix (mode, last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_id, proved_count, last_proved_prime_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
+                "INSERT INTO matrix (mode, last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_id, proved_count, last_proved_prime_index, basic_data, total_nanos, extend_matrix_nanos, generate_hcn_list_nanos, db_nanos, global_id_counter) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
             ps.setString(1, mode);
             setNullableLong(ps, 2, lastApiId);
             setNullableLong(ps, 3, lowestLapiId);
@@ -472,6 +510,12 @@ public class MatrixSaveService {
             setNullableLong(ps, 6, provedLimitId > 0 ? provedLimitId : null);
             ps.setInt(7, m.getProvedCount());
             ps.setInt(8, m.getLastProvedPrimeIndex());
+            ps.setBoolean(9, GeneratorConfig.isBasicData());
+            ps.setLong(10, m.getTotalNanos());
+            ps.setLong(11, m.getExtendMatrixNanos());
+            ps.setLong(12, m.getGenerateHcnListNanos());
+            ps.setLong(13, m.getDbNanos());
+            ps.setInt(14, HcnGenerator.getGlobalIdCounter());
             ps.executeUpdate();
         }
     }
@@ -511,9 +555,29 @@ public class MatrixSaveService {
 
     private List<HcnBody> collectAllBodies(Matrix m) {
         Set<HcnBody> all = new LinkedHashSet<>();
+        // Active bodies from PIPs
         for (ActivePrimeIndex api : savedActivePrimeIndexes.keySet()) {
             for (PrimeIndexPower pip : api.getPips().values()) {
                 all.addAll(pip.getActiveHcnBodies());
+            }
+        }
+        // Bodies referenced by HCNs in lapi groups (may include deactivated bodies)
+        LastActivePrimeIndexGroup lapi = m.getLowestLapiGroup();
+        while (lapi != null) {
+            for (Hcn hcn : lapi.getHcnList()) {
+                if (hcn.getHcnBody() != null) all.add(hcn.getHcnBody());
+            }
+            lapi = lapi.getHigherLapiGroup();
+        }
+        if (m.getNextLapiGroup() != null) {
+            for (Hcn hcn : m.getNextLapiGroup().getHcnList()) {
+                if (hcn.getHcnBody() != null) all.add(hcn.getHcnBody());
+            }
+        }
+        // Bodies referenced by referenceInterval HCNs
+        if (m.getReferenceInterval() != null) {
+            for (Hcn hcn : m.getReferenceInterval().getHcnList()) {
+                if (hcn.getHcnBody() != null) all.add(hcn.getHcnBody());
             }
         }
         return new ArrayList<>(all);

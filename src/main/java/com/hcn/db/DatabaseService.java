@@ -33,7 +33,7 @@ public class DatabaseService {
         return list;
     }
 
-    public String createDatabase() {
+    public String createDatabase(boolean basicData) {
         int number = findNextNumber();
         String dbName = PREFIX + number;
         try (Connection conn = DriverManager.getConnection(ADMIN_URL, USER, PASS);
@@ -86,15 +86,15 @@ public class DatabaseService {
              Statement stmt = conn.createStatement()) {
             ResultSet tables = conn.getMetaData().getTables(null, null, "matrix", null);
             if (!tables.next()) {
-                return new DatabaseInfo(dbName, 0, 0, "detailed");
+                return new DatabaseInfo(dbName, 0, 0, "detailed", false);
             }
-            ResultSet rs = stmt.executeQuery("SELECT proved_count, last_proved_prime_index, mode FROM matrix LIMIT 1");
+            ResultSet rs = stmt.executeQuery("SELECT proved_count, last_proved_prime_index, mode, basic_data FROM matrix LIMIT 1");
             if (rs.next()) {
-                return new DatabaseInfo(dbName, rs.getInt(1), rs.getInt(2), rs.getString(3));
+                return new DatabaseInfo(dbName, rs.getInt(1), rs.getInt(2), rs.getString(3), rs.getBoolean(4));
             }
-            return new DatabaseInfo(dbName, 0, 0, "detailed");
+            return new DatabaseInfo(dbName, 0, 0, "detailed", false);
         } catch (SQLException e) {
-            return new DatabaseInfo(dbName, 0, 0, "detailed");
+            return new DatabaseInfo(dbName, 0, 0, "detailed", false);
         }
     }
 
@@ -148,7 +148,9 @@ public class DatabaseService {
                     factor_id BIGINT,
                     smaller_body_id BIGINT,
                     larger_body_id BIGINT,
-                    last_generated_hcn_id BIGINT
+                    last_generated_hcn_id BIGINT,
+                    generator_id INT,
+                    stored_in_db BOOLEAN DEFAULT FALSE
                 )
             """);
             stmt.execute("""
@@ -178,6 +180,12 @@ public class DatabaseService {
                 )
             """);
             stmt.execute("""
+                CREATE TABLE reference_interval_hcn (
+                    order_in_list INT PRIMARY KEY,
+                    hcn_id BIGINT
+                )
+            """);
+            stmt.execute("""
                 CREATE TABLE matrix (
                     id BIGSERIAL PRIMARY KEY,
                     mode VARCHAR(10) NOT NULL DEFAULT 'detailed',
@@ -188,7 +196,39 @@ public class DatabaseService {
                     proved_limit_id BIGINT,
                     proved_count INT DEFAULT 0,
                     last_proved_prime_index INT DEFAULT -1,
-                    lowest_proved_lapi_within_interval INT DEFAULT 1
+                    lowest_proved_lapi_within_interval INT DEFAULT 1,
+                    basic_data BOOLEAN DEFAULT FALSE,
+                    total_nanos BIGINT DEFAULT 0,
+                    extend_matrix_nanos BIGINT DEFAULT 0,
+                    generate_hcn_list_nanos BIGINT DEFAULT 0,
+                    db_nanos BIGINT DEFAULT 0,
+                    global_id_counter INT DEFAULT -1
+                )
+            """);
+            stmt.execute("""
+                CREATE TABLE basic_data_body (
+                    id BIGINT PRIMARY KEY,
+                    head INT[],
+                    tail INT[]
+                )
+            """);
+            stmt.execute("""
+                CREATE TABLE basic_data_interval (
+                    lapi INT PRIMARY KEY,
+                    value_mantissa DOUBLE PRECISION,
+                    value_exponent BIGINT,
+                    factor_mantissa DOUBLE PRECISION,
+                    factor_exponent BIGINT,
+                    reference_interval_lapi INT,
+                    starter_hcn_id BIGINT,
+                    starter_hcn_serial BIGINT
+                )
+            """);
+            stmt.execute("""
+                CREATE TABLE basic_data_hcn (
+                    id BIGSERIAL PRIMARY KEY,
+                    body_id BIGINT,
+                    last_active_prime INT
                 )
             """);
         } catch (SQLException e) {
@@ -201,18 +241,21 @@ public class DatabaseService {
         private final int provedCount;
         private final int lastProvedPrimeIndex;
         private final String mode;
+        private final boolean basicData;
 
-        public DatabaseInfo(String name, int provedCount, int lastProvedPrimeIndex, String mode) {
+        public DatabaseInfo(String name, int provedCount, int lastProvedPrimeIndex, String mode, boolean basicData) {
             this.name = name;
             this.provedCount = provedCount;
             this.lastProvedPrimeIndex = lastProvedPrimeIndex;
             this.mode = mode;
+            this.basicData = basicData;
         }
 
         public String getName() { return name; }
         public int getProvedCount() { return provedCount; }
         public int getLastProvedPrimeIndex() { return lastProvedPrimeIndex; }
         public String getMode() { return mode; }
+        public boolean isBasicData() { return basicData; }
         public int getNumber() { return Integer.parseInt(name.substring(PREFIX.length())); }
     }
 }

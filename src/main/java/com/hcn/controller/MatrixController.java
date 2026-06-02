@@ -2,6 +2,7 @@ package com.hcn.controller;
 
 import com.hcn.core.ActivePrimeIndex;
 import com.hcn.core.FixedPowerGroup;
+import com.hcn.core.GeneratorConfig;
 import com.hcn.core.HcnBody;
 import com.hcn.core.Matrix;
 import com.hcn.core.Hcn;
@@ -42,6 +43,8 @@ public class MatrixController {
                         @RequestParam(required = false) String dbName) {
         if (isNew) {
             matrix = new Matrix();
+            GeneratorConfig.reset();
+            GeneratorConfig.setBasicData(false);
             matrix.initialize();
             if (dbName != null) {
                 this.dbName = dbName;

@@ -11,7 +11,7 @@ public class Hcn implements Comparable<Hcn> {
         this.lastActivePrime = lastActivePrime;
     }
     
-    public HcnBody getBody() {
+    public HcnBody getHcnBody() {
         return hcnGenerator != null ? hcnGenerator.getCurrentHcnBody() : null;
     }
     public HcnGenerator getHcnGenerator() {
@@ -44,13 +44,13 @@ public class Hcn implements Comparable<Hcn> {
     
     @Override
     public String toString() {
-        if (getBody() == null) {
+        if (getHcnBody() == null) {
             return "nullbody " + lastActivePrime + " v: " + value + " f: " + factor;
         }
-        return getBody().parentChainString() + " " + lastActivePrime + " v: " + value + " f: " + factor;
+        return getHcnBody().parentChainString() + " " + lastActivePrime + " v: " + value + " f: " + factor;
     }
 
     public String fullPrint() {
-        return getBody().parentChainString() + "|" + lastActivePrime + " v: " + value + " f: " + factor;
+        return getHcnBody().parentChainString() + "|" + lastActivePrime + " v: " + value + " f: " + factor;
     }
 }

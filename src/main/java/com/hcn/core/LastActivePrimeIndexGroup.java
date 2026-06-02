@@ -87,7 +87,7 @@ public class LastActivePrimeIndexGroup {
                 hcnList.add(localSuperiorIndex + 1, lowerLapiNextHcn);
                 int indexToFactorCheck = localSuperiorIndex + 2;
                 while (indexToFactorCheck < hcnList.size() && hcnList.get(indexToFactorCheck).getFactor().isNotBiggerThan(lowerLapiNextHcn.getFactor())) {
-                    hcnList.get(indexToFactorCheck).getBody().gotDominated();
+                    hcnList.get(indexToFactorCheck).getHcnBody().gotDominated();
                     hcnList.remove(indexToFactorCheck);
                 }
             }

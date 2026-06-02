@@ -122,14 +122,16 @@
             <button class="tab-btn active" data-tab="matrix" onclick="switchTab('matrix')">Matrix</button>
             <button class="tab-btn" data-tab="hcnfilter" onclick="switchTab('hcnfilter')">LapiGroups</button>
             <button class="tab-btn" data-tab="bodylist" onclick="switchTab('bodylist')">ActivePrimeIndex BodyList</button>
+            <button th:if="${basicData}" class="tab-btn" data-tab="intervals" onclick="switchTab('intervals')">Intervals</button>
         </div>
-        <div id="tab-matrix" class="tab-content">
+        <div id="tab-matrix" class="tab-content active">
         <div class="matrix-info">
             <div>Proved: <span th:text="${matrix.provedCount}"></span></div>
             <div>Last Active: p<span th:text="${matrix.lastActivePrimeIndex.index}"></span></div>
             <div style="margin-top: 6px; border-top: 1px solid #ccc; padding-top: 4px;">Total: <span th:text="${matrix.totalMs}"></span> ms</div>
             <div>ExtendMatrix: <span th:text="${matrix.extendMatrixMs}"></span> ms</div>
             <div>GenerateHcnList: <span th:text="${matrix.generateHcnListMs}"></span> ms</div>
+            <div th:if="${basicData}">DB: <span th:text="${matrix.dbMs}"></span> ms</div>
         </div>
         <div th:with="matrixChain=${@detailedController.buildMatrixChain(matrix.lastActivePrimeIndex)}">
             <div class="matrix-columns">
@@ -161,6 +163,35 @@
                 </div>
             </div>
         </div>
+
+        <!-- Reference Interval -->
+        <div th:if="${basicData and matrix.referenceInterval != null}" style="margin-top: 12px; border-top: 1px solid #ccc; padding-top: 8px;">
+            <strong>Reference Interval</strong>
+            <table class="level-table" style="margin-top: 4px;">
+                <thead>
+                    <tr><th>Lapi</th><th>Value</th><th>Factor</th><th>Ref</th><th>HCN List</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:with="interval=${matrix.referenceInterval}">
+                        <td th:text="${interval.lapi}"></td>
+                        <td th:text="${interval.value}"></td>
+                        <td th:text="${interval.factor}"></td>
+                        <td th:text="${interval.referenceInterval == null ? 'none' : (interval.referenceInterval == interval ? 'self' : interval.referenceInterval.lapi)}"></td>
+                        <td>
+                            <details>
+                                <summary th:text="${interval.hcnList.size() + ' HCNs'}"></summary>
+                                <div>
+                                    <span th:each="hcn : ${interval.hcnList}">
+                                        <span th:text="${hcn.hcnBody.parentChainString() + '|' + hcn.lastActivePrime}"></span><br/>
+                                    </span>
+                                </div>
+                            </details>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
         </div>
         </div>
 
@@ -179,8 +210,8 @@
                     <tbody>
                         <tr th:each="hcn, iter : ${@detailedController.getHcnsForLapiGroup(group)}">
                             <td th:text="${iter.index}"></td>
-                            <td class="col-chain" th:text="${hcn.body.parentChainString()}"></td>
-                            <td class="col-dist" style="display:none;" th:text="${bodyOrder.get(hcn.body)}"></td>
+                            <td class="col-chain" th:text="${hcn.hcnBody.parentChainString()}"></td>
+                            <td class="col-dist" style="display:none;" th:text="${bodyOrder.get(hcn.hcnBody)}"></td>
                             <td th:text="${hcn.lastActivePrime}"></td>
                             <td th:text="${hcn.value}"></td>
                             <td th:text="${hcn.factor}"></td>
@@ -243,6 +274,34 @@
                     var apiList = [[${allApi.![index + ',' + T(com.hcn.core.PrimeCenter).getPrime(index)]}]];
                 </script>
             </div>
+        </div>
+
+        <!-- Intervals Tab -->
+        <div th:if="${basicData}" id="tab-intervals" class="tab-content">
+            <table class="level-table">
+                <thead>
+                    <tr><th>#</th><th>Lapi</th><th>Value</th><th>Factor</th><th>Ref</th><th>HCN List</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="interval, iter : ${matrix.intervals}">
+                        <td th:text="${iter.index}"></td>
+                        <td th:text="${interval.lapi}"></td>
+                        <td th:text="${interval.value}"></td>
+                        <td th:text="${interval.factor}"></td>
+                        <td th:text="${interval.referenceInterval == null ? 'none' : (interval.referenceInterval == interval ? 'self' : interval.referenceInterval.lapi)}"></td>
+                        <td>
+                            <details>
+                                <summary th:text="${interval.hcnList.isEmpty() ? '→ ref (' + interval.referenceInterval.hcnList.size() + ')' : interval.hcnList.size() + ' HCNs'}"></summary>
+                                <div th:with="hcns=${interval.hcnList.isEmpty() ? interval.referenceInterval.hcnList : interval.hcnList}">
+                                    <span th:each="hcn, hIter : ${hcns}">
+                                        <span th:text="${hcn.hcnBody.parentChainString() + '|' + hcn.lastActivePrime}"></span><br/>
+                                    </span>
+                                </div>
+                            </details>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
       </th:block>
     </div>
