@@ -84,17 +84,17 @@ public class DatabaseService {
     private DatabaseInfo loadInfo(String dbName) {
         try (Connection conn = getConnection(dbName);
              Statement stmt = conn.createStatement()) {
-            ResultSet tables = conn.getMetaData().getTables(null, null, "matrix", null);
+            ResultSet tables = conn.getMetaData().getTables(null, null, "temp_matrix", null);
             if (!tables.next()) {
-                return new DatabaseInfo(dbName, 0, 0, "detailed");
+                return new DatabaseInfo(dbName, 0, 0);
             }
-            ResultSet rs = stmt.executeQuery("SELECT proved_count, last_proved_prime_index, mode FROM matrix LIMIT 1");
+            ResultSet rs = stmt.executeQuery("SELECT proved_count, last_proved_prime_index FROM temp_matrix LIMIT 1");
             if (rs.next()) {
-                return new DatabaseInfo(dbName, rs.getInt(1), rs.getInt(2), rs.getString(3));
+                return new DatabaseInfo(dbName, rs.getInt(1), rs.getInt(2));
             }
-            return new DatabaseInfo(dbName, 0, 0, "detailed");
+            return new DatabaseInfo(dbName, 0, 0);
         } catch (SQLException e) {
-            return new DatabaseInfo(dbName, 0, 0, "detailed");
+            return new DatabaseInfo(dbName, 0, 0);
         }
     }
 
@@ -102,23 +102,18 @@ public class DatabaseService {
         try (Connection conn = getConnection(dbName);
              Statement stmt = conn.createStatement()) {
             stmt.execute("""
-                CREATE TABLE scientific_number (
+                CREATE TABLE temp_fixed_power_group (
                     id BIGSERIAL PRIMARY KEY,
-                    mantissa DOUBLE PRECISION,
-                    exponent BIGINT
-                )
-            """);
-            stmt.execute("""
-                CREATE TABLE fixed_power_group (
-                    id BIGSERIAL PRIMARY KEY,
-                    value_id BIGINT,
-                    factor_id BIGINT,
+                    value_mantissa DOUBLE PRECISION,
+                    value_exponent BIGINT,
+                    factor_mantissa DOUBLE PRECISION,
+                    factor_exponent BIGINT,
                     parent_prime_index_id BIGINT,
                     offspring_prime_index_id BIGINT
                 )
             """);
             stmt.execute("""
-                CREATE TABLE active_prime_index (
+                CREATE TABLE temp_active_prime_index (
                     id BIGSERIAL PRIMARY KEY,
                     prime_index INT NOT NULL,
                     smallest_body_id BIGINT,
@@ -131,7 +126,7 @@ public class DatabaseService {
                 )
             """);
             stmt.execute("""
-                CREATE TABLE prime_index_power (
+                CREATE TABLE temp_prime_index_power (
                     id BIGSERIAL PRIMARY KEY,
                     prime_index_id BIGINT NOT NULL,
                     power INT NOT NULL,
@@ -139,29 +134,33 @@ public class DatabaseService {
                 )
             """);
             stmt.execute("""
-                CREATE TABLE hcn_body (
+                CREATE TABLE temp_hcn_body (
                     id BIGSERIAL PRIMARY KEY,
                     parent_id BIGINT,
                     pip_id BIGINT,
                     proved BOOLEAN DEFAULT FALSE,
-                    value_id BIGINT,
-                    factor_id BIGINT,
+                    value_mantissa DOUBLE PRECISION,
+                    value_exponent BIGINT,
+                    factor_mantissa DOUBLE PRECISION,
+                    factor_exponent BIGINT,
                     smaller_body_id BIGINT,
                     larger_body_id BIGINT,
                     last_generated_hcn_id BIGINT
                 )
             """);
             stmt.execute("""
-                CREATE TABLE hcn (
+                CREATE TABLE temp_hcn (
                     id BIGSERIAL PRIMARY KEY,
                     body_id BIGINT,
                     last_active_prime INT,
-                    value_id BIGINT,
-                    factor_id BIGINT
+                    value_mantissa DOUBLE PRECISION,
+                    value_exponent BIGINT,
+                    factor_mantissa DOUBLE PRECISION,
+                    factor_exponent BIGINT
                 )
             """);
             stmt.execute("""
-                CREATE TABLE last_active_prime_index_group (
+                CREATE TABLE temp_last_active_prime_index_group (
                     id BIGSERIAL PRIMARY KEY,
                     last_active_prime_index INT,
                     walker_body_id BIGINT,
@@ -170,7 +169,7 @@ public class DatabaseService {
                 )
             """);
             stmt.execute("""
-                CREATE TABLE lapi_hcn_list (
+                CREATE TABLE temp_lapi_hcn_list (
                     lapi_group_id BIGINT,
                     hcn_id BIGINT,
                     order_in_list INT,
@@ -178,14 +177,14 @@ public class DatabaseService {
                 )
             """);
             stmt.execute("""
-                CREATE TABLE matrix (
+                CREATE TABLE temp_matrix (
                     id BIGSERIAL PRIMARY KEY,
-                    mode VARCHAR(10) NOT NULL DEFAULT 'detailed',
                     last_active_prime_index_id BIGINT,
                     lowest_lapi_group_id BIGINT,
                     highest_lapi_group_id BIGINT,
                     next_lapi_group_id BIGINT,
-                    proved_limit_id BIGINT,
+                    proved_limit_mantissa DOUBLE PRECISION,
+                    proved_limit_exponent BIGINT,
                     proved_count INT DEFAULT 0,
                     last_proved_prime_index INT DEFAULT -1,
                     lowest_proved_lapi_within_interval INT DEFAULT 1
@@ -200,19 +199,16 @@ public class DatabaseService {
         private final String name;
         private final int provedCount;
         private final int lastProvedPrimeIndex;
-        private final String mode;
 
-        public DatabaseInfo(String name, int provedCount, int lastProvedPrimeIndex, String mode) {
+        public DatabaseInfo(String name, int provedCount, int lastProvedPrimeIndex) {
             this.name = name;
             this.provedCount = provedCount;
             this.lastProvedPrimeIndex = lastProvedPrimeIndex;
-            this.mode = mode;
         }
 
         public String getName() { return name; }
         public int getProvedCount() { return provedCount; }
         public int getLastProvedPrimeIndex() { return lastProvedPrimeIndex; }
-        public String getMode() { return mode; }
         public int getNumber() { return Integer.parseInt(name.substring(PREFIX.length())); }
     }
 }

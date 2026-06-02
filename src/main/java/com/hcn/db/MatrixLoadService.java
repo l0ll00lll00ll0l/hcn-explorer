@@ -13,8 +13,6 @@ public class MatrixLoadService {
     @Autowired
     private DatabaseService databaseService;
 
-    // Lookup maps keyed by DB id
-    private Map<Long, ScientificNumber> scientificNumbers;
     private Map<Long, ActivePrimeIndex> activePrimeIndexes;
     private Map<Long, PrimeIndexPower> pips;
     private Map<Long, HcnBody> bodies;
@@ -23,7 +21,6 @@ public class MatrixLoadService {
     private Map<Long, LastActivePrimeIndexGroup> lapiGroups;
 
     public Matrix load(String dbName) {
-        scientificNumbers = new HashMap<>();
         activePrimeIndexes = new HashMap<>();
         pips = new HashMap<>();
         bodies = new HashMap<>();
@@ -32,7 +29,6 @@ public class MatrixLoadService {
         lapiGroups = new HashMap<>();
 
         try (Connection conn = databaseService.getConnection(dbName)) {
-            loadScientificNumbers(conn);
             loadActivePrimeIndexes(conn);
             loadPrimeIndexPowers(conn);
             loadHcnBodies(conn);
@@ -45,25 +41,16 @@ public class MatrixLoadService {
         }
     }
 
-    private void loadScientificNumbers(Connection conn) throws SQLException {
-        try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, mantissa, exponent FROM scientific_number")) {
-            while (rs.next()) {
-                scientificNumbers.put(rs.getLong(1), new ScientificNumber(rs.getDouble(2), rs.getLong(3)));
-            }
-        }
-    }
-
     private void loadActivePrimeIndexes(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, prime_index FROM active_prime_index")) {
+             ResultSet rs = stmt.executeQuery("SELECT id, prime_index FROM temp_active_prime_index")) {
             while (rs.next()) {
                 activePrimeIndexes.put(rs.getLong(1), new ActivePrimeIndex(rs.getInt(2)));
             }
         }
         // Wire next/parent links
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, next_active_prime_index_id, parent_active_prime_index_id FROM active_prime_index")) {
+             ResultSet rs = stmt.executeQuery("SELECT id, next_active_prime_index_id, parent_active_prime_index_id FROM temp_active_prime_index")) {
             while (rs.next()) {
                 ActivePrimeIndex api = activePrimeIndexes.get(rs.getLong(1));
                 long nextId = rs.getLong(2);
@@ -76,7 +63,7 @@ public class MatrixLoadService {
 
     private void loadPrimeIndexPowers(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, prime_index_id, power, proved FROM prime_index_power ORDER BY prime_index_id, power")) {
+             ResultSet rs = stmt.executeQuery("SELECT id, prime_index_id, power, proved FROM temp_prime_index_power ORDER BY prime_index_id, power")) {
             while (rs.next()) {
                 long id = rs.getLong(1);
                 ActivePrimeIndex api = activePrimeIndexes.get(rs.getLong(2));
@@ -91,25 +78,25 @@ public class MatrixLoadService {
     }
 
     private void loadHcnBodies(Connection conn) throws SQLException {
-        // First pass: create all bodies with basic fields
+        // First pass: create all bodies
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, pip_id, proved, value_id, factor_id FROM hcn_body")) {
+             ResultSet rs = stmt.executeQuery("SELECT id, pip_id, proved, value_mantissa, value_exponent, factor_mantissa, factor_exponent FROM temp_hcn_body")) {
             while (rs.next()) {
                 long id = rs.getLong(1);
                 HcnBody body = new HcnBody();
                 long pipId = rs.getLong(2);
                 if (!rs.wasNull()) body.setPip(pips.get(pipId));
                 body.setProved(rs.getBoolean(3));
-                long valueId = rs.getLong(4);
-                if (!rs.wasNull()) body.setValue(scientificNumbers.get(valueId));
-                long factorId = rs.getLong(5);
-                if (!rs.wasNull()) body.setFactor(scientificNumbers.get(factorId));
+                double valMantissa = rs.getDouble(4);
+                if (!rs.wasNull()) body.setValue(new ScientificNumber(valMantissa, rs.getLong(5)));
+                double facMantissa = rs.getDouble(6);
+                if (!rs.wasNull()) body.setFactor(new ScientificNumber(facMantissa, rs.getLong(7)));
                 bodies.put(id, body);
             }
         }
         // Second pass: wire parent, smaller, larger
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, parent_id, smaller_body_id, larger_body_id FROM hcn_body")) {
+             ResultSet rs = stmt.executeQuery("SELECT id, parent_id, smaller_body_id, larger_body_id FROM temp_hcn_body")) {
             while (rs.next()) {
                 HcnBody body = bodies.get(rs.getLong(1));
                 long parentId = rs.getLong(2);
@@ -132,7 +119,7 @@ public class MatrixLoadService {
         }
         // Wire smallestBody on ActivePrimeIndexes
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, smallest_body_id FROM active_prime_index WHERE smallest_body_id IS NOT NULL")) {
+             ResultSet rs = stmt.executeQuery("SELECT id, smallest_body_id FROM temp_active_prime_index WHERE smallest_body_id IS NOT NULL")) {
             while (rs.next()) {
                 ActivePrimeIndex api = activePrimeIndexes.get(rs.getLong(1));
                 HcnBody smallest = bodies.get(rs.getLong(2));
@@ -143,24 +130,22 @@ public class MatrixLoadService {
 
     private void loadFixedPowerGroups(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, value_id, factor_id, parent_prime_index_id, offspring_prime_index_id FROM fixed_power_group")) {
+             ResultSet rs = stmt.executeQuery("SELECT id, value_mantissa, value_exponent, factor_mantissa, factor_exponent, parent_prime_index_id, offspring_prime_index_id FROM temp_fixed_power_group")) {
             while (rs.next()) {
                 long id = rs.getLong(1);
                 FixedPowerGroup fpg = new FixedPowerGroup();
-                long valueId = rs.getLong(2);
-                if (!rs.wasNull()) fpg.setValueForLoad(scientificNumbers.get(valueId));
-                long factorId = rs.getLong(3);
-                if (!rs.wasNull()) fpg.setFactorForLoad(scientificNumbers.get(factorId));
-                long parentPiId = rs.getLong(4);
+                fpg.setValueForLoad(new ScientificNumber(rs.getDouble(2), rs.getLong(3)));
+                fpg.setFactorForLoad(new ScientificNumber(rs.getDouble(4), rs.getLong(5)));
+                long parentPiId = rs.getLong(6);
                 if (!rs.wasNull()) fpg.setParentPrimeIndex(activePrimeIndexes.get(parentPiId));
-                long offspringPiId = rs.getLong(5);
+                long offspringPiId = rs.getLong(7);
                 if (!rs.wasNull()) fpg.setOffspringPrimeIndexForLoad(activePrimeIndexes.get(offspringPiId));
                 fpgs.put(id, fpg);
             }
         }
         // Wire FPG members
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, member_of_fixed_power_group_id FROM active_prime_index WHERE member_of_fixed_power_group_id IS NOT NULL ORDER BY fixed_power_group_order")) {
+             ResultSet rs = stmt.executeQuery("SELECT id, member_of_fixed_power_group_id FROM temp_active_prime_index WHERE member_of_fixed_power_group_id IS NOT NULL ORDER BY fixed_power_group_order")) {
             while (rs.next()) {
                 ActivePrimeIndex api = activePrimeIndexes.get(rs.getLong(1));
                 FixedPowerGroup fpg = fpgs.get(rs.getLong(2));
@@ -169,7 +154,7 @@ public class MatrixLoadService {
         }
         // Wire offspring/parent FPG on ActivePrimeIndexes
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, offspring_fixed_power_group_id, parent_fixed_power_group_id FROM active_prime_index")) {
+             ResultSet rs = stmt.executeQuery("SELECT id, offspring_fixed_power_group_id, parent_fixed_power_group_id FROM temp_active_prime_index")) {
             while (rs.next()) {
                 ActivePrimeIndex api = activePrimeIndexes.get(rs.getLong(1));
                 long offFpgId = rs.getLong(2);
@@ -181,10 +166,10 @@ public class MatrixLoadService {
     }
 
     private void loadHcns(Connection conn) throws SQLException {
-        // First: load which bodies have generators (via last_generated_hcn_id)
+        // Load which bodies have generators
         Map<Long, Long> bodyToLastHcnId = new HashMap<>();
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, last_generated_hcn_id FROM hcn_body WHERE last_generated_hcn_id IS NOT NULL")) {
+             ResultSet rs = stmt.executeQuery("SELECT id, last_generated_hcn_id FROM temp_hcn_body WHERE last_generated_hcn_id IS NOT NULL")) {
             while (rs.next()) {
                 bodyToLastHcnId.put(rs.getLong(1), rs.getLong(2));
             }
@@ -201,7 +186,7 @@ public class MatrixLoadService {
 
         // Load all HCNs
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, body_id, last_active_prime, value_id, factor_id FROM hcn")) {
+             ResultSet rs = stmt.executeQuery("SELECT id, body_id, last_active_prime, value_mantissa, value_exponent, factor_mantissa, factor_exponent FROM temp_hcn")) {
             while (rs.next()) {
                 long id = rs.getLong(1);
                 long bodyId = rs.getLong(2);
@@ -214,10 +199,10 @@ public class MatrixLoadService {
                 }
                 Hcn hcn = new Hcn(gen, lastActivePrime);
 
-                long valueId = rs.getLong(4);
-                if (!rs.wasNull()) hcn.setValue(scientificNumbers.get(valueId));
-                long factorId = rs.getLong(5);
-                if (!rs.wasNull()) hcn.setFactor(scientificNumbers.get(factorId));
+                double valMantissa = rs.getDouble(4);
+                if (!rs.wasNull()) hcn.setValue(new ScientificNumber(valMantissa, rs.getLong(5)));
+                double facMantissa = rs.getDouble(6);
+                if (!rs.wasNull()) hcn.setFactor(new ScientificNumber(facMantissa, rs.getLong(7)));
 
                 hcns.put(id, hcn);
             }
@@ -232,9 +217,8 @@ public class MatrixLoadService {
     }
 
     private void loadLapiGroups(Connection conn) throws SQLException {
-        // First pass: create groups
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, last_active_prime_index, walker_body_id FROM last_active_prime_index_group")) {
+             ResultSet rs = stmt.executeQuery("SELECT id, last_active_prime_index, walker_body_id FROM temp_last_active_prime_index_group")) {
             while (rs.next()) {
                 long id = rs.getLong(1);
                 int lapiIndex = rs.getInt(2);
@@ -251,7 +235,7 @@ public class MatrixLoadService {
         }
         // Wire lower/higher links
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, lower_lapi_group_id, higher_lapi_group_id FROM last_active_prime_index_group")) {
+             ResultSet rs = stmt.executeQuery("SELECT id, lower_lapi_group_id, higher_lapi_group_id FROM temp_last_active_prime_index_group")) {
             while (rs.next()) {
                 LastActivePrimeIndexGroup group = lapiGroups.get(rs.getLong(1));
                 long lowerId = rs.getLong(2);
@@ -262,7 +246,7 @@ public class MatrixLoadService {
         }
         // Load hcn lists
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT lapi_group_id, hcn_id FROM lapi_hcn_list ORDER BY lapi_group_id, order_in_list")) {
+             ResultSet rs = stmt.executeQuery("SELECT lapi_group_id, hcn_id FROM temp_lapi_hcn_list ORDER BY lapi_group_id, order_in_list")) {
             while (rs.next()) {
                 LastActivePrimeIndexGroup group = lapiGroups.get(rs.getLong(1));
                 Hcn hcn = hcns.get(rs.getLong(2));
@@ -273,7 +257,7 @@ public class MatrixLoadService {
 
     private Matrix assembleMatrix(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_id, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval FROM matrix LIMIT 1")) {
+             ResultSet rs = stmt.executeQuery("SELECT last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_mantissa, proved_limit_exponent, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval FROM temp_matrix LIMIT 1")) {
             if (!rs.next()) throw new RuntimeException("No matrix row found");
 
             ActivePrimeIndex lastApi = activePrimeIndexes.get(rs.getLong(1));
@@ -281,11 +265,11 @@ public class MatrixLoadService {
             LastActivePrimeIndexGroup highestLapi = lapiGroups.get(rs.getLong(3));
             long nextLapiId = rs.getLong(4);
             LastActivePrimeIndexGroup nextLapi = rs.wasNull() ? null : lapiGroups.get(nextLapiId);
-            long provedLimitId = rs.getLong(5);
-            ScientificNumber provedLimit = rs.wasNull() ? null : scientificNumbers.get(provedLimitId);
-            int provedCount = rs.getInt(6);
-            int lastProvedPrimeIndex = rs.getInt(7);
-            int lowestProvedLapi = rs.getInt(8);
+            double plMantissa = rs.getDouble(5);
+            ScientificNumber provedLimit = rs.wasNull() ? null : new ScientificNumber(plMantissa, rs.getLong(6));
+            int provedCount = rs.getInt(7);
+            int lastProvedPrimeIndex = rs.getInt(8);
+            int lowestProvedLapi = rs.getInt(9);
 
             return Matrix.fromLoad(lastApi, lowestLapi, highestLapi, nextLapi, provedLimit, provedCount, lastProvedPrimeIndex, lowestProvedLapi);
         }

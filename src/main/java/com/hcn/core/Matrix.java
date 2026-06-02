@@ -10,6 +10,7 @@ public class Matrix {
     private LastActivePrimeIndexGroup nextLapiGroup;
     private List<Hcn> provedHcns = new ArrayList<>();
     private ScientificNumber provedLimit;
+    private String dbName;
 
     private int provedCount = 0;
     private int lastProvedPrimeIndex = -1;
@@ -24,6 +25,8 @@ public class Matrix {
     public int getProvedCount() { return provedCount; }
     public int getLastProvedPrimeIndex() { return lastProvedPrimeIndex; }
     public ScientificNumber getProvedLimit() { return provedLimit; }
+    public String getDbName() { return dbName; }
+    public void setDbName(String dbName) { this.dbName = dbName; }
     public LastActivePrimeIndexGroup getLowestLapiGroup() { return lowestLapiGroup; }
     public LastActivePrimeIndexGroup getHighestLapiGroup() { return highestLapiGroup; }
     public LastActivePrimeIndexGroup getNextLapiGroup() { return nextLapiGroup; }
@@ -194,10 +197,6 @@ public class Matrix {
     }
 
     public void proveLapi(int count) {
-        if (!GeneratorConfig.isLocked()) {
-            GeneratorConfig.lock();
-            initialize();
-        }
         for (int i = 0; i < count; i++) {
             proveNextLapi();
         }

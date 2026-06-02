@@ -22,13 +22,18 @@ import java.util.stream.Collectors;
 @Controller
 public class MatrixController {
     private Matrix matrix;
-    private String dbName;
 
     @org.springframework.beans.factory.annotation.Autowired
     private com.hcn.db.MatrixSaveService matrixSaveService;
 
     @org.springframework.beans.factory.annotation.Autowired
+    private com.hcn.db.MatrixLoadService matrixLoadService;
+
+    @org.springframework.beans.factory.annotation.Autowired
     private com.hcn.db.SaveProgress saveProgress;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.hcn.db.DatabaseService databaseService;
 
     public MatrixController() {
         matrix = new Matrix();
@@ -43,11 +48,9 @@ public class MatrixController {
         if (isNew) {
             matrix = new Matrix();
             matrix.initialize();
-            if (dbName != null) {
-                this.dbName = dbName;
-            }
         } else if (dbName != null) {
-            this.dbName = dbName;
+            matrix = matrixLoadService.load(dbName);
+            matrix.setDbName(dbName);
         }
         model.addAttribute("matrix", matrix);
         model.addAttribute("displayDecimals", ScientificNumber.getDisplayDecimals());
@@ -89,8 +92,11 @@ public class MatrixController {
     @PostMapping("/core/save")
     public String save(@RequestParam(defaultValue = "matrix") String activeTab,
                        @RequestParam(defaultValue = "chain") String lapiView) {
+        if (matrix.getDbName() == null) {
+            matrix.setDbName(databaseService.createDatabase());
+        }
         saveProgress.start();
-        new Thread(() -> matrixSaveService.save(matrix, dbName, "core")).start();
+        new Thread(() -> matrixSaveService.save(matrix, matrix.getDbName())).start();
         return "redirect:/core?tab=" + activeTab + "&lapiView=" + lapiView;
     }
     

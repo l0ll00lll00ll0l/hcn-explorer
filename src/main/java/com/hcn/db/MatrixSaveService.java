@@ -16,7 +16,6 @@ public class MatrixSaveService {
     @Autowired
     private SaveProgress progress;
 
-    private Map<Object, Long> savedScientificNumbers;
     private Map<ActivePrimeIndex, Long> savedActivePrimeIndexes;
     private Map<PrimeIndexPower, Long> savedPips;
     private Map<HcnBody, Long> savedBodies;
@@ -24,12 +23,11 @@ public class MatrixSaveService {
     private Map<FixedPowerGroup, Long> savedFpgs;
     private Map<LastActivePrimeIndexGroup, Long> savedLapiGroups;
 
-    public void save(Object matrix, String dbName, String mode) {
+    public void save(Object matrix, String dbName) {
         if (dbName == null || !(matrix instanceof Matrix)) return;
 
         Matrix m = (Matrix) matrix;
 
-        savedScientificNumbers = new IdentityHashMap<>();
         savedActivePrimeIndexes = new IdentityHashMap<>();
         savedPips = new IdentityHashMap<>();
         savedBodies = new IdentityHashMap<>();
@@ -45,7 +43,7 @@ public class MatrixSaveService {
             clearAll(conn);
             progress.increment();
 
-            saveAll(conn, m, mode);
+            saveAll(conn, m);
 
             progress.startPhase(10, "Committing to disk", 1);
             conn.commit();
@@ -57,21 +55,20 @@ public class MatrixSaveService {
         }
     }
 
-    private void saveAll(Connection conn, Matrix m, String mode) throws SQLException {
+    private void saveAll(Connection conn, Matrix m) throws SQLException {
         List<ActivePrimeIndex> allApis = collectAllActivePrimeIndexes(m);
         progress.startPhase(2, "ActivePrimeIndexes", allApis.size());
         saveActivePrimeIndexesBatch(conn, allApis);
 
-        int pipCount = allApis.stream().mapToInt(a -> a.getPips().size()).sum();
-        progress.startPhase(3, "PrimeIndexPowers", pipCount);
+        progress.startPhase(3, "PrimeIndexPowers", 0);
         savePrimeIndexPowersBatch(conn);
 
         List<HcnBody> allBodies = collectAllBodies(m);
         progress.startPhase(4, "HcnBodies", allBodies.size());
         saveHcnBodiesBatch(conn, allBodies);
 
-        progress.startPhase(5, "FixedPowerGroups", savedActivePrimeIndexes.size());
-        saveFixedPowerGroups(conn, m);
+        progress.startPhase(5, "FixedPowerGroups", 0);
+        saveFixedPowerGroups(conn);
 
         progress.startPhase(6, "HCNs", 0);
         saveHcnsBatch(conn, m);
@@ -79,73 +76,24 @@ public class MatrixSaveService {
         progress.startPhase(7, "LapiGroups", 0);
         saveLapiGroups(conn, m);
 
-        progress.startPhase(8, "Back-fill references", savedActivePrimeIndexes.size() + savedBodies.size());
+        progress.startPhase(8, "Back-fill references", 0);
         backfillReferencesBatch(conn, m);
 
         progress.startPhase(9, "Matrix", 1);
-        saveMatrix(conn, m, mode);
+        saveMatrix(conn, m);
         progress.increment();
     }
 
     private void clearAll(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
-            stmt.execute("TRUNCATE TABLE lapi_hcn_list, matrix, last_active_prime_index_group, hcn, hcn_body, prime_index_power, fixed_power_group, active_prime_index, scientific_number");
-        }
-    }
-
-    // --- Phase 1: ScientificNumbers (batch) ---
-    private void saveScientificNumbersBatch(Connection conn, List<ScientificNumber> sns) throws SQLException {
-        if (sns.isEmpty()) return;
-        try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO scientific_number (mantissa, exponent) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
-            for (ScientificNumber sn : sns) {
-                if (sn == null || savedScientificNumbers.containsKey(sn)) continue;
-                ps.setDouble(1, sn.getMantissa());
-                ps.setLong(2, sn.getExponent());
-                ps.addBatch();
-            }
-            ps.executeBatch();
-            ResultSet keys = ps.getGeneratedKeys();
-            for (ScientificNumber sn : sns) {
-                if (sn == null || savedScientificNumbers.containsKey(sn)) continue;
-                keys.next();
-                savedScientificNumbers.put(sn, keys.getLong(1));
-            }
-        }
-    }
-
-    private long getOrSaveScientificNumber(ScientificNumber sn) {
-        if (sn == null) return -1;
-        Long existing = savedScientificNumbers.get(sn);
-        return existing != null ? existing : -1;
-    }
-
-    private void ensureScientificNumbersSaved(Connection conn, Collection<ScientificNumber> sns) throws SQLException {
-        List<ScientificNumber> unsaved = new ArrayList<>();
-        for (ScientificNumber sn : sns) {
-            if (sn != null && !savedScientificNumbers.containsKey(sn)) unsaved.add(sn);
-        }
-        if (unsaved.isEmpty()) return;
-        try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO scientific_number (mantissa, exponent) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
-            for (ScientificNumber sn : unsaved) {
-                ps.setDouble(1, sn.getMantissa());
-                ps.setLong(2, sn.getExponent());
-                ps.addBatch();
-            }
-            ps.executeBatch();
-            ResultSet keys = ps.getGeneratedKeys();
-            for (ScientificNumber sn : unsaved) {
-                keys.next();
-                savedScientificNumbers.put(sn, keys.getLong(1));
-            }
+            stmt.execute("TRUNCATE TABLE temp_lapi_hcn_list, temp_matrix, temp_last_active_prime_index_group, temp_hcn, temp_hcn_body, temp_prime_index_power, temp_fixed_power_group, temp_active_prime_index");
         }
     }
 
     // --- Phase 2: ActivePrimeIndexes (batch) ---
     private void saveActivePrimeIndexesBatch(Connection conn, List<ActivePrimeIndex> allApis) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO active_prime_index (prime_index) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
+                "INSERT INTO temp_active_prime_index (prime_index) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
             for (ActivePrimeIndex api : allApis) {
                 ps.setInt(1, api.getIndex());
                 ps.addBatch();
@@ -157,14 +105,13 @@ public class MatrixSaveService {
                 savedActivePrimeIndexes.put(api, keys.getLong(1));
             }
         }
-        progress.increment();
     }
 
     // --- Phase 3: PrimeIndexPowers (batch) ---
     private void savePrimeIndexPowersBatch(Connection conn) throws SQLException {
         List<PrimeIndexPower> allPips = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO prime_index_power (prime_index_id, power, proved) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                "INSERT INTO temp_prime_index_power (prime_index_id, power, proved) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             for (Map.Entry<ActivePrimeIndex, Long> entry : savedActivePrimeIndexes.entrySet()) {
                 ActivePrimeIndex api = entry.getKey();
                 long apiId = entry.getValue();
@@ -183,35 +130,33 @@ public class MatrixSaveService {
                 savedPips.put(pip, keys.getLong(1));
             }
         }
-        progress.increment();
     }
 
     // --- Phase 4: HcnBodies (batch) ---
     private void saveHcnBodiesBatch(Connection conn, List<HcnBody> allBodies) throws SQLException {
         List<HcnBody> ordered = topologicalSortBodies(allBodies);
 
-        // First: batch save all scientific numbers needed by bodies
-        List<ScientificNumber> bodySns = new ArrayList<>();
-        for (HcnBody body : ordered) {
-            bodySns.add(body.getValue());
-            bodySns.add(body.getFactor());
-        }
-        ensureScientificNumbersSaved(conn, bodySns);
-
-        // Batch insert bodies (parent_id requires topological order, so parents have IDs already)
+        // Batch insert bodies (without parent_id - will backfill after)
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO hcn_body (parent_id, pip_id, proved, value_id, factor_id) VALUES (?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                "INSERT INTO temp_hcn_body (pip_id, proved, value_mantissa, value_exponent, factor_mantissa, factor_exponent) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             for (HcnBody body : ordered) {
-                Long parentId = body.getParent() != null ? savedBodies.get(body.getParent()) : null;
                 Long pipId = savedPips.get(body.getPip());
-                long valueId = getOrSaveScientificNumber(body.getValue());
-                long factorId = getOrSaveScientificNumber(body.getFactor());
-
-                setNullableLong(ps, 1, parentId);
-                setNullableLong(ps, 2, pipId);
-                ps.setBoolean(3, body.isProved());
-                setNullableLong(ps, 4, valueId > 0 ? valueId : null);
-                setNullableLong(ps, 5, factorId > 0 ? factorId : null);
+                setNullableLong(ps, 1, pipId);
+                ps.setBoolean(2, body.isProved());
+                if (body.getValue() != null) {
+                    ps.setDouble(3, body.getValue().getMantissa());
+                    ps.setLong(4, body.getValue().getExponent());
+                } else {
+                    ps.setNull(3, Types.DOUBLE);
+                    ps.setNull(4, Types.BIGINT);
+                }
+                if (body.getFactor() != null) {
+                    ps.setDouble(5, body.getFactor().getMantissa());
+                    ps.setLong(6, body.getFactor().getExponent());
+                } else {
+                    ps.setNull(5, Types.DOUBLE);
+                    ps.setNull(6, Types.BIGINT);
+                }
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -221,19 +166,20 @@ public class MatrixSaveService {
                 savedBodies.put(body, keys.getLong(1));
             }
         }
-        progress.increment();
 
-        // Batch update smaller/larger links
+        // Batch update parent_id, smaller_body_id, larger_body_id
         try (PreparedStatement ps = conn.prepareStatement(
-                "UPDATE hcn_body SET smaller_body_id = ?, larger_body_id = ? WHERE id = ?")) {
+                "UPDATE temp_hcn_body SET parent_id = ?, smaller_body_id = ?, larger_body_id = ? WHERE id = ?")) {
             int count = 0;
             for (HcnBody body : ordered) {
+                Long parentId = body.getParent() != null ? savedBodies.get(body.getParent()) : null;
                 Long smallerId = body.getSmallerBody() != null ? savedBodies.get(body.getSmallerBody()) : null;
                 Long largerId = body.getLargerBody() != null ? savedBodies.get(body.getLargerBody()) : null;
-                if (smallerId != null || largerId != null) {
-                    setNullableLong(ps, 1, smallerId);
-                    setNullableLong(ps, 2, largerId);
-                    ps.setLong(3, savedBodies.get(body));
+                if (parentId != null || smallerId != null || largerId != null) {
+                    setNullableLong(ps, 1, parentId);
+                    setNullableLong(ps, 2, smallerId);
+                    setNullableLong(ps, 3, largerId);
+                    ps.setLong(4, savedBodies.get(body));
                     ps.addBatch();
                     count++;
                 }
@@ -243,8 +189,7 @@ public class MatrixSaveService {
     }
 
     // --- Phase 5: FixedPowerGroups ---
-    private void saveFixedPowerGroups(Connection conn, Matrix m) throws SQLException {
-        // Collect all FPGs
+    private void saveFixedPowerGroups(Connection conn) throws SQLException {
         List<FixedPowerGroup> allFpgs = new ArrayList<>();
         for (ActivePrimeIndex api : savedActivePrimeIndexes.keySet()) {
             if (api.getOffspringFixedPowerGroup() != null && !allFpgs.contains(api.getOffspringFixedPowerGroup())) {
@@ -253,22 +198,15 @@ public class MatrixSaveService {
         }
         if (allFpgs.isEmpty()) return;
 
-        // Save scientific numbers for FPGs
-        List<ScientificNumber> fpgSns = new ArrayList<>();
-        for (FixedPowerGroup fpg : allFpgs) {
-            fpgSns.add(fpg.getValue());
-            fpgSns.add(fpg.getFactor());
-        }
-        ensureScientificNumbersSaved(conn, fpgSns);
-
-        // Batch insert FPGs
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO fixed_power_group (value_id, factor_id, parent_prime_index_id, offspring_prime_index_id) VALUES (?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                "INSERT INTO temp_fixed_power_group (value_mantissa, value_exponent, factor_mantissa, factor_exponent, parent_prime_index_id, offspring_prime_index_id) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             for (FixedPowerGroup fpg : allFpgs) {
-                setNullableLong(ps, 1, getOrSaveScientificNumber(fpg.getValue()) > 0 ? getOrSaveScientificNumber(fpg.getValue()) : null);
-                setNullableLong(ps, 2, getOrSaveScientificNumber(fpg.getFactor()) > 0 ? getOrSaveScientificNumber(fpg.getFactor()) : null);
-                setNullableLong(ps, 3, savedActivePrimeIndexes.get(fpg.getParentPrimeIndex()));
-                setNullableLong(ps, 4, savedActivePrimeIndexes.get(fpg.getOffspringPrimeIndex()));
+                ps.setDouble(1, fpg.getValue().getMantissa());
+                ps.setLong(2, fpg.getValue().getExponent());
+                ps.setDouble(3, fpg.getFactor().getMantissa());
+                ps.setLong(4, fpg.getFactor().getExponent());
+                setNullableLong(ps, 5, savedActivePrimeIndexes.get(fpg.getParentPrimeIndex()));
+                setNullableLong(ps, 6, savedActivePrimeIndexes.get(fpg.getOffspringPrimeIndex()));
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -281,7 +219,7 @@ public class MatrixSaveService {
 
         // Batch update FPG members
         try (PreparedStatement ps = conn.prepareStatement(
-                "UPDATE active_prime_index SET member_of_fixed_power_group_id = ?, fixed_power_group_order = ? WHERE id = ?")) {
+                "UPDATE temp_active_prime_index SET member_of_fixed_power_group_id = ?, fixed_power_group_order = ? WHERE id = ?")) {
             for (FixedPowerGroup fpg : allFpgs) {
                 int order = 0;
                 for (ActivePrimeIndex member : fpg.getFixedPowerGroup()) {
@@ -317,25 +255,26 @@ public class MatrixSaveService {
 
         List<Hcn> hcnList = new ArrayList<>(allHcns);
 
-        // Save scientific numbers for HCNs
-        List<ScientificNumber> hcnSns = new ArrayList<>();
-        for (Hcn hcn : hcnList) {
-            hcnSns.add(hcn.getValue());
-            hcnSns.add(hcn.getFactor());
-        }
-        ensureScientificNumbersSaved(conn, hcnSns);
-
-        // Batch insert HCNs
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO hcn (body_id, last_active_prime, value_id, factor_id) VALUES (?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                "INSERT INTO temp_hcn (body_id, last_active_prime, value_mantissa, value_exponent, factor_mantissa, factor_exponent) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             for (Hcn hcn : hcnList) {
                 Long bodyId = hcn.getBody() != null ? savedBodies.get(hcn.getBody()) : null;
-                long valueId = getOrSaveScientificNumber(hcn.getValue());
-                long factorId = getOrSaveScientificNumber(hcn.getFactor());
                 setNullableLong(ps, 1, bodyId);
                 ps.setInt(2, hcn.getLastActivePrime());
-                setNullableLong(ps, 3, valueId > 0 ? valueId : null);
-                setNullableLong(ps, 4, factorId > 0 ? factorId : null);
+                if (hcn.getValue() != null) {
+                    ps.setDouble(3, hcn.getValue().getMantissa());
+                    ps.setLong(4, hcn.getValue().getExponent());
+                } else {
+                    ps.setNull(3, Types.DOUBLE);
+                    ps.setNull(4, Types.BIGINT);
+                }
+                if (hcn.getFactor() != null) {
+                    ps.setDouble(5, hcn.getFactor().getMantissa());
+                    ps.setLong(6, hcn.getFactor().getExponent());
+                } else {
+                    ps.setNull(5, Types.DOUBLE);
+                    ps.setNull(6, Types.BIGINT);
+                }
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -349,7 +288,6 @@ public class MatrixSaveService {
 
     // --- Phase 7: LapiGroups ---
     private void saveLapiGroups(Connection conn, Matrix m) throws SQLException {
-        // Collect all lapi groups
         List<LastActivePrimeIndexGroup> allLapis = new ArrayList<>();
         LastActivePrimeIndexGroup lapi = m.getLowestLapiGroup();
         while (lapi != null) {
@@ -360,9 +298,8 @@ public class MatrixSaveService {
             allLapis.add(m.getNextLapiGroup());
         }
 
-        // Batch insert
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO last_active_prime_index_group (last_active_prime_index, walker_body_id) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                "INSERT INTO temp_last_active_prime_index_group (last_active_prime_index, walker_body_id) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             for (LastActivePrimeIndexGroup g : allLapis) {
                 Long walkerBodyId = g.getWalkerBody() != null ? savedBodies.get(g.getWalkerBody()) : null;
                 ps.setInt(1, g.getLastActivePrimeIndex());
@@ -379,7 +316,7 @@ public class MatrixSaveService {
 
         // Batch update lower/higher links
         try (PreparedStatement ps = conn.prepareStatement(
-                "UPDATE last_active_prime_index_group SET lower_lapi_group_id = ?, higher_lapi_group_id = ? WHERE id = ?")) {
+                "UPDATE temp_last_active_prime_index_group SET lower_lapi_group_id = ?, higher_lapi_group_id = ? WHERE id = ?")) {
             for (LastActivePrimeIndexGroup g : allLapis) {
                 Long lowerId = g.getLowerLapiGroup() != null ? savedLapiGroups.get(g.getLowerLapiGroup()) : null;
                 Long higherId = g.getHigherLapiGroup() != null ? savedLapiGroups.get(g.getHigherLapiGroup()) : null;
@@ -393,7 +330,7 @@ public class MatrixSaveService {
 
         // Batch insert hcn lists
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO lapi_hcn_list (lapi_group_id, hcn_id, order_in_list) VALUES (?, ?, ?)")) {
+                "INSERT INTO temp_lapi_hcn_list (lapi_group_id, hcn_id, order_in_list) VALUES (?, ?, ?)")) {
             for (LastActivePrimeIndexGroup g : allLapis) {
                 int order = 0;
                 for (Hcn hcn : g.getHcnList()) {
@@ -412,9 +349,8 @@ public class MatrixSaveService {
 
     // --- Phase 8: Back-fill (batch) ---
     private void backfillReferencesBatch(Connection conn, Matrix m) throws SQLException {
-        // Batch update ActivePrimeIndexes
         try (PreparedStatement ps = conn.prepareStatement(
-                "UPDATE active_prime_index SET next_active_prime_index_id = ?, parent_active_prime_index_id = ?, offspring_fixed_power_group_id = ?, parent_fixed_power_group_id = ?, smallest_body_id = ? WHERE id = ?")) {
+                "UPDATE temp_active_prime_index SET next_active_prime_index_id = ?, parent_active_prime_index_id = ?, offspring_fixed_power_group_id = ?, parent_fixed_power_group_id = ?, smallest_body_id = ? WHERE id = ?")) {
             for (Map.Entry<ActivePrimeIndex, Long> entry : savedActivePrimeIndexes.entrySet()) {
                 ActivePrimeIndex current = entry.getKey();
                 setNullableLong(ps, 1, current.getNextActivePrimeIndex() != null ? savedActivePrimeIndexes.get(current.getNextActivePrimeIndex()) : null);
@@ -427,11 +363,10 @@ public class MatrixSaveService {
             }
             ps.executeBatch();
         }
-        progress.increment();
 
         // Batch update HcnBody lastGeneratedHcn
         try (PreparedStatement ps = conn.prepareStatement(
-                "UPDATE hcn_body SET last_generated_hcn_id = ? WHERE id = ?")) {
+                "UPDATE temp_hcn_body SET last_generated_hcn_id = ? WHERE id = ?")) {
             int count = 0;
             for (Map.Entry<HcnBody, Long> entry : savedBodies.entrySet()) {
                 HcnBody body = entry.getKey();
@@ -447,29 +382,28 @@ public class MatrixSaveService {
             }
             if (count > 0) ps.executeBatch();
         }
-        progress.increment();
     }
 
     // --- Phase 9: Matrix ---
-    private void saveMatrix(Connection conn, Matrix m, String mode) throws SQLException {
+    private void saveMatrix(Connection conn, Matrix m) throws SQLException {
         Long lastApiId = savedActivePrimeIndexes.get(m.getLastActivePrimeIndex());
         Long lowestLapiId = savedLapiGroups.get(m.getLowestLapiGroup());
         Long highestLapiId = savedLapiGroups.get(m.getHighestLapiGroup());
         Long nextLapiId = m.getNextLapiGroup() != null ? savedLapiGroups.get(m.getNextLapiGroup()) : null;
-        long provedLimitId = -1;
-        if (m.getProvedLimit() != null) {
-            ensureScientificNumbersSaved(conn, List.of(m.getProvedLimit()));
-            provedLimitId = getOrSaveScientificNumber(m.getProvedLimit());
-        }
 
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO matrix (mode, last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_id, proved_count, last_proved_prime_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
-            ps.setString(1, mode);
-            setNullableLong(ps, 2, lastApiId);
-            setNullableLong(ps, 3, lowestLapiId);
-            setNullableLong(ps, 4, highestLapiId);
-            setNullableLong(ps, 5, nextLapiId);
-            setNullableLong(ps, 6, provedLimitId > 0 ? provedLimitId : null);
+                "INSERT INTO temp_matrix (last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_mantissa, proved_limit_exponent, proved_count, last_proved_prime_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
+            setNullableLong(ps, 1, lastApiId);
+            setNullableLong(ps, 2, lowestLapiId);
+            setNullableLong(ps, 3, highestLapiId);
+            setNullableLong(ps, 4, nextLapiId);
+            if (m.getProvedLimit() != null) {
+                ps.setDouble(5, m.getProvedLimit().getMantissa());
+                ps.setLong(6, m.getProvedLimit().getExponent());
+            } else {
+                ps.setNull(5, Types.DOUBLE);
+                ps.setNull(6, Types.BIGINT);
+            }
             ps.setInt(7, m.getProvedCount());
             ps.setInt(8, m.getLastProvedPrimeIndex());
             ps.executeUpdate();
