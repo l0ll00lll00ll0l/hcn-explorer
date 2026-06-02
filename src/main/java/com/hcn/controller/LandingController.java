@@ -21,8 +21,8 @@ public class LandingController {
     }
 
     @PostMapping("/start")
-    public String start() {
-        return "redirect:/core?new=true";
+    public String start(@RequestParam(defaultValue = "false") boolean basicData) {
+        return "redirect:/core?new=true&basicData=" + basicData;
     }
 
     @PostMapping("/delete")

@@ -4,27 +4,28 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Matrix {
-    private ActivePrimeIndex lastActivePrimeIndex;
-    private LastActivePrimeIndexGroup lowestLapiGroup;
-    private LastActivePrimeIndexGroup highestLapiGroup;
-    private LastActivePrimeIndexGroup nextLapiGroup;
-    private List<Hcn> provedHcns = new ArrayList<>();
-    private ScientificNumber provedLimit;
-    private String dbName;
+    protected ActivePrimeIndex lastActivePrimeIndex;
+    protected LastActivePrimeIndexGroup lowestLapiGroup;
+    protected LastActivePrimeIndexGroup highestLapiGroup;
+    protected LastActivePrimeIndexGroup nextLapiGroup;
+    protected List<Hcn> provedHcns = new ArrayList<>();
+    protected ScientificNumber provedLimit;
+    protected String dbName;
 
-    private int provedCount = 0;
-    private int lastProvedPrimeIndex = -1;
-    private int lowestProvedLapiWithinInterval = 1;
+    protected int provedCount = 0;
+    protected int lastProvedPrimeIndex = -1;
+    protected int lowestProvedLapiWithinInterval = 1;
 
-    private long totalNanos = 0;
-    private long extendMatrixNanos = 0;
-    private long generateHcnListNanos = 0;
+    protected long totalNanos = 0;
+    protected long extendMatrixNanos = 0;
+    protected long generateHcnListNanos = 0;
 
 
     public ActivePrimeIndex getLastActivePrimeIndex() { return lastActivePrimeIndex; }
     public int getProvedCount() { return provedCount; }
     public int getLastProvedPrimeIndex() { return lastProvedPrimeIndex; }
     public int getLowestProvedLapiWithinInterval() { return lowestProvedLapiWithinInterval; }
+    public boolean isBasicData() { return false; }
     public ScientificNumber getProvedLimit() { return provedLimit; }
     public String getDbName() { return dbName; }
     public void setDbName(String dbName) { this.dbName = dbName; }
@@ -216,7 +217,7 @@ public class Matrix {
         totalNanos += System.nanoTime() - t0;
     }
 
-    private void maintainProvedHcns() {
+    protected void maintainProvedHcns() {
         //remove as first member left there intentionally from previous interval to keep superior factor value to compare
         highestLapiGroup.getHcnList().remove(0);
         lowestProvedLapiWithinInterval = Integer.MAX_VALUE;

@@ -257,7 +257,7 @@ public class MatrixLoadService {
 
     private Matrix assembleMatrix(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_mantissa, proved_limit_exponent, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval FROM temp_matrix LIMIT 1")) {
+             ResultSet rs = stmt.executeQuery("SELECT last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_mantissa, proved_limit_exponent, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval, basic_data FROM temp_matrix LIMIT 1")) {
             if (!rs.next()) throw new RuntimeException("No matrix row found");
 
             ActivePrimeIndex lastApi = activePrimeIndexes.get(rs.getLong(1));
@@ -270,8 +270,11 @@ public class MatrixLoadService {
             int provedCount = rs.getInt(7);
             int lastProvedPrimeIndex = rs.getInt(8);
             int lowestProvedLapi = rs.getInt(9);
+            boolean basicData = rs.getBoolean(10);
 
-            // Debug: check bodylist generators
+            if (basicData) {
+                return com.hcn.core.basicdata.BasicDataMatrix.fromLoad(lastApi, lowestLapi, highestLapi, nextLapi, provedLimit, provedCount, lastProvedPrimeIndex, lowestProvedLapi);
+            }
             return Matrix.fromLoad(lastApi, lowestLapi, highestLapi, nextLapi, provedLimit, provedCount, lastProvedPrimeIndex, lowestProvedLapi);
         }
     }

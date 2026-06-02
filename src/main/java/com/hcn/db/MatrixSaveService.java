@@ -291,7 +291,7 @@ public class MatrixSaveService {
     // --- Matrix ---
     private void saveMatrix(Connection conn, Matrix m) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO temp_matrix (id, last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_mantissa, proved_limit_exponent, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                "INSERT INTO temp_matrix (id, last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_mantissa, proved_limit_exponent, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval, basic_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
             ps.setLong(1, 1);
             setNullableLong(ps, 2, m.getLastActivePrimeIndex() != null ? (long) m.getLastActivePrimeIndex().getIndex() : null);
             setNullableLong(ps, 3, m.getLowestLapiGroup() != null ? (long) m.getLowestLapiGroup().getLastActivePrimeIndex() : null);
@@ -301,6 +301,7 @@ public class MatrixSaveService {
             ps.setInt(8, m.getProvedCount());
             ps.setInt(9, m.getLastProvedPrimeIndex());
             ps.setInt(10, m.getLowestProvedLapiWithinInterval());
+            ps.setBoolean(11, m.isBasicData());
             ps.executeUpdate();
         }
     }

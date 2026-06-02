@@ -1,6 +1,7 @@
 package com.hcn.core;
 
 public class HcnGenerator {
+    private int basicDataId = -1;
     private Hcn lastGeneratedHcn = null;
     private HcnBody currentHcnBody;
     private Body body = null;
@@ -13,6 +14,9 @@ public class HcnGenerator {
     public void setLastGeneratedHcn(Hcn hcn) { this.lastGeneratedHcn = hcn; }
     public HcnBody getCurrentHcnBody() { return currentHcnBody; }
     public void setCurrentHcnBody(HcnBody currentHcnBody) { this.currentHcnBody = currentHcnBody; }
+    public int getBasicDataId() { return basicDataId; }
+    public void setBasicDataId(int basicDataId) { this.basicDataId = basicDataId; }
+
     public Body getBody() {
         if (body == null) body = new Body(currentHcnBody);
         return body;

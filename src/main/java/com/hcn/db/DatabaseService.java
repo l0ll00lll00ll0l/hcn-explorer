@@ -86,15 +86,15 @@ public class DatabaseService {
              Statement stmt = conn.createStatement()) {
             ResultSet tables = conn.getMetaData().getTables(null, null, "temp_matrix", null);
             if (!tables.next()) {
-                return new DatabaseInfo(dbName, 0, 0);
+                return new DatabaseInfo(dbName, 0, 0, false);
             }
-            ResultSet rs = stmt.executeQuery("SELECT proved_count, last_proved_prime_index FROM temp_matrix LIMIT 1");
+            ResultSet rs = stmt.executeQuery("SELECT proved_count, last_proved_prime_index, basic_data FROM temp_matrix LIMIT 1");
             if (rs.next()) {
-                return new DatabaseInfo(dbName, rs.getInt(1), rs.getInt(2));
+                return new DatabaseInfo(dbName, rs.getInt(1), rs.getInt(2), rs.getBoolean(3));
             }
-            return new DatabaseInfo(dbName, 0, 0);
+            return new DatabaseInfo(dbName, 0, 0, false);
         } catch (SQLException e) {
-            return new DatabaseInfo(dbName, 0, 0);
+            return new DatabaseInfo(dbName, 0, 0, false);
         }
     }
 
@@ -187,7 +187,8 @@ public class DatabaseService {
                     proved_limit_exponent BIGINT,
                     proved_count INT DEFAULT 0,
                     last_proved_prime_index INT DEFAULT -1,
-                    lowest_proved_lapi_within_interval INT DEFAULT 1
+                    lowest_proved_lapi_within_interval INT DEFAULT 1,
+                    basic_data BOOLEAN DEFAULT FALSE
                 )
             """);
         } catch (SQLException e) {
@@ -195,20 +196,56 @@ public class DatabaseService {
         }
     }
 
+    public void createBasicDataTables(String dbName) {
+        try (Connection conn = getConnection(dbName);
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS basic_data_interval (
+                    lapi INT PRIMARY KEY,
+                    value_mantissa DOUBLE PRECISION,
+                    value_exponent BIGINT,
+                    factor_mantissa DOUBLE PRECISION,
+                    factor_exponent BIGINT,
+                    reference_interval_lapi INT,
+                    starter_hcn_id BIGINT
+                )
+            """);
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS basic_data_hcn (
+                    id BIGSERIAL PRIMARY KEY,
+                    body_id BIGINT,
+                    last_active_prime INT
+                )
+            """);
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS basic_data_body (
+                    id BIGINT PRIMARY KEY,
+                    head INT[],
+                    tail INT[]
+                )
+            """);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to create basic data tables in: " + dbName, e);
+        }
+    }
+
     public static class DatabaseInfo {
         private final String name;
         private final int provedCount;
         private final int lastProvedPrimeIndex;
+        private final boolean basicData;
 
-        public DatabaseInfo(String name, int provedCount, int lastProvedPrimeIndex) {
+        public DatabaseInfo(String name, int provedCount, int lastProvedPrimeIndex, boolean basicData) {
             this.name = name;
             this.provedCount = provedCount;
             this.lastProvedPrimeIndex = lastProvedPrimeIndex;
+            this.basicData = basicData;
         }
 
         public String getName() { return name; }
         public int getProvedCount() { return provedCount; }
         public int getLastProvedPrimeIndex() { return lastProvedPrimeIndex; }
+        public boolean isBasicData() { return basicData; }
         public int getNumber() { return Integer.parseInt(name.substring(PREFIX.length())); }
     }
 }

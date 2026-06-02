@@ -44,9 +44,19 @@ public class MatrixController {
     public String index(Model model, @RequestParam(defaultValue = "matrix") String tab,
                         @RequestParam(defaultValue = "chain") String lapiView,
                         @RequestParam(value = "new", defaultValue = "false") boolean isNew,
-                        @RequestParam(required = false) String dbName) {
+                        @RequestParam(required = false) String dbName,
+                        @RequestParam(defaultValue = "false") boolean basicData) {
         if (isNew) {
-            matrix = new Matrix();
+            if (basicData) {
+                com.hcn.core.basicdata.BasicDataMatrix bdm = new com.hcn.core.basicdata.BasicDataMatrix();
+                bdm.setDatabaseService(databaseService);
+                String newDbName = databaseService.createDatabase();
+                bdm.setDbName(newDbName);
+                databaseService.createBasicDataTables(newDbName);
+                matrix = bdm;
+            } else {
+                matrix = new Matrix();
+            }
             matrix.initialize();
         } else if (dbName != null) {
             matrix = matrixLoadService.load(dbName);
