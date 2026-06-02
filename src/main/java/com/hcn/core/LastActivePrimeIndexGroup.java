@@ -41,6 +41,8 @@ public class LastActivePrimeIndexGroup {
     }
 
     public void generateHcnList(ScientificNumber provedLimit, ScientificNumber targetValue) {
+        if (walkerBody == null) {
+        }
         HcnBody prevWalker = walkerBody;
         // first local hcns might be dominated by lower lapi hcn recorder
         if (lowerLapiGroup != null) {

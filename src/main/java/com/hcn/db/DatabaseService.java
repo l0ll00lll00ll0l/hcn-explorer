@@ -103,7 +103,7 @@ public class DatabaseService {
              Statement stmt = conn.createStatement()) {
             stmt.execute("""
                 CREATE TABLE temp_fixed_power_group (
-                    id BIGSERIAL PRIMARY KEY,
+                    id BIGINT PRIMARY KEY,
                     value_mantissa DOUBLE PRECISION,
                     value_exponent BIGINT,
                     factor_mantissa DOUBLE PRECISION,
@@ -114,7 +114,7 @@ public class DatabaseService {
             """);
             stmt.execute("""
                 CREATE TABLE temp_active_prime_index (
-                    id BIGSERIAL PRIMARY KEY,
+                    id BIGINT PRIMARY KEY,
                     prime_index INT NOT NULL,
                     smallest_body_id BIGINT,
                     next_active_prime_index_id BIGINT,
@@ -127,7 +127,7 @@ public class DatabaseService {
             """);
             stmt.execute("""
                 CREATE TABLE temp_prime_index_power (
-                    id BIGSERIAL PRIMARY KEY,
+                    id BIGINT PRIMARY KEY,
                     prime_index_id BIGINT NOT NULL,
                     power INT NOT NULL,
                     proved BOOLEAN DEFAULT FALSE
@@ -135,7 +135,7 @@ public class DatabaseService {
             """);
             stmt.execute("""
                 CREATE TABLE temp_hcn_body (
-                    id BIGSERIAL PRIMARY KEY,
+                    id BIGINT PRIMARY KEY,
                     parent_id BIGINT,
                     pip_id BIGINT,
                     proved BOOLEAN DEFAULT FALSE,
@@ -150,7 +150,7 @@ public class DatabaseService {
             """);
             stmt.execute("""
                 CREATE TABLE temp_hcn (
-                    id BIGSERIAL PRIMARY KEY,
+                    id BIGINT PRIMARY KEY,
                     body_id BIGINT,
                     last_active_prime INT,
                     value_mantissa DOUBLE PRECISION,
@@ -161,7 +161,7 @@ public class DatabaseService {
             """);
             stmt.execute("""
                 CREATE TABLE temp_last_active_prime_index_group (
-                    id BIGSERIAL PRIMARY KEY,
+                    id BIGINT PRIMARY KEY,
                     last_active_prime_index INT,
                     walker_body_id BIGINT,
                     lower_lapi_group_id BIGINT,
@@ -178,7 +178,7 @@ public class DatabaseService {
             """);
             stmt.execute("""
                 CREATE TABLE temp_matrix (
-                    id BIGSERIAL PRIMARY KEY,
+                    id BIGINT PRIMARY KEY,
                     last_active_prime_index_id BIGINT,
                     lowest_lapi_group_id BIGINT,
                     highest_lapi_group_id BIGINT,

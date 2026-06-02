@@ -6,6 +6,9 @@ import java.util.stream.Collectors;
 
 public class HcnBody implements Comparable<HcnBody> {
     private HcnBody parent;
+    private Long tempId;
+    public Long getTempId() { return tempId; }
+    public void setTempId(Long tempId) { this.tempId = tempId; }
     private List<HcnBody> offsprings = new ArrayList<>();
     private PrimeIndexPower pip;
     private boolean proved = false;

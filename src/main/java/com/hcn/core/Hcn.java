@@ -2,6 +2,9 @@ package com.hcn.core;
 
 public class Hcn implements Comparable<Hcn> {
     private HcnGenerator hcnGenerator;
+    private Long tempId;
+    public Long getTempId() { return tempId; }
+    public void setTempId(Long tempId) { this.tempId = tempId; }
     private int lastActivePrime;
     private ScientificNumber value;
     private ScientificNumber factor;

@@ -121,6 +121,7 @@
             <button class="tab-btn active" data-tab="matrix" onclick="switchTab('matrix')">Matrix</button>
             <button class="tab-btn" data-tab="hcnfilter" onclick="switchTab('hcnfilter')">LapiGroups</button>
             <button class="tab-btn" data-tab="bodylist" onclick="switchTab('bodylist')">ActivePrimeIndex BodyList</button>
+            <button class="tab-btn" data-tab="generators" onclick="switchTab('generators')">HcnGenerators</button>
         </div>
         <div id="tab-matrix" class="tab-content active">
         <div class="matrix-info">
@@ -219,6 +220,25 @@
                 </script>
             </div>
         </div>
+
+        <!-- HcnGenerators Tab -->
+        <div id="tab-generators" class="tab-content">
+            <table class="level-table">
+                <thead>
+                    <tr><th>#</th><th>CurrentBody</th><th>LastActivePrime</th><th>Value</th><th>Factor</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="body, iter : ${@matrixController.getActiveBodies(matrix.lastActivePrimeIndex)}" th:if="${body.hcnGenerator != null}">
+                        <td th:text="${iter.index}"></td>
+                        <td th:text="${body.parentChainString()}"></td>
+                        <td th:text="${body.hcnGenerator.lastGeneratedHcn != null ? body.hcnGenerator.lastGeneratedHcn.lastActivePrime : ''}"></td>
+                        <td th:text="${body.hcnGenerator.lastGeneratedHcn != null ? body.hcnGenerator.lastGeneratedHcn.value : ''}"></td>
+                        <td th:text="${body.hcnGenerator.lastGeneratedHcn != null ? body.hcnGenerator.lastGeneratedHcn.factor : ''}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
     </div>
 
     <script>

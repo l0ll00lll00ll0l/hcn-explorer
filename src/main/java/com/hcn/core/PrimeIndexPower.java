@@ -5,6 +5,9 @@ import java.util.Set;
 
 public class PrimeIndexPower {
 
+    private Long tempId;
+    public Long getTempId() { return tempId; }
+    public void setTempId(Long tempId) { this.tempId = tempId; }
     private ActivePrimeIndex primeIndex;
     private int power;
     private boolean proved = false;

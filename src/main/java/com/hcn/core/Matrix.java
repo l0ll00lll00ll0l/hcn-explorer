@@ -24,6 +24,7 @@ public class Matrix {
     public ActivePrimeIndex getLastActivePrimeIndex() { return lastActivePrimeIndex; }
     public int getProvedCount() { return provedCount; }
     public int getLastProvedPrimeIndex() { return lastProvedPrimeIndex; }
+    public int getLowestProvedLapiWithinInterval() { return lowestProvedLapiWithinInterval; }
     public ScientificNumber getProvedLimit() { return provedLimit; }
     public String getDbName() { return dbName; }
     public void setDbName(String dbName) { this.dbName = dbName; }

@@ -16,24 +16,24 @@ public class MatrixSaveService {
     @Autowired
     private SaveProgress progress;
 
-    private Map<ActivePrimeIndex, Long> savedActivePrimeIndexes;
-    private Map<PrimeIndexPower, Long> savedPips;
-    private Map<HcnBody, Long> savedBodies;
-    private Map<Hcn, Long> savedHcns;
-    private Map<FixedPowerGroup, Long> savedFpgs;
-    private Map<LastActivePrimeIndexGroup, Long> savedLapiGroups;
+    private long nextPipId;
+    private long nextBodyId;
+    private long nextHcnId;
+    private long nextFpgId;
+
+    private long assignId(PrimeIndexPower obj) { if (obj.getTempId() == null) obj.setTempId(nextPipId++); return obj.getTempId(); }
+    private long assignId(HcnBody obj) { if (obj.getTempId() == null) obj.setTempId(nextBodyId++); return obj.getTempId(); }
+    private long assignId(Hcn obj) { if (obj.getTempId() == null) obj.setTempId(nextHcnId++); return obj.getTempId(); }
+    private long assignId(FixedPowerGroup obj) { if (obj.getTempId() == null) obj.setTempId(nextFpgId++); return obj.getTempId(); }
 
     public void save(Object matrix, String dbName) {
         if (dbName == null || !(matrix instanceof Matrix)) return;
 
         Matrix m = (Matrix) matrix;
-
-        savedActivePrimeIndexes = new IdentityHashMap<>();
-        savedPips = new IdentityHashMap<>();
-        savedBodies = new IdentityHashMap<>();
-        savedHcns = new IdentityHashMap<>();
-        savedFpgs = new IdentityHashMap<>();
-        savedLapiGroups = new IdentityHashMap<>();
+        nextPipId = 1;
+        nextBodyId = 1;
+        nextHcnId = 1;
+        nextFpgId = 1;
 
         try (Connection conn = databaseService.getConnection(dbName)) {
             conn.setAutoCommit(false);
@@ -61,7 +61,7 @@ public class MatrixSaveService {
         saveActivePrimeIndexesBatch(conn, allApis);
 
         progress.startPhase(3, "PrimeIndexPowers", 0);
-        savePrimeIndexPowersBatch(conn);
+        savePrimeIndexPowersBatch(conn, allApis);
 
         List<HcnBody> allBodies = collectAllBodies(m);
         progress.startPhase(4, "HcnBodies", allBodies.size());
@@ -76,8 +76,8 @@ public class MatrixSaveService {
         progress.startPhase(7, "LapiGroups", 0);
         saveLapiGroups(conn, m);
 
-        progress.startPhase(8, "Back-fill references", 0);
-        backfillReferencesBatch(conn, m);
+        progress.startPhase(8, "Back-fill API refs", 0);
+        backfillApiRefs(conn);
 
         progress.startPhase(9, "Matrix", 1);
         saveMatrix(conn, m);
@@ -90,153 +90,101 @@ public class MatrixSaveService {
         }
     }
 
-    // --- Phase 2: ActivePrimeIndexes (batch) ---
+    // --- ActivePrimeIndexes ---
     private void saveActivePrimeIndexesBatch(Connection conn, List<ActivePrimeIndex> allApis) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO temp_active_prime_index (prime_index) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
+                "INSERT INTO temp_active_prime_index (id, prime_index) VALUES (?, ?)")) {
             for (ActivePrimeIndex api : allApis) {
-                ps.setInt(1, api.getIndex());
+                ps.setLong(1, api.getIndex());
+                ps.setInt(2, api.getIndex());
                 ps.addBatch();
             }
             ps.executeBatch();
-            ResultSet keys = ps.getGeneratedKeys();
-            for (ActivePrimeIndex api : allApis) {
-                keys.next();
-                savedActivePrimeIndexes.put(api, keys.getLong(1));
-            }
         }
     }
 
-    // --- Phase 3: PrimeIndexPowers (batch) ---
-    private void savePrimeIndexPowersBatch(Connection conn) throws SQLException {
-        List<PrimeIndexPower> allPips = new ArrayList<>();
+    // --- PrimeIndexPowers ---
+    private void savePrimeIndexPowersBatch(Connection conn, List<ActivePrimeIndex> allApis) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO temp_prime_index_power (prime_index_id, power, proved) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
-            for (Map.Entry<ActivePrimeIndex, Long> entry : savedActivePrimeIndexes.entrySet()) {
-                ActivePrimeIndex api = entry.getKey();
-                long apiId = entry.getValue();
+                "INSERT INTO temp_prime_index_power (id, prime_index_id, power, proved) VALUES (?, ?, ?, ?)")) {
+            for (ActivePrimeIndex api : allApis) {
                 for (PrimeIndexPower pip : api.getPips().values()) {
-                    ps.setLong(1, apiId);
-                    ps.setInt(2, pip.getPower());
-                    ps.setBoolean(3, pip.isProved());
+                    ps.setLong(1, assignId(pip));
+                    ps.setLong(2, api.getIndex());
+                    ps.setInt(3, pip.getPower());
+                    ps.setBoolean(4, pip.isProved());
                     ps.addBatch();
-                    allPips.add(pip);
                 }
             }
             ps.executeBatch();
-            ResultSet keys = ps.getGeneratedKeys();
-            for (PrimeIndexPower pip : allPips) {
-                keys.next();
-                savedPips.put(pip, keys.getLong(1));
-            }
         }
     }
 
-    // --- Phase 4: HcnBodies (batch) ---
+    // --- HcnBodies ---
     private void saveHcnBodiesBatch(Connection conn, List<HcnBody> allBodies) throws SQLException {
-        List<HcnBody> ordered = topologicalSortBodies(allBodies);
-
-        // Batch insert bodies (without parent_id - will backfill after)
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO temp_hcn_body (pip_id, proved, value_mantissa, value_exponent, factor_mantissa, factor_exponent) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
-            for (HcnBody body : ordered) {
-                Long pipId = savedPips.get(body.getPip());
-                setNullableLong(ps, 1, pipId);
-                ps.setBoolean(2, body.isProved());
-                if (body.getValue() != null) {
-                    ps.setDouble(3, body.getValue().getMantissa());
-                    ps.setLong(4, body.getValue().getExponent());
+                "INSERT INTO temp_hcn_body (id, parent_id, pip_id, proved, value_mantissa, value_exponent, factor_mantissa, factor_exponent, smaller_body_id, larger_body_id, last_generated_hcn_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+            for (HcnBody body : allBodies) {
+                ps.setLong(1, assignId(body));
+                setNullableId(ps, 2, body.getParent());
+                setNullableLong(ps, 3, body.getPip() != null ? assignId(body.getPip()) : null);
+                ps.setBoolean(4, body.isProved());
+                setScientificNumber(ps, 5, body.getValue());
+                setScientificNumber(ps, 7, body.getFactor());
+                setNullableId(ps, 9, body.getSmallerBody());
+                setNullableId(ps, 10, body.getLargerBody());
+                if (body.getLastGeneratedHcn() != null) {
+                    ps.setLong(11, assignId(body.getLastGeneratedHcn()));
                 } else {
-                    ps.setNull(3, Types.DOUBLE);
-                    ps.setNull(4, Types.BIGINT);
-                }
-                if (body.getFactor() != null) {
-                    ps.setDouble(5, body.getFactor().getMantissa());
-                    ps.setLong(6, body.getFactor().getExponent());
-                } else {
-                    ps.setNull(5, Types.DOUBLE);
-                    ps.setNull(6, Types.BIGINT);
+                    ps.setNull(11, Types.BIGINT);
                 }
                 ps.addBatch();
             }
             ps.executeBatch();
-            ResultSet keys = ps.getGeneratedKeys();
-            for (HcnBody body : ordered) {
-                keys.next();
-                savedBodies.put(body, keys.getLong(1));
-            }
-        }
-
-        // Batch update parent_id, smaller_body_id, larger_body_id
-        try (PreparedStatement ps = conn.prepareStatement(
-                "UPDATE temp_hcn_body SET parent_id = ?, smaller_body_id = ?, larger_body_id = ? WHERE id = ?")) {
-            int count = 0;
-            for (HcnBody body : ordered) {
-                Long parentId = body.getParent() != null ? savedBodies.get(body.getParent()) : null;
-                Long smallerId = body.getSmallerBody() != null ? savedBodies.get(body.getSmallerBody()) : null;
-                Long largerId = body.getLargerBody() != null ? savedBodies.get(body.getLargerBody()) : null;
-                if (parentId != null || smallerId != null || largerId != null) {
-                    setNullableLong(ps, 1, parentId);
-                    setNullableLong(ps, 2, smallerId);
-                    setNullableLong(ps, 3, largerId);
-                    ps.setLong(4, savedBodies.get(body));
-                    ps.addBatch();
-                    count++;
-                }
-            }
-            if (count > 0) ps.executeBatch();
         }
     }
 
-    // --- Phase 5: FixedPowerGroups ---
+    // --- FixedPowerGroups ---
     private void saveFixedPowerGroups(Connection conn) throws SQLException {
-        List<FixedPowerGroup> allFpgs = new ArrayList<>();
-        for (ActivePrimeIndex api : savedActivePrimeIndexes.keySet()) {
-            if (api.getOffspringFixedPowerGroup() != null && !allFpgs.contains(api.getOffspringFixedPowerGroup())) {
-                allFpgs.add(api.getOffspringFixedPowerGroup());
+        // Collect all FPGs
+        Set<FixedPowerGroup> allFpgs = new LinkedHashSet<>();
+        for (Map.Entry<ActivePrimeIndex, Long> entry : getAllSavedApis()) {
+            if (entry.getKey().getOffspringFixedPowerGroup() != null) {
+                allFpgs.add(entry.getKey().getOffspringFixedPowerGroup());
             }
         }
         if (allFpgs.isEmpty()) return;
 
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO temp_fixed_power_group (value_mantissa, value_exponent, factor_mantissa, factor_exponent, parent_prime_index_id, offspring_prime_index_id) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                "INSERT INTO temp_fixed_power_group (id, value_mantissa, value_exponent, factor_mantissa, factor_exponent, parent_prime_index_id, offspring_prime_index_id) VALUES (?, ?, ?, ?, ?, ?, ?)")) {
             for (FixedPowerGroup fpg : allFpgs) {
-                ps.setDouble(1, fpg.getValue().getMantissa());
-                ps.setLong(2, fpg.getValue().getExponent());
-                ps.setDouble(3, fpg.getFactor().getMantissa());
-                ps.setLong(4, fpg.getFactor().getExponent());
-                setNullableLong(ps, 5, savedActivePrimeIndexes.get(fpg.getParentPrimeIndex()));
-                setNullableLong(ps, 6, savedActivePrimeIndexes.get(fpg.getOffspringPrimeIndex()));
+                ps.setLong(1, assignId(fpg));
+                setScientificNumber(ps, 2, fpg.getValue());
+                setScientificNumber(ps, 4, fpg.getFactor());
+                setNullableLong(ps, 6, fpg.getParentPrimeIndex() != null ? (long) fpg.getParentPrimeIndex().getIndex() : null);
+                setNullableLong(ps, 7, fpg.getOffspringPrimeIndex() != null ? (long) fpg.getOffspringPrimeIndex().getIndex() : null);
                 ps.addBatch();
             }
             ps.executeBatch();
-            ResultSet keys = ps.getGeneratedKeys();
-            for (FixedPowerGroup fpg : allFpgs) {
-                keys.next();
-                savedFpgs.put(fpg, keys.getLong(1));
-            }
         }
 
-        // Batch update FPG members
+        // Update FPG members on active_prime_index
         try (PreparedStatement ps = conn.prepareStatement(
                 "UPDATE temp_active_prime_index SET member_of_fixed_power_group_id = ?, fixed_power_group_order = ? WHERE id = ?")) {
             for (FixedPowerGroup fpg : allFpgs) {
                 int order = 0;
                 for (ActivePrimeIndex member : fpg.getFixedPowerGroup()) {
-                    Long memberId = savedActivePrimeIndexes.get(member);
-                    if (memberId != null) {
-                        ps.setLong(1, savedFpgs.get(fpg));
-                        ps.setInt(2, order++);
-                        ps.setLong(3, memberId);
-                        ps.addBatch();
-                    }
+                    ps.setLong(1, fpg.getTempId());
+                    ps.setInt(2, order++);
+                    ps.setLong(3, member.getIndex());
+                    ps.addBatch();
                 }
             }
             ps.executeBatch();
         }
     }
 
-    // --- Phase 6: HCNs (batch) ---
+    // --- HCNs ---
     private void saveHcnsBatch(Connection conn, Matrix m) throws SQLException {
         Set<Hcn> allHcns = new LinkedHashSet<>();
         LastActivePrimeIndexGroup lapi = m.getLowestLapiGroup();
@@ -247,170 +195,137 @@ public class MatrixSaveService {
         if (m.getNextLapiGroup() != null) {
             allHcns.addAll(m.getNextLapiGroup().getHcnList());
         }
-        for (HcnBody body : savedBodies.keySet()) {
+        for (HcnBody body : collectAllBodiesFromPips()) {
             if (body.getLastGeneratedHcn() != null) {
                 allHcns.add(body.getLastGeneratedHcn());
             }
         }
 
-        List<Hcn> hcnList = new ArrayList<>(allHcns);
-
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO temp_hcn (body_id, last_active_prime, value_mantissa, value_exponent, factor_mantissa, factor_exponent) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
-            for (Hcn hcn : hcnList) {
-                Long bodyId = hcn.getBody() != null ? savedBodies.get(hcn.getBody()) : null;
-                setNullableLong(ps, 1, bodyId);
-                ps.setInt(2, hcn.getLastActivePrime());
-                if (hcn.getValue() != null) {
-                    ps.setDouble(3, hcn.getValue().getMantissa());
-                    ps.setLong(4, hcn.getValue().getExponent());
-                } else {
-                    ps.setNull(3, Types.DOUBLE);
-                    ps.setNull(4, Types.BIGINT);
-                }
-                if (hcn.getFactor() != null) {
-                    ps.setDouble(5, hcn.getFactor().getMantissa());
-                    ps.setLong(6, hcn.getFactor().getExponent());
-                } else {
-                    ps.setNull(5, Types.DOUBLE);
-                    ps.setNull(6, Types.BIGINT);
-                }
+                "INSERT INTO temp_hcn (id, body_id, last_active_prime, value_mantissa, value_exponent, factor_mantissa, factor_exponent) VALUES (?, ?, ?, ?, ?, ?, ?)")) {
+            for (Hcn hcn : allHcns) {
+                ps.setLong(1, assignId(hcn));
+                setNullableLong(ps, 2, hcn.getBody() != null ? assignId(hcn.getBody()) : null);
+                ps.setInt(3, hcn.getLastActivePrime());
+                setScientificNumber(ps, 4, hcn.getValue());
+                setScientificNumber(ps, 6, hcn.getFactor());
                 ps.addBatch();
             }
             ps.executeBatch();
-            ResultSet keys = ps.getGeneratedKeys();
-            for (Hcn hcn : hcnList) {
-                keys.next();
-                savedHcns.put(hcn, keys.getLong(1));
-            }
         }
     }
 
-    // --- Phase 7: LapiGroups ---
+    // --- LapiGroups ---
     private void saveLapiGroups(Connection conn, Matrix m) throws SQLException {
-        List<LastActivePrimeIndexGroup> allLapis = new ArrayList<>();
+        // Save chain lapi groups (lowest to highest)
+        List<LastActivePrimeIndexGroup> chainLapis = new ArrayList<>();
         LastActivePrimeIndexGroup lapi = m.getLowestLapiGroup();
         while (lapi != null) {
-            allLapis.add(lapi);
+            chainLapis.add(lapi);
             lapi = lapi.getHigherLapiGroup();
         }
-        if (m.getNextLapiGroup() != null && !allLapis.contains(m.getNextLapiGroup())) {
-            allLapis.add(m.getNextLapiGroup());
-        }
 
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO temp_last_active_prime_index_group (last_active_prime_index, walker_body_id) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
-            for (LastActivePrimeIndexGroup g : allLapis) {
-                Long walkerBodyId = g.getWalkerBody() != null ? savedBodies.get(g.getWalkerBody()) : null;
-                ps.setInt(1, g.getLastActivePrimeIndex());
-                setNullableLong(ps, 2, walkerBodyId);
-                ps.addBatch();
-            }
-            ps.executeBatch();
-            ResultSet keys = ps.getGeneratedKeys();
-            for (LastActivePrimeIndexGroup g : allLapis) {
-                keys.next();
-                savedLapiGroups.put(g, keys.getLong(1));
-            }
-        }
-
-        // Batch update lower/higher links
-        try (PreparedStatement ps = conn.prepareStatement(
-                "UPDATE temp_last_active_prime_index_group SET lower_lapi_group_id = ?, higher_lapi_group_id = ? WHERE id = ?")) {
-            for (LastActivePrimeIndexGroup g : allLapis) {
-                Long lowerId = g.getLowerLapiGroup() != null ? savedLapiGroups.get(g.getLowerLapiGroup()) : null;
-                Long higherId = g.getHigherLapiGroup() != null ? savedLapiGroups.get(g.getHigherLapiGroup()) : null;
-                setNullableLong(ps, 1, lowerId);
-                setNullableLong(ps, 2, higherId);
-                ps.setLong(3, savedLapiGroups.get(g));
+                "INSERT INTO temp_last_active_prime_index_group (id, last_active_prime_index, walker_body_id, lower_lapi_group_id, higher_lapi_group_id) VALUES (?, ?, ?, ?, ?)")) {
+            for (LastActivePrimeIndexGroup g : chainLapis) {
+                ps.setLong(1, g.getLastActivePrimeIndex());
+                ps.setInt(2, g.getLastActivePrimeIndex());
+                setNullableLong(ps, 3, g.getWalkerBody() != null ? assignId(g.getWalkerBody()) : null);
+                setNullableLong(ps, 4, g.getLowerLapiGroup() != null ? (long) g.getLowerLapiGroup().getLastActivePrimeIndex() : null);
+                setNullableLong(ps, 5, g.getHigherLapiGroup() != null ? (long) g.getHigherLapiGroup().getLastActivePrimeIndex() : null);
                 ps.addBatch();
             }
             ps.executeBatch();
         }
 
-        // Batch insert hcn lists
+        // Save nextLapiGroup separately
+        if (m.getNextLapiGroup() != null && !chainLapis.contains(m.getNextLapiGroup())) {
+            LastActivePrimeIndexGroup next = m.getNextLapiGroup();
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO temp_last_active_prime_index_group (id, last_active_prime_index, walker_body_id, lower_lapi_group_id, higher_lapi_group_id) VALUES (?, ?, ?, ?, ?)")) {
+                ps.setLong(1, next.getLastActivePrimeIndex());
+                ps.setInt(2, next.getLastActivePrimeIndex());
+                setNullableLong(ps, 3, next.getWalkerBody() != null ? assignId(next.getWalkerBody()) : null);
+                // nextLapiGroup's lower is always highestLapiGroup (not wired yet at save time)
+                setNullableLong(ps, 4, (long) m.getHighestLapiGroup().getLastActivePrimeIndex());
+                ps.setNull(5, Types.BIGINT);
+                ps.executeUpdate();
+            }
+            chainLapis.add(next);
+        }
+
+        // HCN lists for all lapi groups
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO temp_lapi_hcn_list (lapi_group_id, hcn_id, order_in_list) VALUES (?, ?, ?)")) {
-            for (LastActivePrimeIndexGroup g : allLapis) {
+            for (LastActivePrimeIndexGroup g : chainLapis) {
                 int order = 0;
                 for (Hcn hcn : g.getHcnList()) {
-                    Long hcnId = savedHcns.get(hcn);
-                    if (hcnId != null) {
-                        ps.setLong(1, savedLapiGroups.get(g));
-                        ps.setLong(2, hcnId);
-                        ps.setInt(3, order++);
-                        ps.addBatch();
-                    }
+                    ps.setLong(1, g.getLastActivePrimeIndex());
+                    ps.setLong(2, assignId(hcn));
+                    ps.setInt(3, order++);
+                    ps.addBatch();
                 }
             }
             ps.executeBatch();
         }
     }
 
-    // --- Phase 8: Back-fill (batch) ---
-    private void backfillReferencesBatch(Connection conn, Matrix m) throws SQLException {
+    // --- Back-fill API references (need FPG ids which are assigned in phase 5) ---
+    private void backfillApiRefs(Connection conn) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
                 "UPDATE temp_active_prime_index SET next_active_prime_index_id = ?, parent_active_prime_index_id = ?, offspring_fixed_power_group_id = ?, parent_fixed_power_group_id = ?, smallest_body_id = ? WHERE id = ?")) {
-            for (Map.Entry<ActivePrimeIndex, Long> entry : savedActivePrimeIndexes.entrySet()) {
-                ActivePrimeIndex current = entry.getKey();
-                setNullableLong(ps, 1, current.getNextActivePrimeIndex() != null ? savedActivePrimeIndexes.get(current.getNextActivePrimeIndex()) : null);
-                setNullableLong(ps, 2, current.getParentActivePrimeIndex() != null ? savedActivePrimeIndexes.get(current.getParentActivePrimeIndex()) : null);
-                setNullableLong(ps, 3, current.getOffspringFixedPowerGroup() != null ? savedFpgs.get(current.getOffspringFixedPowerGroup()) : null);
-                setNullableLong(ps, 4, current.getParentFixedPowerGroup() != null ? savedFpgs.get(current.getParentFixedPowerGroup()) : null);
-                setNullableLong(ps, 5, current.getHcnBodyList().getSmallestBody() != null ? savedBodies.get(current.getHcnBodyList().getSmallestBody()) : null);
-                ps.setLong(6, entry.getValue());
+            for (Map.Entry<ActivePrimeIndex, Long> entry : getAllSavedApis()) {
+                ActivePrimeIndex api = entry.getKey();
+                setNullableLong(ps, 1, api.getNextActivePrimeIndex() != null ? (long) api.getNextActivePrimeIndex().getIndex() : null);
+                setNullableLong(ps, 2, api.getParentActivePrimeIndex() != null ? (long) api.getParentActivePrimeIndex().getIndex() : null);
+                setNullableLong(ps, 3, api.getOffspringFixedPowerGroup() != null ? assignId(api.getOffspringFixedPowerGroup()) : null);
+                setNullableLong(ps, 4, api.getParentFixedPowerGroup() != null ? assignId(api.getParentFixedPowerGroup()) : null);
+                setNullableLong(ps, 5, api.getHcnBodyList().getSmallestBody() != null ? assignId(api.getHcnBodyList().getSmallestBody()) : null);
+                ps.setLong(6, api.getIndex());
                 ps.addBatch();
             }
             ps.executeBatch();
         }
-
-        // Batch update HcnBody lastGeneratedHcn
-        try (PreparedStatement ps = conn.prepareStatement(
-                "UPDATE temp_hcn_body SET last_generated_hcn_id = ? WHERE id = ?")) {
-            int count = 0;
-            for (Map.Entry<HcnBody, Long> entry : savedBodies.entrySet()) {
-                HcnBody body = entry.getKey();
-                if (body.getLastGeneratedHcn() != null) {
-                    Long hcnId = savedHcns.get(body.getLastGeneratedHcn());
-                    if (hcnId != null) {
-                        ps.setLong(1, hcnId);
-                        ps.setLong(2, entry.getValue());
-                        ps.addBatch();
-                        count++;
-                    }
-                }
-            }
-            if (count > 0) ps.executeBatch();
-        }
     }
 
-    // --- Phase 9: Matrix ---
+    // --- Matrix ---
     private void saveMatrix(Connection conn, Matrix m) throws SQLException {
-        Long lastApiId = savedActivePrimeIndexes.get(m.getLastActivePrimeIndex());
-        Long lowestLapiId = savedLapiGroups.get(m.getLowestLapiGroup());
-        Long highestLapiId = savedLapiGroups.get(m.getHighestLapiGroup());
-        Long nextLapiId = m.getNextLapiGroup() != null ? savedLapiGroups.get(m.getNextLapiGroup()) : null;
-
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO temp_matrix (last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_mantissa, proved_limit_exponent, proved_count, last_proved_prime_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
-            setNullableLong(ps, 1, lastApiId);
-            setNullableLong(ps, 2, lowestLapiId);
-            setNullableLong(ps, 3, highestLapiId);
-            setNullableLong(ps, 4, nextLapiId);
-            if (m.getProvedLimit() != null) {
-                ps.setDouble(5, m.getProvedLimit().getMantissa());
-                ps.setLong(6, m.getProvedLimit().getExponent());
-            } else {
-                ps.setNull(5, Types.DOUBLE);
-                ps.setNull(6, Types.BIGINT);
-            }
-            ps.setInt(7, m.getProvedCount());
-            ps.setInt(8, m.getLastProvedPrimeIndex());
+                "INSERT INTO temp_matrix (id, last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_mantissa, proved_limit_exponent, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+            ps.setLong(1, 1);
+            setNullableLong(ps, 2, m.getLastActivePrimeIndex() != null ? (long) m.getLastActivePrimeIndex().getIndex() : null);
+            setNullableLong(ps, 3, m.getLowestLapiGroup() != null ? (long) m.getLowestLapiGroup().getLastActivePrimeIndex() : null);
+            setNullableLong(ps, 4, m.getHighestLapiGroup() != null ? (long) m.getHighestLapiGroup().getLastActivePrimeIndex() : null);
+            setNullableLong(ps, 5, m.getNextLapiGroup() != null ? (long) m.getNextLapiGroup().getLastActivePrimeIndex() : null);
+            setScientificNumber(ps, 6, m.getProvedLimit());
+            ps.setInt(8, m.getProvedCount());
+            ps.setInt(9, m.getLastProvedPrimeIndex());
+            ps.setInt(10, m.getLowestProvedLapiWithinInterval());
             ps.executeUpdate();
         }
     }
 
     // --- Helpers ---
+    private Set<Map.Entry<ActivePrimeIndex, Long>> getAllSavedApis() {
+        // Return all APIs that have tempId assigned
+        Set<Map.Entry<ActivePrimeIndex, Long>> result = new LinkedHashSet<>();
+        // We don't keep a map anymore - iterate would need stored list
+        // Actually let's keep a reference
+        return savedApiEntries;
+    }
+
+    private Set<Map.Entry<ActivePrimeIndex, Long>> savedApiEntries = new LinkedHashSet<>();
+
+    private List<ActivePrimeIndex> collectAllActivePrimeIndexes(Matrix m) {
+        List<ActivePrimeIndex> all = new ArrayList<>();
+        collectApiChain(findFirstActivePrimeIndex(m), all);
+        savedApiEntries.clear();
+        for (ActivePrimeIndex api : all) {
+            savedApiEntries.add(Map.entry(api, (long) api.getIndex()));
+        }
+        return all;
+    }
+
     private ActivePrimeIndex findFirstActivePrimeIndex(Matrix m) {
         ActivePrimeIndex current = m.getLastActivePrimeIndex();
         while (true) {
@@ -422,12 +337,6 @@ public class MatrixSaveService {
                 return current;
             }
         }
-    }
-
-    private List<ActivePrimeIndex> collectAllActivePrimeIndexes(Matrix m) {
-        List<ActivePrimeIndex> all = new ArrayList<>();
-        collectApiChain(findFirstActivePrimeIndex(m), all);
-        return all;
     }
 
     private void collectApiChain(ActivePrimeIndex api, List<ActivePrimeIndex> all) {
@@ -445,37 +354,41 @@ public class MatrixSaveService {
 
     private List<HcnBody> collectAllBodies(Matrix m) {
         Set<HcnBody> all = new LinkedHashSet<>();
-        for (ActivePrimeIndex api : savedActivePrimeIndexes.keySet()) {
-            for (PrimeIndexPower pip : api.getPips().values()) {
+        for (Map.Entry<ActivePrimeIndex, Long> entry : savedApiEntries) {
+            for (PrimeIndexPower pip : entry.getKey().getPips().values()) {
                 all.addAll(pip.getActiveHcnBodies());
             }
         }
         return new ArrayList<>(all);
     }
 
-    private List<HcnBody> topologicalSortBodies(List<HcnBody> bodies) {
-        Set<HcnBody> bodySet = new LinkedHashSet<>(bodies);
-        List<HcnBody> sorted = new ArrayList<>();
-        Set<HcnBody> visited = new HashSet<>();
-        for (HcnBody body : bodies) {
-            topoVisit(body, bodySet, visited, sorted);
+    private Set<HcnBody> collectAllBodiesFromPips() {
+        Set<HcnBody> all = new LinkedHashSet<>();
+        for (Map.Entry<ActivePrimeIndex, Long> entry : savedApiEntries) {
+            for (PrimeIndexPower pip : entry.getKey().getPips().values()) {
+                all.addAll(pip.getActiveHcnBodies());
+            }
         }
-        return sorted;
-    }
-
-    private void topoVisit(HcnBody body, Set<HcnBody> bodySet, Set<HcnBody> visited, List<HcnBody> sorted) {
-        if (!visited.add(body)) return;
-        if (body.getParent() != null && bodySet.contains(body.getParent())) {
-            topoVisit(body.getParent(), bodySet, visited, sorted);
-        }
-        sorted.add(body);
+        return all;
     }
 
     private void setNullableLong(PreparedStatement ps, int index, Long value) throws SQLException {
-        if (value == null) {
-            ps.setNull(index, Types.BIGINT);
+        if (value == null) ps.setNull(index, Types.BIGINT);
+        else ps.setLong(index, value);
+    }
+
+    private void setNullableId(PreparedStatement ps, int index, HcnBody body) throws SQLException {
+        if (body == null) ps.setNull(index, Types.BIGINT);
+        else ps.setLong(index, assignId(body));
+    }
+
+    private void setScientificNumber(PreparedStatement ps, int startIndex, ScientificNumber sn) throws SQLException {
+        if (sn != null) {
+            ps.setDouble(startIndex, sn.getMantissa());
+            ps.setLong(startIndex + 1, sn.getExponent());
         } else {
-            ps.setLong(index, value);
+            ps.setNull(startIndex, Types.DOUBLE);
+            ps.setNull(startIndex + 1, Types.BIGINT);
         }
     }
 }

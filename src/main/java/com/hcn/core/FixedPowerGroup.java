@@ -6,6 +6,9 @@ import java.util.stream.Collectors;
 
 public class FixedPowerGroup {
     private List<ActivePrimeIndex> fixedPowerGroup = new ArrayList<>();
+    private Long tempId;
+    public Long getTempId() { return tempId; }
+    public void setTempId(Long tempId) { this.tempId = tempId; }
     private ScientificNumber value = new ScientificNumber(1.0, 0);
     private ScientificNumber factor = new ScientificNumber(1.0, 0);
     private ActivePrimeIndex parentPrimeIndex = null;
