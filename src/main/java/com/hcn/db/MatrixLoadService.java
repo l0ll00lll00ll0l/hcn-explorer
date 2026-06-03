@@ -13,12 +13,17 @@ public class MatrixLoadService {
     @Autowired
     private DatabaseService databaseService;
 
+    @Autowired
+    private BasicDataService basicDataService;
+
     private Map<Long, ActivePrimeIndex> activePrimeIndexes;
     private Map<Long, PrimeIndexPower> pips;
     private Map<Long, HcnBody> bodies;
     private Map<Long, Hcn> hcns;
     private Map<Long, FixedPowerGroup> fpgs;
     private Map<Long, LastActivePrimeIndexGroup> lapiGroups;
+    private Map<Long, Integer> bodyBasicDataIds;
+    private boolean basicData;
 
     public Matrix load(String dbName) {
         activePrimeIndexes = new HashMap<>();
@@ -27,8 +32,14 @@ public class MatrixLoadService {
         hcns = new HashMap<>();
         fpgs = new HashMap<>();
         lapiGroups = new HashMap<>();
+        bodyBasicDataIds = new HashMap<>();
 
         try (Connection conn = databaseService.getConnection(dbName)) {
+            // Detect basicData early
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT basic_data FROM temp_matrix LIMIT 1")) {
+                basicData = rs.next() && rs.getBoolean(1);
+            }
             loadActivePrimeIndexes(conn);
             loadPrimeIndexPowers(conn);
             loadHcnBodies(conn);
@@ -79,8 +90,11 @@ public class MatrixLoadService {
 
     private void loadHcnBodies(Connection conn) throws SQLException {
         // First pass: create all bodies
+        String sql = basicData
+            ? "SELECT id, pip_id, proved, value_mantissa, value_exponent, factor_mantissa, factor_exponent, basic_data_id FROM temp_hcn_body"
+            : "SELECT id, pip_id, proved, value_mantissa, value_exponent, factor_mantissa, factor_exponent FROM temp_hcn_body";
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id, pip_id, proved, value_mantissa, value_exponent, factor_mantissa, factor_exponent FROM temp_hcn_body")) {
+             ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 long id = rs.getLong(1);
                 HcnBody body = new HcnBody();
@@ -91,6 +105,10 @@ public class MatrixLoadService {
                 if (!rs.wasNull()) body.setValue(new ScientificNumber(valMantissa, rs.getLong(5)));
                 double facMantissa = rs.getDouble(6);
                 if (!rs.wasNull()) body.setFactor(new ScientificNumber(facMantissa, rs.getLong(7)));
+                if (basicData) {
+                    int basicDataId = rs.getInt(8);
+                    if (basicDataId >= 0) bodyBasicDataIds.put(id, basicDataId);
+                }
                 bodies.put(id, body);
             }
         }
@@ -180,6 +198,10 @@ public class MatrixLoadService {
         for (Map.Entry<Long, Long> entry : bodyToLastHcnId.entrySet()) {
             HcnBody body = bodies.get(entry.getKey());
             HcnGenerator gen = new HcnGenerator(body);
+            if (basicData) {
+                Integer bdId = bodyBasicDataIds.get(entry.getKey());
+                if (bdId != null) gen.setBasicDataId(bdId);
+            }
             body.setHcnGenerator(gen);
             bodyIdToGenerator.put(entry.getKey(), gen);
         }
@@ -255,10 +277,32 @@ public class MatrixLoadService {
         }
     }
 
-    private Matrix assembleMatrix(Connection conn) throws SQLException {
+    private void loadReferenceIntervalHcns(Connection conn, com.hcn.core.basicdata.Interval refInterval) throws SQLException {
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_mantissa, proved_limit_exponent, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval, basic_data FROM temp_matrix LIMIT 1")) {
+             ResultSet rs = stmt.executeQuery("SELECT hcn_id FROM temp_reference_hcn ORDER BY order_in_list")) {
+            while (rs.next()) {
+                Hcn hcn = hcns.get(rs.getLong(1));
+                if (hcn != null) refInterval.getHcnList().add(hcn);
+            }
+        }
+    }
+
+    private Matrix assembleMatrix(Connection conn) throws SQLException {
+        // First check if basicData to know which columns to read
+        boolean basicData;
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT basic_data FROM temp_matrix LIMIT 1")) {
             if (!rs.next()) throw new RuntimeException("No matrix row found");
+            basicData = rs.getBoolean(1);
+        }
+
+        String sql = basicData
+            ? "SELECT last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_mantissa, proved_limit_exponent, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval, total_nanos, extend_matrix_nanos, generate_hcn_list_nanos, db_nanos, next_basic_data_id, reference_interval_lapi, reference_interval_value_mantissa, reference_interval_value_exponent, reference_interval_factor_mantissa, reference_interval_factor_exponent FROM temp_matrix LIMIT 1"
+            : "SELECT last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_mantissa, proved_limit_exponent, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval, total_nanos, extend_matrix_nanos, generate_hcn_list_nanos FROM temp_matrix LIMIT 1";
+
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            rs.next();
 
             ActivePrimeIndex lastApi = activePrimeIndexes.get(rs.getLong(1));
             LastActivePrimeIndexGroup lowestLapi = lapiGroups.get(rs.getLong(2));
@@ -270,12 +314,28 @@ public class MatrixLoadService {
             int provedCount = rs.getInt(7);
             int lastProvedPrimeIndex = rs.getInt(8);
             int lowestProvedLapi = rs.getInt(9);
-            boolean basicData = rs.getBoolean(10);
+            long totalNanos = rs.getLong(10);
+            long extendMatrixNanos = rs.getLong(11);
+            long generateHcnListNanos = rs.getLong(12);
 
             if (basicData) {
-                return com.hcn.core.basicdata.BasicDataMatrix.fromLoad(lastApi, lowestLapi, highestLapi, nextLapi, provedLimit, provedCount, lastProvedPrimeIndex, lowestProvedLapi);
+                long dbNanos = rs.getLong(13);
+                int nextBasicDataId = rs.getInt(14);
+                int refLapi = rs.getInt(15);
+                boolean hasRef = !rs.wasNull();
+                com.hcn.core.basicdata.Interval refInterval = null;
+                if (hasRef) {
+                    ScientificNumber refValue = new ScientificNumber(rs.getDouble(16), rs.getLong(17));
+                    ScientificNumber refFactor = new ScientificNumber(rs.getDouble(18), rs.getLong(19));
+                    refInterval = com.hcn.core.basicdata.Interval.fromLoad(refLapi, refValue, refFactor);
+                    refInterval.setReferenceIntervalForLoad(refInterval);
+                    // Load reference interval HCN list
+                    loadReferenceIntervalHcns(conn, refInterval);
+                }
+                basicDataService.setNextBasicDataId(nextBasicDataId);
+                return com.hcn.core.basicdata.BasicDataMatrix.fromLoad(lastApi, lowestLapi, highestLapi, nextLapi, provedLimit, provedCount, lastProvedPrimeIndex, lowestProvedLapi, totalNanos, extendMatrixNanos, generateHcnListNanos, dbNanos, nextBasicDataId, refInterval);
             }
-            return Matrix.fromLoad(lastApi, lowestLapi, highestLapi, nextLapi, provedLimit, provedCount, lastProvedPrimeIndex, lowestProvedLapi);
+            return Matrix.fromLoad(lastApi, lowestLapi, highestLapi, nextLapi, provedLimit, provedCount, lastProvedPrimeIndex, lowestProvedLapi, totalNanos, extendMatrixNanos, generateHcnListNanos);
         }
     }
 }

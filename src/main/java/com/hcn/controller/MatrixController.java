@@ -35,6 +35,9 @@ public class MatrixController {
     @org.springframework.beans.factory.annotation.Autowired
     private com.hcn.db.DatabaseService databaseService;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.hcn.db.BasicDataService basicDataService;
+
     public MatrixController() {
         matrix = new Matrix();
         matrix.initialize();
@@ -50,6 +53,7 @@ public class MatrixController {
             if (basicData) {
                 com.hcn.core.basicdata.BasicDataMatrix bdm = new com.hcn.core.basicdata.BasicDataMatrix();
                 bdm.setDatabaseService(databaseService);
+                bdm.setBasicDataService(basicDataService);
                 String newDbName = databaseService.createDatabase();
                 bdm.setDbName(newDbName);
                 databaseService.createBasicDataTables(newDbName);
@@ -191,4 +195,25 @@ public class MatrixController {
         return map;
     }
 
+    public List<java.util.Map<String, Object>> getBasicDataBodies() {
+        if (matrix == null || matrix.getDbName() == null) return java.util.Collections.emptyList();
+        List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
+        try (java.sql.Connection conn = databaseService.getConnection(matrix.getDbName());
+             java.sql.Statement stmt = conn.createStatement();
+             java.sql.ResultSet rs = stmt.executeQuery("SELECT id, head, tail, body_chain FROM basic_data_body ORDER BY id")) {
+            while (rs.next()) {
+                java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
+                row.put("id", rs.getInt(1));
+                java.sql.Array headArr = rs.getArray(2);
+                row.put("head", headArr != null ? java.util.Arrays.toString((Integer[]) headArr.getArray()) : "");
+                java.sql.Array tailArr = rs.getArray(3);
+                row.put("tail", tailArr != null ? java.util.Arrays.toString((Integer[]) tailArr.getArray()) : "");
+                row.put("bodyChain", rs.getString(4) != null ? rs.getString(4) : "");
+                result.add(row);
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
 }

@@ -26,6 +26,9 @@ public class Matrix {
     public int getLastProvedPrimeIndex() { return lastProvedPrimeIndex; }
     public int getLowestProvedLapiWithinInterval() { return lowestProvedLapiWithinInterval; }
     public boolean isBasicData() { return false; }
+    public long getTotalNanos() { return totalNanos; }
+    public long getExtendMatrixNanos() { return extendMatrixNanos; }
+    public long getGenerateHcnListNanos() { return generateHcnListNanos; }
     public ScientificNumber getProvedLimit() { return provedLimit; }
     public String getDbName() { return dbName; }
     public void setDbName(String dbName) { this.dbName = dbName; }
@@ -39,7 +42,8 @@ public class Matrix {
     public static Matrix fromLoad(ActivePrimeIndex lastApi, LastActivePrimeIndexGroup lowestLapi,
                                    LastActivePrimeIndexGroup highestLapi, LastActivePrimeIndexGroup nextLapi,
                                    ScientificNumber provedLimit,
-                                   int provedCount, int lastProvedPrimeIndex, int lowestProvedLapi) {
+                                   int provedCount, int lastProvedPrimeIndex, int lowestProvedLapi,
+                                   long totalNanos, long extendMatrixNanos, long generateHcnListNanos) {
         Matrix m = new Matrix();
         m.lastActivePrimeIndex = lastApi;
         m.lowestLapiGroup = lowestLapi;
@@ -49,6 +53,9 @@ public class Matrix {
         m.provedCount = provedCount;
         m.lastProvedPrimeIndex = lastProvedPrimeIndex;
         m.lowestProvedLapiWithinInterval = lowestProvedLapi;
+        m.totalNanos = totalNanos;
+        m.extendMatrixNanos = extendMatrixNanos;
+        m.generateHcnListNanos = generateHcnListNanos;
         return m;
     }
 
@@ -172,13 +179,13 @@ public class Matrix {
         provedHcns.add(hcn1);
         provedHcns.add(hcn2);
 
-        b_p1_11.setHcnGenerator(new HcnGenerator(b_p1_11));
+        b_p1_11.setHcnGenerator(gen1);
         Hcn hcn3 = new Hcn(b_p1_11.getHcnGenerator(), 1);
         hcn3.setValue(new ScientificNumber(6, 0));
         hcn3.setFactor(new ScientificNumber(4, 0));
         b_p1_11.getHcnGenerator().setLastGeneratedHcn(hcn3);
 
-        b_p1_21.setHcnGenerator(new HcnGenerator(b_p1_21));
+        b_p1_21.setHcnGenerator(gen2);
         Hcn hcn4 = new Hcn(b_p1_21.getHcnGenerator(), 1);
         hcn4.setValue(new ScientificNumber(12, 0));
         hcn4.setFactor(new ScientificNumber(6, 0));

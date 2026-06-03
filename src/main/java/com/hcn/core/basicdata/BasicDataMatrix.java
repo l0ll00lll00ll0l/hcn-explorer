@@ -11,6 +11,7 @@ public class BasicDataMatrix extends Matrix {
     private List<Interval> intervals = new ArrayList<>();
     private long dbNanos = 0;
     private com.hcn.db.DatabaseService databaseService;
+    private com.hcn.db.BasicDataService basicDataService;
 
     private static final int BASIC_DATA_TRIGGER = 100;
 
@@ -19,6 +20,7 @@ public class BasicDataMatrix extends Matrix {
     public long getDbMs() { return dbNanos / 1_000_000; }
     public long getDbNanos() { return dbNanos; }
     public void setDatabaseService(com.hcn.db.DatabaseService databaseService) { this.databaseService = databaseService; }
+    public void setBasicDataService(com.hcn.db.BasicDataService basicDataService) { this.basicDataService = basicDataService; }
 
     @Override
     public boolean isBasicData() { return true; }
@@ -38,12 +40,14 @@ public class BasicDataMatrix extends Matrix {
     }
 
     public void flushAllIntervals() {
-        if (!intervals.isEmpty()) {
-            long tDb = System.nanoTime();
-            // TODO: save intervals to DB
-            dbNanos += System.nanoTime() - tDb;
-            intervals.clear();
-        }
+        if (intervals.isEmpty() || getDbName() == null || basicDataService == null) return;
+
+        long tDb = System.nanoTime();
+        basicDataService.flushAllIntervals(getDbName(), intervals);
+        long elapsed = System.nanoTime() - tDb;
+        dbNanos += elapsed;
+        totalNanos += elapsed;
+        intervals.clear();
     }
 
     @Override
@@ -76,7 +80,9 @@ public class BasicDataMatrix extends Matrix {
     public static BasicDataMatrix fromLoad(ActivePrimeIndex lastApi, LastActivePrimeIndexGroup lowestLapi,
                                             LastActivePrimeIndexGroup highestLapi, LastActivePrimeIndexGroup nextLapi,
                                             ScientificNumber provedLimit,
-                                            int provedCount, int lastProvedPrimeIndex, int lowestProvedLapi) {
+                                            int provedCount, int lastProvedPrimeIndex, int lowestProvedLapi,
+                                            long totalNanos, long extendMatrixNanos, long generateHcnListNanos, long dbNanos,
+                                            int nextBasicDataId, Interval referenceInterval) {
         BasicDataMatrix m = new BasicDataMatrix();
         m.lastActivePrimeIndex = lastApi;
         m.lowestLapiGroup = lowestLapi;
@@ -86,6 +92,11 @@ public class BasicDataMatrix extends Matrix {
         m.provedCount = provedCount;
         m.lastProvedPrimeIndex = lastProvedPrimeIndex;
         m.lowestProvedLapiWithinInterval = lowestProvedLapi;
+        m.totalNanos = totalNanos;
+        m.extendMatrixNanos = extendMatrixNanos;
+        m.generateHcnListNanos = generateHcnListNanos;
+        m.dbNanos = dbNanos;
+        m.referenceInterval = referenceInterval;
         return m;
     }
 }

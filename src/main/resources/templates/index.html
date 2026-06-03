@@ -122,14 +122,18 @@
             <button class="tab-btn" data-tab="hcnfilter" onclick="switchTab('hcnfilter')">LapiGroups</button>
             <button class="tab-btn" data-tab="bodylist" onclick="switchTab('bodylist')">ActivePrimeIndex BodyList</button>
             <button class="tab-btn" data-tab="generators" onclick="switchTab('generators')">HcnGenerators</button>
+            <button th:if="${matrix.basicData}" class="tab-btn" data-tab="basicdatabody" onclick="switchTab('basicdatabody')">BasicData - Body</button>
         </div>
         <div id="tab-matrix" class="tab-content active">
         <div class="matrix-info">
             <div>Proved: <span th:text="${matrix.provedCount}"></span></div>
             <div>Last Active: p<span th:text="${matrix.lastActivePrimeIndex.index}"></span></div>
+            <div>Last Proved Prime Index: <span th:text="${matrix.lastProvedPrimeIndex}"></span></div>
+            <div th:if="${matrix.basicData}" >Reference Interval: <span th:text="${matrix.referenceInterval != null ? matrix.referenceInterval.lapi : 'null'}"></span></div>
             <div style="margin-top: 6px; border-top: 1px solid #ccc; padding-top: 4px;">Total: <span th:text="${matrix.totalMs}"></span> ms</div>
             <div>ExtendMatrix: <span th:text="${matrix.extendMatrixMs}"></span> ms</div>
             <div>GenerateHcnList: <span th:text="${matrix.generateHcnListMs}"></span> ms</div>
+            <div th:if="${matrix.basicData}">DB: <span th:text="${matrix.dbMs}"></span> ms</div>
         </div>
         <div th:with="matrixChain=${@matrixController.buildMatrixChain(matrix.lastActivePrimeIndex)}">
             <div class="matrix-columns">
@@ -161,6 +165,34 @@
                 </div>
             </div>
         </div>
+
+        <!-- Reference Interval -->
+        <div th:if="${matrix.basicData and matrix.referenceInterval != null}" style="margin-top: 12px; border-top: 1px solid #ccc; padding-top: 8px;">
+            <strong>Reference Interval</strong>
+            <table class="level-table" style="margin-top: 4px;">
+                <thead>
+                    <tr><th>Lapi</th><th>Value</th><th>Factor</th><th>HCN List</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:with="interval=${matrix.referenceInterval}">
+                        <td th:text="${interval.lapi}"></td>
+                        <td th:text="${interval.value}"></td>
+                        <td th:text="${interval.factor}"></td>
+                        <td>
+                            <details>
+                                <summary th:text="${interval.hcnList.size() + ' HCNs'}"></summary>
+                                <div>
+                                    <span th:each="hcn : ${interval.hcnList}">
+                                        <span th:text="${hcn.body.parentChainString() + '|' + hcn.lastActivePrime}"></span><br/>
+                                    </span>
+                                </div>
+                            </details>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
         </div>
 
         <div id="tab-hcnfilter" class="tab-content">
@@ -225,12 +257,14 @@
         <div id="tab-generators" class="tab-content">
             <table class="level-table">
                 <thead>
-                    <tr><th>#</th><th>CurrentBody</th><th>LastActivePrime</th><th>Value</th><th>Factor</th></tr>
+                    <tr><th>#</th><th>BdId</th><th>CurrentBody</th><th>Walker</th><th>LastActivePrime</th><th>Value</th><th>Factor</th></tr>
                 </thead>
                 <tbody>
                     <tr th:each="body, iter : ${@matrixController.getActiveBodies(matrix.lastActivePrimeIndex)}" th:if="${body.hcnGenerator != null}">
                         <td th:text="${iter.index}"></td>
+                        <td th:text="${body.hcnGenerator.basicDataId >= 0 ? body.hcnGenerator.basicDataId : ''}"></td>
                         <td th:text="${body.parentChainString()}"></td>
+                        <td th:text="${body.walkerBodyForLapi.isEmpty() ? '' : body.walkerBodyForLapi.![lastActivePrimeIndex]}"></td>
                         <td th:text="${body.hcnGenerator.lastGeneratedHcn != null ? body.hcnGenerator.lastGeneratedHcn.lastActivePrime : ''}"></td>
                         <td th:text="${body.hcnGenerator.lastGeneratedHcn != null ? body.hcnGenerator.lastGeneratedHcn.value : ''}"></td>
                         <td th:text="${body.hcnGenerator.lastGeneratedHcn != null ? body.hcnGenerator.lastGeneratedHcn.factor : ''}"></td>
@@ -239,8 +273,24 @@
             </table>
         </div>
 
-    </div>
+        <!-- BasicData - Body Tab -->
+        <div th:if="${matrix.basicData}" id="tab-basicdatabody" class="tab-content">
+            <table class="level-table">
+                <thead>
+                    <tr><th>BasicDataId</th><th>Head</th><th>Tail</th><th>BodyChain</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="row : ${@matrixController.getBasicDataBodies()}">
+                        <td th:text="${row.id}"></td>
+                        <td th:text="${row.head}"></td>
+                        <td th:text="${row.tail}"></td>
+                        <td th:text="${row.bodyChain}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
+    </div>
     <script>
         function showLevel(level) {
             document.querySelectorAll('.level-detail > div').forEach(function(d) { d.style.display = 'none'; });

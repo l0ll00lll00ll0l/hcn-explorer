@@ -1,5 +1,7 @@
 package com.hcn.core;
 
+import com.hcn.core.basicdata.Body;
+
 public class HcnGenerator {
     private int basicDataId = -1;
     private Hcn lastGeneratedHcn = null;

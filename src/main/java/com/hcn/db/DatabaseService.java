@@ -42,8 +42,18 @@ public class DatabaseService {
         } catch (SQLException e) {
             throw new RuntimeException("Failed to create database: " + dbName, e);
         }
-        createSchema(dbName);
         return dbName;
+    }
+
+    public void createTempSchema(String dbName, boolean basicData) {
+        try (Connection conn = getConnection(dbName);
+             Statement stmt = conn.createStatement()) {
+            ResultSet tables = conn.getMetaData().getTables(null, null, "temp_matrix", null);
+            if (tables.next()) return; // already exists
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        createSchema(dbName, basicData);
     }
 
     public void deleteDatabase(String dbName) {
@@ -98,7 +108,7 @@ public class DatabaseService {
         }
     }
 
-    private void createSchema(String dbName) {
+    private void createSchema(String dbName, boolean basicData) {
         try (Connection conn = getConnection(dbName);
              Statement stmt = conn.createStatement()) {
             stmt.execute("""
@@ -188,9 +198,28 @@ public class DatabaseService {
                     proved_count INT DEFAULT 0,
                     last_proved_prime_index INT DEFAULT -1,
                     lowest_proved_lapi_within_interval INT DEFAULT 1,
-                    basic_data BOOLEAN DEFAULT FALSE
+                    basic_data BOOLEAN DEFAULT FALSE,
+                    total_nanos BIGINT DEFAULT 0,
+                    extend_matrix_nanos BIGINT DEFAULT 0,
+                    generate_hcn_list_nanos BIGINT DEFAULT 0
                 )
             """);
+            if (basicData) {
+                stmt.execute("ALTER TABLE temp_hcn_body ADD COLUMN basic_data_id INT DEFAULT -1");
+                stmt.execute("ALTER TABLE temp_matrix ADD COLUMN db_nanos BIGINT DEFAULT 0");
+                stmt.execute("ALTER TABLE temp_matrix ADD COLUMN next_basic_data_id INT DEFAULT 1");
+                stmt.execute("ALTER TABLE temp_matrix ADD COLUMN reference_interval_lapi INT");
+                stmt.execute("ALTER TABLE temp_matrix ADD COLUMN reference_interval_value_mantissa DOUBLE PRECISION");
+                stmt.execute("ALTER TABLE temp_matrix ADD COLUMN reference_interval_value_exponent BIGINT");
+                stmt.execute("ALTER TABLE temp_matrix ADD COLUMN reference_interval_factor_mantissa DOUBLE PRECISION");
+                stmt.execute("ALTER TABLE temp_matrix ADD COLUMN reference_interval_factor_exponent BIGINT");
+                stmt.execute("""
+                    CREATE TABLE temp_reference_hcn (
+                        order_in_list INT PRIMARY KEY,
+                        hcn_id BIGINT
+                    )
+                """);
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to create schema in: " + dbName, e);
         }
@@ -221,7 +250,8 @@ public class DatabaseService {
                 CREATE TABLE IF NOT EXISTS basic_data_body (
                     id BIGINT PRIMARY KEY,
                     head INT[],
-                    tail INT[]
+                    tail INT[],
+                    body_chain TEXT
                 )
             """);
         } catch (SQLException e) {

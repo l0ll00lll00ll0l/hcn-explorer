@@ -16,6 +16,9 @@ public class MatrixSaveService {
     @Autowired
     private SaveProgress progress;
 
+    @Autowired
+    private BasicDataService basicDataService;
+
     private long nextPipId;
     private long nextBodyId;
     private long nextHcnId;
@@ -39,8 +42,9 @@ public class MatrixSaveService {
             conn.setAutoCommit(false);
             progress.start();
 
-            progress.startPhase(1, "Clearing old data", 1);
-            clearAll(conn);
+            progress.startPhase(1, "Preparing tables", 1);
+            databaseService.createTempSchema(dbName, m.isBasicData());
+            clearAll(conn, m.isBasicData());
             progress.increment();
 
             saveAll(conn, m);
@@ -60,18 +64,22 @@ public class MatrixSaveService {
         progress.startPhase(2, "ActivePrimeIndexes", allApis.size());
         saveActivePrimeIndexesBatch(conn, allApis);
 
-        progress.startPhase(3, "PrimeIndexPowers", 0);
-        savePrimeIndexPowersBatch(conn, allApis);
-
         List<HcnBody> allBodies = collectAllBodies(m);
+
+        progress.startPhase(3, "PrimeIndexPowers", 0);
+        savePrimeIndexPowersBatch(conn, allApis, allBodies);
+
         progress.startPhase(4, "HcnBodies", allBodies.size());
-        saveHcnBodiesBatch(conn, allBodies);
+        saveHcnBodiesBatch(conn, allBodies, m.isBasicData());
 
         progress.startPhase(5, "FixedPowerGroups", 0);
         saveFixedPowerGroups(conn);
 
         progress.startPhase(6, "HCNs", 0);
         saveHcnsBatch(conn, m);
+        if (m.isBasicData()) {
+            saveReferenceIntervalHcns(conn, (com.hcn.core.basicdata.BasicDataMatrix) m);
+        }
 
         progress.startPhase(7, "LapiGroups", 0);
         saveLapiGroups(conn, m);
@@ -84,9 +92,12 @@ public class MatrixSaveService {
         progress.increment();
     }
 
-    private void clearAll(Connection conn) throws SQLException {
+    private void clearAll(Connection conn, boolean basicData) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
             stmt.execute("TRUNCATE TABLE temp_lapi_hcn_list, temp_matrix, temp_last_active_prime_index_group, temp_hcn, temp_hcn_body, temp_prime_index_power, temp_fixed_power_group, temp_active_prime_index");
+            if (basicData) {
+                stmt.execute("TRUNCATE TABLE temp_reference_hcn");
+            }
         }
     }
 
@@ -104,26 +115,35 @@ public class MatrixSaveService {
     }
 
     // --- PrimeIndexPowers ---
-    private void savePrimeIndexPowersBatch(Connection conn, List<ActivePrimeIndex> allApis) throws SQLException {
+    private void savePrimeIndexPowersBatch(Connection conn, List<ActivePrimeIndex> allApis, List<HcnBody> allBodies) throws SQLException {
+        // Collect all PIPs - from active APIs and from bodies (which may reference removed PIPs)
+        Set<PrimeIndexPower> allPips = new LinkedHashSet<>();
+        for (ActivePrimeIndex api : allApis) {
+            allPips.addAll(api.getPips().values());
+        }
+        for (HcnBody body : allBodies) {
+            if (body.getPip() != null) allPips.add(body.getPip());
+        }
+
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO temp_prime_index_power (id, prime_index_id, power, proved) VALUES (?, ?, ?, ?)")) {
-            for (ActivePrimeIndex api : allApis) {
-                for (PrimeIndexPower pip : api.getPips().values()) {
-                    ps.setLong(1, assignId(pip));
-                    ps.setLong(2, api.getIndex());
-                    ps.setInt(3, pip.getPower());
-                    ps.setBoolean(4, pip.isProved());
-                    ps.addBatch();
-                }
+            for (PrimeIndexPower pip : allPips) {
+                ps.setLong(1, assignId(pip));
+                ps.setLong(2, pip.getActivePrimeIndex().getIndex());
+                ps.setInt(3, pip.getPower());
+                ps.setBoolean(4, pip.isProved());
+                ps.addBatch();
             }
             ps.executeBatch();
         }
     }
 
     // --- HcnBodies ---
-    private void saveHcnBodiesBatch(Connection conn, List<HcnBody> allBodies) throws SQLException {
-        try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO temp_hcn_body (id, parent_id, pip_id, proved, value_mantissa, value_exponent, factor_mantissa, factor_exponent, smaller_body_id, larger_body_id, last_generated_hcn_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+    private void saveHcnBodiesBatch(Connection conn, List<HcnBody> allBodies, boolean basicData) throws SQLException {
+        String sql = basicData
+            ? "INSERT INTO temp_hcn_body (id, parent_id, pip_id, proved, value_mantissa, value_exponent, factor_mantissa, factor_exponent, smaller_body_id, larger_body_id, last_generated_hcn_id, basic_data_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            : "INSERT INTO temp_hcn_body (id, parent_id, pip_id, proved, value_mantissa, value_exponent, factor_mantissa, factor_exponent, smaller_body_id, larger_body_id, last_generated_hcn_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             for (HcnBody body : allBodies) {
                 ps.setLong(1, assignId(body));
                 setNullableId(ps, 2, body.getParent());
@@ -137,6 +157,9 @@ public class MatrixSaveService {
                     ps.setLong(11, assignId(body.getLastGeneratedHcn()));
                 } else {
                     ps.setNull(11, Types.BIGINT);
+                }
+                if (basicData) {
+                    ps.setInt(12, body.getHcnGenerator() != null ? body.getHcnGenerator().getBasicDataId() : -1);
                 }
                 ps.addBatch();
             }
@@ -200,6 +223,12 @@ public class MatrixSaveService {
                 allHcns.add(body.getLastGeneratedHcn());
             }
         }
+        if (m.isBasicData()) {
+            com.hcn.core.basicdata.BasicDataMatrix bdm = (com.hcn.core.basicdata.BasicDataMatrix) m;
+            if (bdm.getReferenceInterval() != null) {
+                allHcns.addAll(bdm.getReferenceInterval().getHcnList());
+            }
+        }
 
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO temp_hcn (id, body_id, last_active_prime, value_mantissa, value_exponent, factor_mantissa, factor_exponent) VALUES (?, ?, ?, ?, ?, ?, ?)")) {
@@ -209,6 +238,20 @@ public class MatrixSaveService {
                 ps.setInt(3, hcn.getLastActivePrime());
                 setScientificNumber(ps, 4, hcn.getValue());
                 setScientificNumber(ps, 6, hcn.getFactor());
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+    }
+
+    private void saveReferenceIntervalHcns(Connection conn, com.hcn.core.basicdata.BasicDataMatrix bdm) throws SQLException {
+        if (bdm.getReferenceInterval() == null || bdm.getReferenceInterval().getHcnList().isEmpty()) return;
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO temp_reference_hcn (order_in_list, hcn_id) VALUES (?, ?)")) {
+            int order = 0;
+            for (Hcn hcn : bdm.getReferenceInterval().getHcnList()) {
+                ps.setInt(1, order++);
+                ps.setLong(2, hcn.getTempId());
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -290,19 +333,59 @@ public class MatrixSaveService {
 
     // --- Matrix ---
     private void saveMatrix(Connection conn, Matrix m) throws SQLException {
-        try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO temp_matrix (id, last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_mantissa, proved_limit_exponent, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval, basic_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
-            ps.setLong(1, 1);
-            setNullableLong(ps, 2, m.getLastActivePrimeIndex() != null ? (long) m.getLastActivePrimeIndex().getIndex() : null);
-            setNullableLong(ps, 3, m.getLowestLapiGroup() != null ? (long) m.getLowestLapiGroup().getLastActivePrimeIndex() : null);
-            setNullableLong(ps, 4, m.getHighestLapiGroup() != null ? (long) m.getHighestLapiGroup().getLastActivePrimeIndex() : null);
-            setNullableLong(ps, 5, m.getNextLapiGroup() != null ? (long) m.getNextLapiGroup().getLastActivePrimeIndex() : null);
-            setScientificNumber(ps, 6, m.getProvedLimit());
-            ps.setInt(8, m.getProvedCount());
-            ps.setInt(9, m.getLastProvedPrimeIndex());
-            ps.setInt(10, m.getLowestProvedLapiWithinInterval());
-            ps.setBoolean(11, m.isBasicData());
-            ps.executeUpdate();
+        if (m.isBasicData()) {
+            com.hcn.core.basicdata.BasicDataMatrix bdm = (com.hcn.core.basicdata.BasicDataMatrix) m;
+            com.hcn.core.basicdata.Interval refInterval = bdm.getReferenceInterval();
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO temp_matrix (id, last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_mantissa, proved_limit_exponent, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval, basic_data, total_nanos, extend_matrix_nanos, generate_hcn_list_nanos, db_nanos, next_basic_data_id, reference_interval_lapi, reference_interval_value_mantissa, reference_interval_value_exponent, reference_interval_factor_mantissa, reference_interval_factor_exponent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                ps.setLong(1, 1);
+                setNullableLong(ps, 2, m.getLastActivePrimeIndex() != null ? (long) m.getLastActivePrimeIndex().getIndex() : null);
+                setNullableLong(ps, 3, m.getLowestLapiGroup() != null ? (long) m.getLowestLapiGroup().getLastActivePrimeIndex() : null);
+                setNullableLong(ps, 4, m.getHighestLapiGroup() != null ? (long) m.getHighestLapiGroup().getLastActivePrimeIndex() : null);
+                setNullableLong(ps, 5, m.getNextLapiGroup() != null ? (long) m.getNextLapiGroup().getLastActivePrimeIndex() : null);
+                setScientificNumber(ps, 6, m.getProvedLimit());
+                ps.setInt(8, m.getProvedCount());
+                ps.setInt(9, m.getLastProvedPrimeIndex());
+                ps.setInt(10, m.getLowestProvedLapiWithinInterval());
+                ps.setBoolean(11, true);
+                ps.setLong(12, m.getTotalNanos());
+                ps.setLong(13, m.getExtendMatrixNanos());
+                ps.setLong(14, m.getGenerateHcnListNanos());
+                ps.setLong(15, bdm.getDbNanos());
+                ps.setInt(16, basicDataService.getNextBasicDataId());
+                if (refInterval != null) {
+                    ps.setInt(17, refInterval.getLapi());
+                    ps.setDouble(18, refInterval.getValue().getMantissa());
+                    ps.setLong(19, refInterval.getValue().getExponent());
+                    ps.setDouble(20, refInterval.getFactor().getMantissa());
+                    ps.setLong(21, refInterval.getFactor().getExponent());
+                } else {
+                    ps.setNull(17, Types.INTEGER);
+                    ps.setNull(18, Types.DOUBLE);
+                    ps.setNull(19, Types.BIGINT);
+                    ps.setNull(20, Types.DOUBLE);
+                    ps.setNull(21, Types.BIGINT);
+                }
+                ps.executeUpdate();
+            }
+        } else {
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO temp_matrix (id, last_active_prime_index_id, lowest_lapi_group_id, highest_lapi_group_id, next_lapi_group_id, proved_limit_mantissa, proved_limit_exponent, proved_count, last_proved_prime_index, lowest_proved_lapi_within_interval, basic_data, total_nanos, extend_matrix_nanos, generate_hcn_list_nanos) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                ps.setLong(1, 1);
+                setNullableLong(ps, 2, m.getLastActivePrimeIndex() != null ? (long) m.getLastActivePrimeIndex().getIndex() : null);
+                setNullableLong(ps, 3, m.getLowestLapiGroup() != null ? (long) m.getLowestLapiGroup().getLastActivePrimeIndex() : null);
+                setNullableLong(ps, 4, m.getHighestLapiGroup() != null ? (long) m.getHighestLapiGroup().getLastActivePrimeIndex() : null);
+                setNullableLong(ps, 5, m.getNextLapiGroup() != null ? (long) m.getNextLapiGroup().getLastActivePrimeIndex() : null);
+                setScientificNumber(ps, 6, m.getProvedLimit());
+                ps.setInt(8, m.getProvedCount());
+                ps.setInt(9, m.getLastProvedPrimeIndex());
+                ps.setInt(10, m.getLowestProvedLapiWithinInterval());
+                ps.setBoolean(11, false);
+                ps.setLong(12, m.getTotalNanos());
+                ps.setLong(13, m.getExtendMatrixNanos());
+                ps.setLong(14, m.getGenerateHcnListNanos());
+                ps.executeUpdate();
+            }
         }
     }
 
@@ -360,7 +443,36 @@ public class MatrixSaveService {
                 all.addAll(pip.getActiveHcnBodies());
             }
         }
+        // Also collect bodies referenced by HCNs in lapi groups (may include deactivated bodies)
+        LastActivePrimeIndexGroup lapi = m.getLowestLapiGroup();
+        while (lapi != null) {
+            for (Hcn hcn : lapi.getHcnList()) {
+                if (hcn.getBody() != null) collectWithParents(hcn.getBody(), all);
+            }
+            lapi = lapi.getHigherLapiGroup();
+        }
+        if (m.getNextLapiGroup() != null) {
+            for (Hcn hcn : m.getNextLapiGroup().getHcnList()) {
+                if (hcn.getBody() != null) collectWithParents(hcn.getBody(), all);
+            }
+        }
+        // Also collect bodies from referenceInterval
+        if (m.isBasicData()) {
+            com.hcn.core.basicdata.BasicDataMatrix bdm = (com.hcn.core.basicdata.BasicDataMatrix) m;
+            if (bdm.getReferenceInterval() != null) {
+                for (Hcn hcn : bdm.getReferenceInterval().getHcnList()) {
+                    if (hcn.getBody() != null) collectWithParents(hcn.getBody(), all);
+                }
+            }
+        }
         return new ArrayList<>(all);
+    }
+
+    private void collectWithParents(HcnBody body, Set<HcnBody> all) {
+        while (body != null && !all.contains(body)) {
+            all.add(body);
+            body = body.getParent();
+        }
     }
 
     private Set<HcnBody> collectAllBodiesFromPips() {
