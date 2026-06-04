@@ -275,16 +275,29 @@
 
         <!-- BasicData - Body Tab -->
         <div th:if="${matrix.basicData}" id="tab-basicdatabody" class="tab-content">
+            <div style="margin-bottom:8px;">
+                <form th:action="@{/core/bodyPage}" method="post" style="display:inline;">
+                    <input type="hidden" name="page" th:value="${@matrixController.getBodyPage() - 1}"/>
+                    <button type="submit" th:disabled="${@matrixController.getBodyPage() == 0}">← Prev</button>
+                </form>
+                <span>Page <span th:text="${@matrixController.getBodyPage() + 1}"></span> (rows <span th:text="${@matrixController.getBodyPage() * @matrixController.getBodyPageSize() + 1}"></span>-<span th:text="${@matrixController.getBodyPage() * @matrixController.getBodyPageSize() + @matrixController.getBodyPageSize()}"></span> of <span th:text="${@matrixController.getBodyTotalCount()}"></span>)</span>
+                <form th:action="@{/core/bodyPage}" method="post" style="display:inline;">
+                    <input type="hidden" name="page" th:value="${@matrixController.getBodyPage() + 1}"/>
+                    <button type="submit">Next →</button>
+                </form>
+            </div>
             <table class="level-table">
                 <thead>
-                    <tr><th>BasicDataId</th><th>Head</th><th>Tail</th><th>BodyChain</th></tr>
+                    <tr><th>BasicDataId</th><th>Head</th><th>Tail</th><th>PipGroup</th><th>LastIndex</th><th>BodyChain</th></tr>
                 </thead>
                 <tbody>
                     <tr th:each="row : ${@matrixController.getBasicDataBodies()}">
                         <td th:text="${row.id}"></td>
                         <td th:text="${row.head}"></td>
                         <td th:text="${row.tail}"></td>
-                        <td th:text="${row.bodyChain}"></td>
+                        <td th:text="${row.pipGroup}"></td>
+                        <td th:text="${row.lastIndex}"></td>
+                        <td th:utext="${row.bodyChain}"></td>
                     </tr>
                 </tbody>
             </table>

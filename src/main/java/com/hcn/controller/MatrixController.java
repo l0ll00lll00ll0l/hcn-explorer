@@ -65,6 +65,10 @@ public class MatrixController {
         } else if (dbName != null) {
             matrix = matrixLoadService.load(dbName);
             matrix.setDbName(dbName);
+            if (matrix instanceof com.hcn.core.basicdata.BasicDataMatrix bdm) {
+                bdm.setDatabaseService(databaseService);
+                bdm.setBasicDataService(basicDataService);
+            }
         }
         model.addAttribute("matrix", matrix);
         model.addAttribute("displayDecimals", ScientificNumber.getDisplayDecimals());
@@ -111,6 +115,14 @@ public class MatrixController {
         }
         saveProgress.start();
         new Thread(() -> matrixSaveService.save(matrix, matrix.getDbName())).start();
+        return "redirect:/core?tab=" + activeTab + "&lapiView=" + lapiView;
+    }
+
+    @PostMapping("/core/bodyPage")
+    public String bodyPage(@RequestParam int page,
+                           @RequestParam(defaultValue = "basicdatabody") String activeTab,
+                           @RequestParam(defaultValue = "chain") String lapiView) {
+        bodyPage = Math.max(0, page);
         return "redirect:/core?tab=" + activeTab + "&lapiView=" + lapiView;
     }
     
@@ -195,25 +207,57 @@ public class MatrixController {
         return map;
     }
 
+    private int bodyPage = 0;
+    private static final int BODY_PAGE_SIZE = 50;
+
+    public int getBodyPage() { return bodyPage; }
+    public int getBodyPageSize() { return BODY_PAGE_SIZE; }
+
     public List<java.util.Map<String, Object>> getBasicDataBodies() {
         if (matrix == null || matrix.getDbName() == null) return java.util.Collections.emptyList();
         List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
         try (java.sql.Connection conn = databaseService.getConnection(matrix.getDbName());
-             java.sql.Statement stmt = conn.createStatement();
-             java.sql.ResultSet rs = stmt.executeQuery("SELECT id, head, tail, body_chain FROM basic_data_body ORDER BY id")) {
-            while (rs.next()) {
-                java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
-                row.put("id", rs.getInt(1));
-                java.sql.Array headArr = rs.getArray(2);
-                row.put("head", headArr != null ? java.util.Arrays.toString((Integer[]) headArr.getArray()) : "");
-                java.sql.Array tailArr = rs.getArray(3);
-                row.put("tail", tailArr != null ? java.util.Arrays.toString((Integer[]) tailArr.getArray()) : "");
-                row.put("bodyChain", rs.getString(4) != null ? rs.getString(4) : "");
-                result.add(row);
+             java.sql.PreparedStatement ps = conn.prepareStatement("SELECT id, head, tail FROM basic_data_body ORDER BY id LIMIT ? OFFSET ?")) {
+            ps.setInt(1, BODY_PAGE_SIZE);
+            ps.setInt(2, bodyPage * BODY_PAGE_SIZE);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
+                    row.put("id", rs.getInt(1));
+                    java.sql.Array headArr = rs.getArray(2);
+                    java.sql.Array tailArr = rs.getArray(3);
+                    int[] headInts = headArr != null ? toPrimitiveArray((Integer[]) headArr.getArray()) : new int[0];
+                    int[] tailInts = tailArr != null ? toPrimitiveArray((Integer[]) tailArr.getArray()) : new int[0];
+                    row.put("head", java.util.Arrays.toString(headInts));
+                    row.put("tail", java.util.Arrays.toString(tailInts));
+                    com.hcn.core.basicdata.GuiBodyRepresentative gui = new com.hcn.core.basicdata.GuiBodyRepresentative(headInts, tailInts);
+                    row.put("pipGroup", java.util.Arrays.toString(gui.getPipGroup()));
+                    row.put("lastIndex", java.util.Arrays.toString(gui.getLastIndex()));
+                    row.put("bodyChain", gui.toString());
+                    result.add(row);
+                }
             }
         } catch (java.sql.SQLException e) {
             e.printStackTrace();
         }
+        return result;
+    }
+
+    public long getBodyTotalCount() {
+        if (matrix == null || matrix.getDbName() == null) return 0;
+        try (java.sql.Connection conn = databaseService.getConnection(matrix.getDbName());
+             java.sql.Statement stmt = conn.createStatement();
+             java.sql.ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM basic_data_body")) {
+            if (rs.next()) return rs.getLong(1);
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    private int[] toPrimitiveArray(Integer[] arr) {
+        int[] result = new int[arr.length];
+        for (int i = 0; i < arr.length; i++) result[i] = arr[i];
         return result;
     }
 }

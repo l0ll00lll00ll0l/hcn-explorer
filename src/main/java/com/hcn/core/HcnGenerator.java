@@ -46,7 +46,7 @@ public class HcnGenerator {
     }
 
     private Hcn computeFromReference(LastActivePrimeIndexGroup lapiGroup) {
-        HcnBody referenceBody = findReferenceBody(lapiGroup);
+        HcnBody referenceBody = findReferenceBodyDownwards(lapiGroup);
 
         if (referenceBody == null) {
             Hcn referenceHcn = lapiGroup.getLowerLapiGroup().getWalkerBody().getHcnGenerator().lastGeneratedHcn;
@@ -63,7 +63,7 @@ public class HcnGenerator {
         return newHcn;
     }
 
-    private HcnBody findReferenceBody(LastActivePrimeIndexGroup lapiGroup) {
+    private HcnBody findReferenceBodyDownwards(LastActivePrimeIndexGroup lapiGroup) {
         if (currentHcnBody.getSmallerBody() == null) {
             return null;
         }

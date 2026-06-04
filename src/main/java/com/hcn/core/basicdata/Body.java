@@ -1,7 +1,5 @@
 package com.hcn.core.basicdata;
 
-import com.hcn.core.ActivePrimeIndex;
-import com.hcn.core.FixedPowerGroup;
 import com.hcn.core.HcnBody;
 
 public class Body {
@@ -19,70 +17,71 @@ public class Body {
         int tailSize = 0;
         int[] tailBuf = new int[16];
         int currentPower = 1;
+        int fpgPower = 2;
 
-        HcnBody bodyWalk = hcnBody;
-        ActivePrimeIndex api = hcnBody.getPip().getActivePrimeIndex();
-
-        while (api != null) {
-            int pip = bodyWalk.getPip().getPower();
-
-            if (pipJumpsMoreThanOneLevel(pip, currentPower)) {
+        HcnBody walk = hcnBody;
+        while (walk != null) {
+            HcnBody parent = walk.getParent();
+            if (parent == null) {
+                // reached p0, check its pip
+                int pip = walk.getPip().getPower();
+                if (pipIsNextLevel(pip, currentPower)) {
+                    tailBuf = appendToTail(tailBuf, tailSize, walk.getPip().getActivePrimeIndex().getIndex());
+                    tailSize++;
+                    currentPower = pip;
+                } else if (pip > currentPower + 1) {
+                    break;
+                }
+                walk = null;
                 break;
             }
 
-            if (pipIsNextLevel(pip, currentPower)) {
-                // check offspring FPG for same-level extension
-                if (api.getOffspringFixedPowerGroup() != null && getFpgPower(api.getOffspringFixedPowerGroup()) == pip) {
-                    tailBuf = appendToTail(tailBuf, tailSize, getLastIndexInFpg(api.getOffspringFixedPowerGroup()));
-                } else {
-                    tailBuf = appendToTail(tailBuf, tailSize, api.getIndex());
-                }
-                tailSize++;
-                currentPower = pip;
-            }
+            int walkIndex = walk.getPip().getActivePrimeIndex().getIndex();
+            int parentIndex = parent.getPip().getActivePrimeIndex().getIndex();
+            int parentPip = parent.getPip().getPower();
 
-            // navigate to next in chain
-            if (api.getParentFixedPowerGroup() != null) {
-                FixedPowerGroup fpg = api.getParentFixedPowerGroup();
-                int fpgPower = getFpgPower(fpg);
-
-                if (pipIsNextLevel(fpgPower, currentPower)) {
-                    tailBuf = appendToTail(tailBuf, tailSize, getLastIndexInFpg(fpg));
+            if (walkIndex - parentIndex > 1) {
+                // FPG gap detected
+                if (fpgPower == currentPower + 1) {
+                    // FPG is next level
+                    tailBuf = appendToTail(tailBuf, tailSize, walkIndex - 1);
                     tailSize++;
                     currentPower = fpgPower;
-                } else if (pipJumpsMoreThanOneLevel(fpgPower, currentPower)) {
+                } else if (fpgPower > currentPower + 1) {
                     break;
                 }
+                fpgPower++;
 
-                api = fpg.getParentPrimeIndex();
-                bodyWalk = bodyWalk.getParent();
-            } else if (api.getParentActivePrimeIndex() != null) {
-                api = api.getParentActivePrimeIndex();
-                bodyWalk = bodyWalk.getParent();
+                // now check parent pip
+                if (pipIsNextLevel(parentPip, currentPower)) {
+                    tailBuf = appendToTail(tailBuf, tailSize, parentIndex);
+                    tailSize++;
+                    currentPower = parentPip;
+                } else if (parentPip > currentPower + 1) {
+                    walk = parent;
+                    break;
+                }
             } else {
-                api = null;
-                bodyWalk = null;
+                // regular step, gap == 1
+                if (pipIsNextLevel(parentPip, currentPower)) {
+                    tailBuf = appendToTail(tailBuf, tailSize, parentIndex);
+                    tailSize++;
+                    currentPower = parentPip;
+                } else if (parentPip > currentPower + 1) {
+                    walk = parent;
+                    break;
+                }
             }
+
+            walk = parent;
         }
 
         tail = reverseTail(tailBuf, tailSize);
-        head = buildHead(bodyWalk, hcnBody);
+        head = buildHead(walk, hcnBody);
     }
 
     private boolean pipIsNextLevel(int pip, int currentPower) {
         return pip == currentPower + 1;
-    }
-
-    private boolean pipJumpsMoreThanOneLevel(int pip, int currentPower) {
-        return pip > currentPower + 1;
-    }
-
-    private int getFpgPower(FixedPowerGroup fpg) {
-        return fpg.getFixedPowerGroup().get(0).getPips().firstKey();
-    }
-
-    private int getLastIndexInFpg(FixedPowerGroup fpg) {
-        return fpg.getFixedPowerGroup().get(fpg.getFixedPowerGroup().size() - 1).getIndex();
     }
 
     private int[] appendToTail(int[] tailBuf, int tailSize, int index) {

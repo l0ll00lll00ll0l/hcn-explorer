@@ -47,7 +47,7 @@ public class BasicDataService {
                  PreparedStatement hcnPs = conn.prepareStatement(
                     "INSERT INTO basic_data_hcn (body_id, last_active_prime) VALUES (?, ?)");
                  PreparedStatement bodyPs = conn.prepareStatement(
-                    "INSERT INTO basic_data_body (id, head, tail, body_chain) VALUES (?, ?, ?, ?)")) {
+                    "INSERT INTO basic_data_body (id, head, tail) VALUES (?, ?, ?)")) {
 
                 for (Interval interval : intervals) {
                     intervalPs.setInt(1, interval.getLapi());
@@ -82,7 +82,6 @@ public class BasicDataService {
                     bodyPs.setInt(1, gen.getBasicDataId());
                     bodyPs.setArray(2, conn.createArrayOf("integer", toIntegerArray(body.getHead())));
                     bodyPs.setArray(3, conn.createArrayOf("integer", toIntegerArray(body.getTail())));
-                    bodyPs.setString(4, gen.getCurrentHcnBody().parentChainString());
                     bodyPs.addBatch();
                 }
 

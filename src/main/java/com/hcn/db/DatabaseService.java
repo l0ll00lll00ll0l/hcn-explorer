@@ -250,8 +250,7 @@ public class DatabaseService {
                 CREATE TABLE IF NOT EXISTS basic_data_body (
                     id BIGINT PRIMARY KEY,
                     head INT[],
-                    tail INT[],
-                    body_chain TEXT
+                    tail INT[]
                 )
             """);
         } catch (SQLException e) {
