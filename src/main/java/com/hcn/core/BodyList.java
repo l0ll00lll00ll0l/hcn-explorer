@@ -105,6 +105,7 @@ public class BodyList {
     }
 
     private void acceptBody(HcnBody body, List<HcnBody> added) {
+        if (body.isDeactivated()) return;
         added.add(body);
         body.getPip().addActiveHcnBody(body);
     }

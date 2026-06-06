@@ -232,16 +232,17 @@
                 <div th:each="api : ${allApi}" th:id="'bodylist-' + ${api.index}" style="display: none; text-align: left;">
                     <table class="level-table">
                         <thead>
-                            <tr><th>#</th><th>Chain</th><th>Value</th><th>Factor</th><th>Proved</th><th>Offspring</th></tr>
+                            <tr><th>#</th><th>Chain</th><th>Value</th><th>Factor</th><th>Proved</th><th>Deactivated</th><th>Offspring</th></tr>
                         </thead>
                         <tbody>
                             <tr th:each="body, iter : ${@matrixController.getActiveBodies(api)}"
-                                th:style="${body.proved ? 'background-color: #90EE90;' : ''}">
+                                th:style="${body.deactivated ? (body.proved ? 'background-color: #c8e6c9;' : 'background-color: #ffcdd2;') : (body.proved ? 'background-color: #90EE90;' : '')}">
                                 <td th:text="${iter.index}"></td>
                                 <td th:text="${body.parentChainString()}"></td>
                                 <td th:text="${body.value}"></td>
                                 <td th:text="${body.factor}"></td>
                                 <td th:text="${body.proved}"></td>
+                                <td th:text="${body.deactivated}"></td>
                                 <td th:text="${body.offspringPowers}"></td>
                             </tr>
                         </tbody>
@@ -260,14 +261,14 @@
                     <tr><th>#</th><th>BdId</th><th>CurrentBody</th><th>Walker</th><th>LastActivePrime</th><th>Value</th><th>Factor</th></tr>
                 </thead>
                 <tbody>
-                    <tr th:each="body, iter : ${@matrixController.getActiveBodies(matrix.lastActivePrimeIndex)}" th:if="${body.hcnGenerator != null}">
+                    <tr th:each="gen, iter : ${@matrixController.getGeneratorList()}">
                         <td th:text="${iter.index}"></td>
-                        <td th:text="${body.hcnGenerator.basicDataId >= 0 ? body.hcnGenerator.basicDataId : ''}"></td>
-                        <td th:text="${body.parentChainString()}"></td>
-                        <td th:text="${body.walkerBodyForLapi.isEmpty() ? '' : body.walkerBodyForLapi.![lastActivePrimeIndex]}"></td>
-                        <td th:text="${body.hcnGenerator.lastGeneratedHcn != null ? body.hcnGenerator.lastGeneratedHcn.lastActivePrime : ''}"></td>
-                        <td th:text="${body.hcnGenerator.lastGeneratedHcn != null ? body.hcnGenerator.lastGeneratedHcn.value : ''}"></td>
-                        <td th:text="${body.hcnGenerator.lastGeneratedHcn != null ? body.hcnGenerator.lastGeneratedHcn.factor : ''}"></td>
+                        <td th:text="${gen.basicDataId >= 0 ? gen.basicDataId : ''}"></td>
+                        <td th:text="${gen.currentHcnBody.parentChainString()}"></td>
+                        <td th:text="${gen.walkerGeneratorForLapi.isEmpty() ? '' : gen.walkerGeneratorForLapi.![lastActivePrimeIndex]}"></td>
+                        <td th:text="${gen.lastGeneratedHcn != null ? gen.lastGeneratedHcn.lastActivePrime : ''}"></td>
+                        <td th:text="${gen.lastGeneratedHcn != null ? gen.lastGeneratedHcn.value : ''}"></td>
+                        <td th:text="${gen.lastGeneratedHcn != null ? gen.lastGeneratedHcn.factor : ''}"></td>
                     </tr>
                 </tbody>
             </table>

@@ -3,6 +3,7 @@ package com.hcn.controller;
 import com.hcn.core.ActivePrimeIndex;
 import com.hcn.core.FixedPowerGroup;
 import com.hcn.core.HcnBody;
+import com.hcn.core.HcnGenerator;
 import com.hcn.core.Matrix;
 import com.hcn.core.Hcn;
 import com.hcn.core.LastActivePrimeIndexGroup;
@@ -156,6 +157,16 @@ public class MatrixController {
         return pi.getHcnBodyList().stream()
                 .sorted()
                 .collect(Collectors.toList());
+    }
+
+    public List<HcnGenerator> getGeneratorList() {
+        List<HcnGenerator> list = new ArrayList<>();
+        HcnGenerator current = matrix.getSmallestGenerator();
+        while (current != null) {
+            list.add(current);
+            current = current.getLargerGenerator();
+        }
+        return list;
     }
     
     public String getPrimeRangeDisplay(FixedPowerGroup fpg) {

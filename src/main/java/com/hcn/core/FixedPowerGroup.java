@@ -15,6 +15,10 @@ public class FixedPowerGroup {
     private ActivePrimeIndex offspringPrimeIndex = null;
 
     public void receivePrimeIndex(ActivePrimeIndex primeIndex) {
+        System.out.println("DEBUG FPG receivePrimeIndex: p" + primeIndex.getIndex() + " pip=" + primeIndex.getPips().firstKey() + " bodyListSize=" + primeIndex.getHcnBodyList().stream().count());
+        primeIndex.getHcnBodyList().stream().forEach(body -> {
+            System.out.println("DEBUG   FPG body: " + body + " deactivated=" + body.isDeactivated() + " hasGen=" + (body.getHcnGenerator() != null) + " offsprings=" + body.getOffsprings().size());
+        });
         fixedPowerGroup.add(primeIndex);
         value = value.multiply(new ScientificNumber(Math.pow(PrimeCenter.getPrime(primeIndex.getIndex()), primeIndex.getPips().firstEntry().getValue().getPower()), 0));
         factor = factor.multiply(new ScientificNumber((primeIndex.getPips().firstEntry().getValue().getPower() + 1), 0));
@@ -26,7 +30,11 @@ public class FixedPowerGroup {
 
     public ActivePrimeIndex reactivatePrimeIndex() {
         ActivePrimeIndex reactivatedPrimeIndex = fixedPowerGroup.remove(0);
-        reactivatedPrimeIndex.getHcnBodyList().addGroup(parentPrimeIndex.getHcnBodyList().stream().map(hcnBody -> hcnBody.addReactivateHcnBodyFromParent(reactivatedPrimeIndex)).collect(Collectors.toList()));
+        reactivatedPrimeIndex.getHcnBodyList().addGroup(
+                parentPrimeIndex.getHcnBodyList().stream()
+                        .filter(hcnBody -> !hcnBody.isDeactivated())
+                        .map(hcnBody -> hcnBody.addReactivateHcnBodyFromParent(reactivatedPrimeIndex))
+                        .collect(Collectors.toList()));
         parentPrimeIndex = reactivatedPrimeIndex;
         value = value.divide(new ScientificNumber(Math.pow(PrimeCenter.getPrime(reactivatedPrimeIndex.getIndex()), reactivatedPrimeIndex.getPips().firstEntry().getValue().getPower()), 0));
         factor = factor.divide(new ScientificNumber((reactivatedPrimeIndex.getPips().firstEntry().getValue().getPower() + 1), 0));

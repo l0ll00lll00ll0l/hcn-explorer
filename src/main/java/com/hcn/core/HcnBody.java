@@ -55,8 +55,9 @@ public class HcnBody implements Comparable<HcnBody> {
     public void setLargerBody(HcnBody largerBody) {this.largerBody = largerBody;}
     public void setParent(HcnBody parent) {this.parent = parent;}
     public void setParentForLoad(HcnBody parent) {this.parent = parent;}
+    private boolean deactivated = false;
     public boolean isDeactivated(){
-        return !pip.getActiveHcnBodies().contains(this);
+        return deactivated;
     }
     public String getBodyId() {
         return "p" + pip.getActivePrimeIndex().getIndex() + "^" + pip.getPower();
@@ -75,6 +76,12 @@ public class HcnBody implements Comparable<HcnBody> {
 
     public HcnBody() {}
 
+    public void setDeactivated(boolean deactivated) { this.deactivated = deactivated; }
+
+    private boolean matchesChain(String chain) {
+        return parentChainString().equals(chain);
+    }
+
     public HcnBody(HcnBody parent, PrimeIndexPower pip) {
         this.parent = parent;
         this.pip = pip;
@@ -85,16 +92,15 @@ public class HcnBody implements Comparable<HcnBody> {
         if (parent != null) {
             value = parent.value.multiply(valueMultiplier);
             factor = parent.factor.multiply(factorMultiplier);
-            parent.offsprings.add(this);
-            if (parent.getLastGeneratedHcn() != null) {
-                hcnGenerator = parent.hcnGenerator;
-                parent.hcnGenerator = null;
-                hcnGenerator.setCurrentHcnBody(this);
-            }
-            if (!parent.walkerBodyForLapi.isEmpty()) {
-                this.walkerBodyForLapi.addAll(parent.walkerBodyForLapi);
-                parent.walkerBodyForLapi.clear();
-                walkerBodyForLapi.forEach(lapi -> lapi.setWalkerBody(this));
+            if (parent.isDeactivated()) {
+                deactivated = true;
+            } else {
+                parent.offsprings.add(this);
+                if (parent.getHcnGenerator() != null) {
+                    hcnGenerator = parent.hcnGenerator;
+                    parent.hcnGenerator = null;
+                    hcnGenerator.setCurrentHcnBody(this);
+                }
             }
         } else {
             value = valueMultiplier;
@@ -123,11 +129,30 @@ public class HcnBody implements Comparable<HcnBody> {
     }
 
     public void deactivateFromLists() {
-        if (isDeactivated()) {
+        if (deactivated) {
             return;
         }
+        deactivated = true;
         pip.getActivePrimeIndex().getHcnBodyList().remove(this);
         pip.removeActiveHcnBody(this);
+        if (hcnGenerator != null) {
+            if (!hcnGenerator.getWalkerGeneratorForLapi().isEmpty()) {
+                for (LastActivePrimeIndexGroup lapi : hcnGenerator.getWalkerGeneratorForLapi()) {
+                    lapi.setWalkerDeleted(true);
+                    //System.out.println("lapi " + lapi.getLastActivePrimeIndex() + " was set walkerDeleted by " + this.parentChainString());
+                }
+            }
+            if (hcnGenerator.getSmallerGenerator() != null) {
+                hcnGenerator.getSmallerGenerator().setLargerGenerator(hcnGenerator.getLargerGenerator());
+            }
+            if (hcnGenerator.getLargerGenerator() != null) {
+                hcnGenerator.getLargerGenerator().setSmallerGenerator(hcnGenerator.getSmallerGenerator());
+            }
+            hcnGenerator.setLargerGenerator(null);
+            hcnGenerator.setSmallerGenerator(null);
+
+            hcnGenerator = null;
+        }
     }
 
     public void removeFixedHcnBody() {
@@ -201,7 +226,8 @@ public class HcnBody implements Comparable<HcnBody> {
     }
 
     public void gotDominated() {
-        deactivateFromLists();
-        pip.getActivePrimeIndex().deactivateRecursive(this);
+        deactivated = true;
+        pip.removeActiveHcnBody(this);
+        pip.getActivePrimeIndex().deactivateRecursive(this, false);
     }
 }

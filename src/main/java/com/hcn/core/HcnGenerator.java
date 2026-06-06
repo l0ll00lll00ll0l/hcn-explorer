@@ -2,11 +2,16 @@ package com.hcn.core;
 
 import com.hcn.core.basicdata.Body;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class HcnGenerator {
     private int basicDataId = -1;
     private Hcn lastGeneratedHcn = null;
     private HcnBody currentHcnBody;
     private Body body = null;
+    private HcnGenerator smallerGenerator = null;
+    private HcnGenerator largerGenerator = null;
 
     public HcnGenerator(HcnBody currentHcnBody) {
         this.currentHcnBody = currentHcnBody;
@@ -18,6 +23,30 @@ public class HcnGenerator {
     public void setCurrentHcnBody(HcnBody currentHcnBody) { this.currentHcnBody = currentHcnBody; }
     public int getBasicDataId() { return basicDataId; }
     public void setBasicDataId(int basicDataId) { this.basicDataId = basicDataId; }
+    public HcnGenerator getSmallerGenerator() { return smallerGenerator; }
+    public void setSmallerGenerator(HcnGenerator smallerGenerator) { this.smallerGenerator = smallerGenerator; }
+    public HcnGenerator getLargerGenerator() { return largerGenerator; }
+    public void setLargerGenerator(HcnGenerator largerGenerator) { this.largerGenerator = largerGenerator; }
+
+    private List<LastActivePrimeIndexGroup> walkerGeneratorForLapi = new java.util.ArrayList<>();
+    public List<LastActivePrimeIndexGroup> getWalkerGeneratorForLapi() { return walkerGeneratorForLapi; }
+    public void addWalkerGeneratorForLapi(LastActivePrimeIndexGroup lapi) { walkerGeneratorForLapi.add(lapi); }
+    public void removeWalkerGeneratorForLapi(LastActivePrimeIndexGroup lapi) { walkerGeneratorForLapi.remove(lapi); }
+
+    public void gotDominated() {
+
+        // remove from generator list
+        if (smallerGenerator != null) {
+            smallerGenerator.setLargerGenerator(largerGenerator);
+        }
+        if (largerGenerator != null) {
+            largerGenerator.setSmallerGenerator(smallerGenerator);
+        }
+        smallerGenerator = null;
+        largerGenerator = null;
+        // deactivate on body side (pip removal + offspring cascade)
+        currentHcnBody.gotDominated();
+    }
 
     public Body getBody() {
         if (body == null) body = new Body(currentHcnBody);
@@ -46,32 +75,39 @@ public class HcnGenerator {
     }
 
     private Hcn computeFromReference(LastActivePrimeIndexGroup lapiGroup) {
-        HcnBody referenceBody = findReferenceBodyDownwards(lapiGroup);
+        HcnGenerator referenceGenerator = findReferenceGeneratorDownwards(lapiGroup);
 
-        if (referenceBody == null) {
-            Hcn referenceHcn = lapiGroup.getLowerLapiGroup().getWalkerBody().getHcnGenerator().lastGeneratedHcn;
+        if (referenceGenerator == null) {
+
+            Hcn referenceHcn = lapiGroup.getLowerLapiGroup().getWalkerGenerator().lastGeneratedHcn;
+            HcnBody referenceBody = lapiGroup.getLowerLapiGroup().getWalkerGenerator().currentHcnBody;
+            ScientificNumber valMult = referenceBody.getValueMultiplier(currentHcnBody);
+            ScientificNumber facMult = referenceBody.getFactorMultiplier(currentHcnBody);
             Hcn newHcn = new Hcn(this, referenceHcn.getLastActivePrime() + 1);
-            newHcn.setValue(referenceHcn.getValue().multiply(referenceBody.getValueMultiplier(currentHcnBody)).multiply(lapiGroup.getPrimeValue()));
-            newHcn.setFactor(referenceHcn.getFactor().multiply(referenceBody.getFactorMultiplier(currentHcnBody)).multiply(new ScientificNumber(2, 0)));
+            newHcn.setValue(referenceHcn.getValue().multiply(valMult).multiply(lapiGroup.getPrimeValue()));
+            newHcn.setFactor(referenceHcn.getFactor().multiply(facMult).multiply(new ScientificNumber(2, 0)));
             return newHcn;
         }
 
-        Hcn referenceHcn = referenceBody.getHcnGenerator().lastGeneratedHcn;
+        Hcn referenceHcn = referenceGenerator.lastGeneratedHcn;
+        ScientificNumber valMult = referenceGenerator.currentHcnBody.getValueMultiplier(currentHcnBody);
+        ScientificNumber facMult = referenceGenerator.currentHcnBody.getFactorMultiplier(currentHcnBody);
         Hcn newHcn = new Hcn(this, referenceHcn.getLastActivePrime());
-        newHcn.setValue(referenceHcn.getValue().multiply(referenceBody.getValueMultiplier(currentHcnBody)));
-        newHcn.setFactor(referenceHcn.getFactor().multiply(referenceBody.getFactorMultiplier(currentHcnBody)));
+        newHcn.setValue(referenceHcn.getValue().multiply(valMult));
+        newHcn.setFactor(referenceHcn.getFactor().multiply(facMult));
         return newHcn;
     }
 
-    private HcnBody findReferenceBodyDownwards(LastActivePrimeIndexGroup lapiGroup) {
-        if (currentHcnBody.getSmallerBody() == null) {
+    private HcnGenerator findReferenceGeneratorDownwards(LastActivePrimeIndexGroup lapiGroup) {
+        if (smallerGenerator == null) {
             return null;
         }
-        HcnBody referenceBody = currentHcnBody.getSmallerBody();
-        while (referenceBody.getHcnGenerator() == null || referenceBody.getHcnGenerator().lastGeneratedHcn == null
-                || referenceBody.getHcnGenerator().lastGeneratedHcn.getLastActivePrime() != lapiGroup.getLastActivePrimeIndex()) {
-            referenceBody = referenceBody.getSmallerBody();
+        HcnGenerator ref = smallerGenerator;
+        while (ref.lastGeneratedHcn == null
+                || ref.lastGeneratedHcn.getLastActivePrime() != lapiGroup.getLastActivePrimeIndex()) {
+            ref = ref.smallerGenerator;
+            if (ref == null) return null;
         }
-        return referenceBody;
+        return ref;
     }
 }

@@ -2,9 +2,11 @@ package com.hcn.core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class Matrix {
     protected ActivePrimeIndex lastActivePrimeIndex;
+    protected HcnGenerator smallestGenerator;
     protected LastActivePrimeIndexGroup lowestLapiGroup;
     protected LastActivePrimeIndexGroup highestLapiGroup;
     protected LastActivePrimeIndexGroup nextLapiGroup;
@@ -22,6 +24,7 @@ public class Matrix {
 
 
     public ActivePrimeIndex getLastActivePrimeIndex() { return lastActivePrimeIndex; }
+    public HcnGenerator getSmallestGenerator() { return smallestGenerator; }
     public int getProvedCount() { return provedCount; }
     public int getLastProvedPrimeIndex() { return lastProvedPrimeIndex; }
     public int getLowestProvedLapiWithinInterval() { return lowestProvedLapiWithinInterval; }
@@ -180,22 +183,37 @@ public class Matrix {
         provedHcns.add(hcn2);
 
         b_p1_11.setHcnGenerator(gen1);
+        gen1.setCurrentHcnBody(b_p1_11);
         Hcn hcn3 = new Hcn(b_p1_11.getHcnGenerator(), 1);
         hcn3.setValue(new ScientificNumber(6, 0));
         hcn3.setFactor(new ScientificNumber(4, 0));
         b_p1_11.getHcnGenerator().setLastGeneratedHcn(hcn3);
 
         b_p1_21.setHcnGenerator(gen2);
+        gen2.setCurrentHcnBody(b_p1_21);
         Hcn hcn4 = new Hcn(b_p1_21.getHcnGenerator(), 1);
         hcn4.setValue(new ScientificNumber(12, 0));
         hcn4.setFactor(new ScientificNumber(6, 0));
         b_p1_21.getHcnGenerator().setLastGeneratedHcn(hcn4);
 
+        // === Generator list (same order as bodyList on lastActivePrimeIndex) ===
+        HcnGenerator gen_p1_11 = b_p1_11.getHcnGenerator();
+        HcnGenerator gen_p1_21 = b_p1_21.getHcnGenerator();
+        HcnGenerator gen_p1_31 = new HcnGenerator(b_p1_31); b_p1_31.setHcnGenerator(gen_p1_31);
+        HcnGenerator gen_p1_22 = new HcnGenerator(b_p1_22); b_p1_22.setHcnGenerator(gen_p1_22);
+        HcnGenerator gen_p1_32 = new HcnGenerator(b_p1_32); b_p1_32.setHcnGenerator(gen_p1_32);
+
+        gen_p1_11.setLargerGenerator(gen_p1_21); gen_p1_21.setSmallerGenerator(gen_p1_11);
+        gen_p1_21.setLargerGenerator(gen_p1_31); gen_p1_31.setSmallerGenerator(gen_p1_21);
+        gen_p1_31.setLargerGenerator(gen_p1_22); gen_p1_22.setSmallerGenerator(gen_p1_31);
+        gen_p1_22.setLargerGenerator(gen_p1_32); gen_p1_32.setSmallerGenerator(gen_p1_22);
+        smallestGenerator = gen_p1_11;
+
         // === LapiGroup ===
-        nextLapiGroup = new LastActivePrimeIndexGroup(1, b_p1_21);
+        nextLapiGroup = new LastActivePrimeIndexGroup(1, gen_p1_21);
         nextLapiGroup.getHcnList().add(hcn2);
         nextLapiGroup.getHcnList().add(hcn3);
-        highestLapiGroup = new LastActivePrimeIndexGroup(0, b_p1_11);
+        highestLapiGroup = new LastActivePrimeIndexGroup(0, gen_p1_11);
         highestLapiGroup.getHcnList().add(hcn2);
         lowestLapiGroup = highestLapiGroup;
 
@@ -216,7 +234,7 @@ public class Matrix {
         maintainLapiGroups();
 
         //create next lapi group
-        nextLapiGroup = new LastActivePrimeIndexGroup(highestLapiGroup.getLastActivePrimeIndex() + 1, lastActivePrimeIndex.getHcnBodyList().getSmallestBody());
+        nextLapiGroup = new LastActivePrimeIndexGroup(highestLapiGroup.getLastActivePrimeIndex() + 1, smallestGenerator);
 
         nextLapiGroup.getHcnList().add(findLastSuperiorHcn(determineTargetValue()));
         maintainProvedHcns();
@@ -242,12 +260,14 @@ public class Matrix {
         do {
             largestGeneratedSuperiorHcn = extendLapiHcnListsUntilTarget(targetValue);
             candidateIsSuperior = true;
-            Hcn targetHcn = nextLapiGroup.getWalkerBody().generateNextHcn(nextLapiGroup);
+            Hcn targetHcn = nextLapiGroup.getWalkerGenerator().generateNextHcn(nextLapiGroup);
 
             if (largestGeneratedSuperiorHcn.getFactor().isNotSmallerThan(targetHcn.getFactor())) {
                 candidateIsSuperior = false;
-                nextLapiGroup.shiftWalkerBody();
-                targetHcn.getBody().gotDominated();
+                nextLapiGroup.shiftWalkerGenerator();
+                targetHcn.getHcnGenerator().gotDominated();
+                smallestGenerator = nextLapiGroup.getWalkerGenerator();
+                lastActivePrimeIndex.deactivatedMaintain();
                 targetValue = determineTargetValue();
             }
 
@@ -257,7 +277,7 @@ public class Matrix {
 
     private Hcn extendLapiHcnListsUntilTarget(ScientificNumber targetValue) {
         long tGen = System.nanoTime();
-        lowestLapiGroup.generateHcnList(provedLimit, targetValue);
+        lowestLapiGroup.generateHcnList(provedLimit, targetValue, lastActivePrimeIndex);
         generateHcnListNanos += System.nanoTime() - tGen;
 
         long tExt = System.nanoTime();
@@ -272,16 +292,41 @@ public class Matrix {
     private void matrixMaintainCheck() {
         highestLapiGroup.getHcnList().forEach(hcn -> {
             if (!hcn.getBody().isDeactivated()) {
-                lastActivePrimeIndex.extendMatrix(hcn.getBody());
+                Set<HcnBody> newBodies = lastActivePrimeIndex.extendMatrix(hcn.getBody());
                 if (!lastActivePrimeIndex.isLastActivePrimeIndex()) {
                     lastActivePrimeIndex = lastActivePrimeIndex.getNextActivePrimeIndex();
+                }
+                for (HcnBody body : newBodies) {
+                    if (body.isDeactivated()) continue;
+                    HcnGenerator newGen = new HcnGenerator(body);
+                    body.setHcnGenerator(newGen);
+                    insertGeneratorInList(newGen, body);
                 }
             }
         });
     }
 
+    private void insertGeneratorInList(HcnGenerator newGen, HcnBody body) {
+        HcnBody smaller = body.getSmallerBody();
+        while (smaller != null && smaller.getHcnGenerator() == null) {
+            smaller = smaller.getSmallerBody();
+        }
+        if (smaller == null) {
+            newGen.setLargerGenerator(smallestGenerator);
+            if (smallestGenerator != null) smallestGenerator.setSmallerGenerator(newGen);
+            smallestGenerator = newGen;
+        } else {
+            HcnGenerator smallerGen = smaller.getHcnGenerator();
+            HcnGenerator largerGen = smallerGen.getLargerGenerator();
+            smallerGen.setLargerGenerator(newGen);
+            newGen.setSmallerGenerator(smallerGen);
+            newGen.setLargerGenerator(largerGen);
+            if (largerGen != null) largerGen.setSmallerGenerator(newGen);
+        }
+    }
+
     private ScientificNumber determineTargetValue() {
-        return nextLapiGroup.getPrimeValue().multiply(nextLapiGroup.getWalkerBody().getLastGeneratedHcn().getValue());
+        return nextLapiGroup.getPrimeValue().multiply(nextLapiGroup.getWalkerGenerator().getLastGeneratedHcn().getValue());
     }
 
     public Hcn proveNextSuperior() {
@@ -308,8 +353,8 @@ public class Matrix {
 
         while (lowestProvedLapiWithinInterval > lowestLapiGroup.getLastActivePrimeIndex()) {
             LastActivePrimeIndexGroup lapiToRemove = lowestLapiGroup;
-            lapiToRemove.getWalkerBody().removeWalkerBodyForLapi(lapiToRemove);
-            lapiToRemove.setWalkerBody(null);
+            lapiToRemove.getWalkerGenerator().removeWalkerGeneratorForLapi(lapiToRemove);
+            lapiToRemove.setWalkerGenerator(null);
             lowestLapiGroup = lowestLapiGroup.getHigherLapiGroup();
             lapiToRemove.setHigherLapiGroup(null);
             lowestLapiGroup.setLowerLapiGroup(null);
