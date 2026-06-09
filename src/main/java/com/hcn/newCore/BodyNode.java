@@ -5,6 +5,8 @@ import java.util.Set;
 
 public interface BodyNode {
 
+    int getBodyNodeId();
+
     ScientificNumber getValue();
     void setValue(ScientificNumber value);
 

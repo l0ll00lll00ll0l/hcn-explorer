@@ -86,9 +86,9 @@ public class Body implements Comparable<Body>{
                 if (i > 0) sb.append(",");
                 BodyNode node = offsprings.get(i).getBodyNode();
                 if (node instanceof Pip pip) {
-                    sb.append(pip.getPower());
+                    sb.append(pip.getBodyNodeId());
                 } else if (node instanceof Transition transition) {
-                    sb.append("t").append(transition.getFirstLowerIndex());
+                    sb.append("t").append(transition.getBodyNodeId());
                 }
             }
             sb.append("}");
@@ -102,9 +102,9 @@ public class Body implements Comparable<Body>{
             sb.append(", ");
         }
         if (body.bodyNode instanceof Pip pip) {
-            sb.append("p").append(pip.getApi().getIndex()).append("^").append(pip.getPower());
+            sb.append("p").append(pip.getApi().getIndex()).append("^").append(pip.getBodyNodeId());
         } else if (body.bodyNode instanceof Transition transition) {
-            sb.append("t").append(transition.getFirstLowerIndex());
+            sb.append("t").append(transition.getBodyNodeId());
         }
     }
 }

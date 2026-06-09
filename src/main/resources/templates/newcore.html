@@ -67,9 +67,9 @@
                 <th:block th:if="${node instanceof T(com.hcn.newCore.ApiNode)}">
                     <div class="matrix-box-header" th:text="${node.prime}"></div>
                     <div class="matrix-box-content">
-                        <div th:each="entry : ${node.pips.descendingMap()}" class="transition-panel"
+                        <div th:each="entry : ${node.bodyNodes.descendingMap()}" class="transition-panel"
                              th:style="${entry.value.proved ? 'background-color: #90EE90;' : ''}">
-                            <span class="transition-id" th:text="${entry.value.power}"></span>
+                            <span class="transition-id" th:text="${entry.value.bodyNodeId}"></span>
                             <span th:text="'v=' + ${entry.value.value} + ' f=' + ${entry.value.factor}"></span>
                             <span th:text="'(' + ${entry.value.activeBodies.size()} + ')'" ></span>
                         </div>
@@ -81,9 +81,9 @@
                 <th:block th:if="${node instanceof T(com.hcn.newCore.TransitionNode)}">
                     <div class="matrix-box-header" th:text="${node.transitionFrom} + ' → ' + ${node.transitionTo}"></div>
                     <div class="matrix-box-content">
-                        <div th:each="entry : ${node.transitions.descendingMap()}" class="transition-panel"
+                        <div th:each="entry : ${node.bodyNodes.descendingMap()}" class="transition-panel"
                              th:style="${entry.value.proved ? 'background-color: #90EE90;' : ''}">
-                            <span class="transition-id" th:text="${entry.value.firstLowerIndex}"></span>
+                            <span class="transition-id" th:text="${entry.value.bodyNodeId}"></span>
                             <span th:text="'v=' + ${entry.value.value} + ' f=' + ${entry.value.factor}"></span>
                             <span th:text="'(' + ${entry.value.activeBodies.size()} + ')'" ></span>
                         </div>

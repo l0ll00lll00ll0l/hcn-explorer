@@ -11,24 +11,24 @@ public class ApiNodeCreator {
                 .prevMatrixNode(oldApiNode).nextMatrixNode(transitionNode).build();
 
         Pip pipLower = null;
-        Transition transitionToRemove = null;
-        if (transitionNode.getTransitions().containsKey(newIndex)) {
+        BodyNode transitionToRemove = null;
+        if (transitionNode.getBodyNodes().containsKey(newIndex)) {
             int transitionTo = transitionNode.getTransitionTo();
-            transitionToRemove = transitionNode.getTransitions().get(newIndex);
+            transitionToRemove = transitionNode.getBodyNodes().get(newIndex);
             pipLower = Pip.builder().api(newApiNode)
                     .value(newValue.pow(transitionTo))
                     .factor(new ScientificNumber(transitionTo + 1, 0))
-                    .power(transitionTo).proved(transitionToRemove.isProved()).build();
-            newApiNode.getPips().put(pipLower.getPower(), pipLower);
+                    .bodyNodeId(transitionTo).proved(transitionToRemove.isProved()).build();
+            newApiNode.getBodyNodes().put(pipLower.getBodyNodeId(), pipLower);
         }
 
         int transitionFrom = transitionNode.getTransitionFrom();
-        Transition nextLowerTransition = transitionNode.getTransitions().get(newIndex + 1);
+        BodyNode nextLowerTransition = transitionNode.getBodyNodes().get(newIndex + 1);
         Pip pip = Pip.builder().api(newApiNode)
                 .value(newValue.pow(transitionFrom))
                 .factor(new ScientificNumber(transitionFrom + 1, 0))
-                .power(transitionFrom).proved(nextLowerTransition.isProved()).build();
-        newApiNode.getPips().put(pip.getPower(), pip);
+                .bodyNodeId(transitionFrom).proved(nextLowerTransition.isProved()).build();
+        newApiNode.getBodyNodes().put(pip.getBodyNodeId(), pip);
 
         recalculateTransitions(transitionNode);
         newApiNode.setBodyList(rebuildBodyNodesDualPip(pipLower, pip, transitionNode, transitionToRemove, nextLowerTransition));
@@ -41,15 +41,15 @@ public class ApiNodeCreator {
         ScientificNumber valueExcluded = new ScientificNumber(Math.pow(transitionNode.getPrimeCenter().getPrime(transitionNode.getFirstIndex()), transitionNode.getTransitionFrom()), 0);
         ScientificNumber factorExcluded = new ScientificNumber(transitionNode.getTransitionFrom() + 1, 0);
         transitionNode.setFirstIndex(transitionNode.getFirstIndex() + 1);
-        transitionNode.getTransitions().remove(transitionNode.getTransitions().firstKey());
-        transitionNode.getTransitions().forEach((key, transition) -> {
+        transitionNode.getBodyNodes().remove(transitionNode.getBodyNodes().firstKey());
+        transitionNode.getBodyNodes().forEach((key, transition) -> {
                     transition.setValue(transition.getValue().divide(valueExcluded));
                     transition.setFactor(transition.getFactor().divide(factorExcluded));
                 });
 
     }
 
-    private static BodyList rebuildBodyNodesDualPip(Pip pipLower, Pip pip, TransitionNode transitionNode, Transition transitionToRemove, Transition nextLowerTransition) {
+    private static BodyList rebuildBodyNodesDualPip(Pip pipLower, Pip pip, TransitionNode transitionNode, BodyNode transitionToRemove, BodyNode nextLowerTransition) {
 
         Body bodyToRebuild = transitionNode.getBodyList().getSmallestBody();
         Body newBodyNode = null;

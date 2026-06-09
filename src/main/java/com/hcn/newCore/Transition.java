@@ -14,7 +14,7 @@ public class Transition implements BodyNode {
     private ScientificNumber value;
     private ScientificNumber factor;
     private final TransitionNode transitionNode;
-    private final int firstLowerIndex;
+    private final int bodyNodeId;
     @Builder.Default
     private boolean proved = false;
     private final Set<Body> activeBodies = new HashSet<>();

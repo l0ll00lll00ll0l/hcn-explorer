@@ -13,7 +13,7 @@ import java.util.Set;
 public class Pip implements BodyNode{
 
     private final ApiNode api;
-    private final int power;
+    private final int bodyNodeId;
     @Builder.Default
     private boolean proved = false;
     private ScientificNumber value;

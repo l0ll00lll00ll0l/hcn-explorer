@@ -1,15 +1,11 @@
 package com.hcn.newCore;
 
-import com.hcn.core.HcnBody;
-import com.hcn.core.HcnGenerator;
-import com.hcn.core.LastActivePrimeIndexGroup;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Getter
 @Setter
@@ -38,29 +34,29 @@ public class Matrix {
     public void initialize() {
 
         ApiNode p0 = ApiNode.builder().index(0).prevMatrixNode(null).prime(new ScientificNumber(2, 0)).build();
-        Pip pip01 = Pip.builder().api(p0).power(1).proved(true)
+        Pip pip01 = Pip.builder().api(p0).bodyNodeId(1).proved(true)
                 .value(new ScientificNumber(2,0))
                 .factor(new ScientificNumber(2, 0)).build();
-        Pip pip02 = Pip.builder().api(p0).power(2).proved(true)
+        Pip pip02 = Pip.builder().api(p0).bodyNodeId(2).proved(true)
                 .value(new ScientificNumber(4,0))
                 .factor(new ScientificNumber(3, 0)).build();
-        Pip pip03 = Pip.builder().api(p0).power(3)
+        Pip pip03 = Pip.builder().api(p0).bodyNodeId(3)
                 .value(new ScientificNumber(8,0))
                 .factor(new ScientificNumber(4, 0)).build();
-        p0.getPips().put(1, pip01);
-        p0.getPips().put(2, pip02);
-        p0.getPips().put(3, pip03);
+        p0.getBodyNodes().put(1, pip01);
+        p0.getBodyNodes().put(2, pip02);
+        p0.getBodyNodes().put(3, pip03);
 
         lastTransition = TransitionNode.builder()
                 .transitionFrom(2).transitionTo(1).firstIndex(1).lastIndex(2).primeCenter(new PrimeCenter()).build();
-        Transition t1 = Transition.builder().transitionNode(lastTransition).firstLowerIndex(1)
+        Transition t1 = Transition.builder().transitionNode(lastTransition).bodyNodeId(1)
                 .value(new ScientificNumber(1, 0))
                 .factor(new ScientificNumber(1, 0)).proved(true).build();
-        lastTransition.getTransitions().put(1, t1);
+        lastTransition.getBodyNodes().put(1, t1);
         Transition t2 = Transition.builder()
-                .transitionNode(lastTransition).firstLowerIndex(2).value(new ScientificNumber(9, 0))
+                .transitionNode(lastTransition).bodyNodeId(2).value(new ScientificNumber(9, 0))
                 .factor(new ScientificNumber(3, 0)).build();
-        lastTransition.getTransitions().put(2, t2);
+        lastTransition.getBodyNodes().put(2, t2);
 
         p0.setNextMatrixNode(lastTransition);
         lastTransition.setPrevMatrixNode(p0);
