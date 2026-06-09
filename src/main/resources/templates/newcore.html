@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>HCN - New Core</title>
+    <style>
+        body { font-family: monospace; margin: 20px; }
+        .tab-bar { display: flex; gap: 4px; margin-bottom: 10px; }
+        .tab-btn { padding: 6px 14px; border: 1px solid #ccc; background: #eee; cursor: pointer; font-family: monospace; }
+        .tab-btn.active { background: #333; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .matrix-chain { display: flex; gap: 8px; align-items: flex-end; overflow-x: auto; padding: 10px 0; }
+        .matrix-box { border: 1px solid #333; min-width: 120px; background: #fafafa; }
+        .matrix-box-header { padding: 4px 8px; font-size: 11px; text-align: center; font-weight: bold; }
+        .matrix-box-content { padding: 6px 8px; font-size: 11px; }
+        .matrix-box-footer { background: #333; color: white; padding: 4px 8px; font-size: 10px; text-align: center; }
+        .transition-panel { border: 1px solid #ccc; padding: 4px 8px; margin: 3px 0; font-size: 11px; }
+        .transition-id { font-weight: bold; margin-right: 6px; }
+        .transition-item { padding: 2px 0; }
+        .bodynode-btn { border: 1px solid #666; padding: 4px 8px; margin: 4px 8px; text-align: center; font-size: 10px; cursor: pointer; background: #eee; }
+        .bodylist-selector { display: flex; gap: 4px; margin-bottom: 10px; flex-wrap: wrap; }
+        .bodylist-btn { padding: 4px 10px; border: 1px solid #ccc; background: #eee; cursor: pointer; font-family: monospace; font-size: 11px; }
+        .bodylist-btn.active { background: #333; color: white; }
+        .bodylist-panel { margin-top: 8px; }
+        .lapi-chain { display: flex; gap: 8px; align-items: flex-start; overflow-x: auto; padding: 10px 0; }
+        .lapi-box { border: 1px solid #333; min-width: 150px; background: #fafafa; }
+        .lapi-next { margin-right: 30px; }
+        .lapi-header { background: #333; color: white; padding: 4px 8px; font-size: 11px; text-align: center; }
+        .lapi-content { padding: 4px; font-size: 11px; max-height: 300px; overflow-y: auto; }
+        .level-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .level-table th { background: #333; color: white; padding: 4px 6px; text-align: left; position: sticky; top: 0; }
+        .level-table td { padding: 4px 6px; border-bottom: 1px solid #ddd; }
+        .level-table tr:hover { background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <h2 style="margin: 0;">HCN - New Core</h2>
+            <form method="post" action="/newcore/prove" onsubmit="setTimeout(startPolling, 200)" style="display: flex; align-items: center; gap: 4px;">
+                <input type="hidden" name="tab" id="hiddenTab" th:value="${activeTab}"/>
+                <input type="hidden" name="bodyListIdx" id="hiddenBodyList" th:value="${activeBodyList}"/>
+                <input type="number" name="count" value="1" min="1" style="width: 50px; font-family: monospace; padding: 2px 4px;"/>
+                <button type="submit" id="proveBtn" style="font-family: monospace; padding: 4px 12px;" th:disabled="${matrix.proving}">Prove</button>
+            </form>
+            <div id="progressBar" style="display: none; align-items: center; gap: 6px;">
+                <div style="width: 150px; height: 16px; border: 1px solid #333; background: #eee;">
+                    <div id="progressFill" style="height: 100%; background: #4caf50; width: 0%; transition: width 0.3s;"></div>
+                </div>
+                <span id="progressText" style="font-size: 11px;"></span>
+            </div>
+        </div>
+        <a href="/newcore/quit" style="font-family: monospace; padding: 4px 12px; border: 1px solid #ccc; text-decoration: none; color: black;">Quit</a>
+    </div>
+
+    <div class="tab-bar">
+        <button class="tab-btn" th:classappend="${activeTab == 'matrix' ? ' active' : ''}" data-tab="matrix" onclick="switchTab('matrix')">Matrix</button>
+        <button class="tab-btn" th:classappend="${activeTab == 'bodynodes' ? ' active' : ''}" data-tab="bodynodes" onclick="switchTab('bodynodes')">BodyNodes</button>
+        <button class="tab-btn" th:classappend="${activeTab == 'hcngen' ? ' active' : ''}" data-tab="hcngen" onclick="switchTab('hcngen')">Hcn Generation</button>
+        <button class="tab-btn" th:classappend="${activeTab == 'lapi' ? ' active' : ''}" data-tab="lapi" onclick="switchTab('lapi')">Lapi</button>
+    </div>
+
+    <div id="tab-matrix" class="tab-content" th:classappend="${activeTab == 'matrix' ? ' active' : ''}">
+        <div class="matrix-chain">
+            <div th:each="node, iter : ${matrixChain}" class="matrix-box">
+                <!-- ApiNode -->
+                <th:block th:if="${node instanceof T(com.hcn.newCore.ApiNode)}">
+                    <div class="matrix-box-header" th:text="${node.prime}"></div>
+                    <div class="matrix-box-content">
+                        <div th:each="entry : ${node.pips.descendingMap()}" class="transition-panel"
+                             th:style="${entry.value.proved ? 'background-color: #90EE90;' : ''}">
+                            <span class="transition-id" th:text="${entry.value.power}"></span>
+                            <span th:text="'v=' + ${entry.value.value} + ' f=' + ${entry.value.factor}"></span>
+                            <span th:text="'(' + ${entry.value.activeBodies.size()} + ')'" ></span>
+                        </div>
+                    </div>
+                    <div class="bodynode-btn" th:attr="onclick='openBodyList(' + ${iter.index} + ')'" th:text="'BodyNodes (' + ${node.bodyList != null ? node.bodyList.size() : 0} + ')'"></div>
+                    <div class="matrix-box-footer" th:text="'p' + ${node.index}"></div>
+                </th:block>
+                <!-- TransitionNode -->
+                <th:block th:if="${node instanceof T(com.hcn.newCore.TransitionNode)}">
+                    <div class="matrix-box-header" th:text="${node.transitionFrom} + ' → ' + ${node.transitionTo}"></div>
+                    <div class="matrix-box-content">
+                        <div th:each="entry : ${node.transitions.descendingMap()}" class="transition-panel"
+                             th:style="${entry.value.proved ? 'background-color: #90EE90;' : ''}">
+                            <span class="transition-id" th:text="${entry.value.firstLowerIndex}"></span>
+                            <span th:text="'v=' + ${entry.value.value} + ' f=' + ${entry.value.factor}"></span>
+                            <span th:text="'(' + ${entry.value.activeBodies.size()} + ')'" ></span>
+                        </div>
+                    </div>
+                    <div class="bodynode-btn" th:attr="onclick='openBodyList(' + ${iter.index} + ')'" th:text="'BodyNodes (' + ${node.bodyList != null ? node.bodyList.size() : 0} + ')'"></div>
+                    <div class="matrix-box-footer" th:text="'p' + ${node.firstIndex} + ' → p' + ${node.lastIndex}"></div>
+                </th:block>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-bodynodes" class="tab-content" th:classappend="${activeTab == 'bodynodes' ? ' active' : ''}">
+        <div class="bodylist-selector">
+            <span th:each="node, iter : ${matrixChain}">
+                <button class="bodylist-btn" th:classappend="${iter.index == activeBodyList ? ' active' : ''}"
+                        th:attr="onclick='selectBodyList(' + ${iter.index} + ')'"
+                        th:if="${node instanceof T(com.hcn.newCore.ApiNode)}"
+                        th:text="'p' + ${node.index}"></button>
+                <button class="bodylist-btn" th:classappend="${iter.index == activeBodyList ? ' active' : ''}"
+                        th:attr="onclick='selectBodyList(' + ${iter.index} + ')'"
+                        th:if="${node instanceof T(com.hcn.newCore.TransitionNode)}"
+                        th:text="'p' + ${node.firstIndex} + '→p' + ${node.lastIndex}"></button>
+            </span>
+        </div>
+        <div th:each="node, iter : ${matrixChain}" class="bodylist-panel"
+             th:id="'bodylist-' + ${iter.index}"
+             th:style="${iter.index == activeBodyList ? '' : 'display:none;'}">
+            <table class="level-table">
+                <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Offsprings</th></tr></thead>
+                <tbody>
+                    <tr th:if="${node instanceof T(com.hcn.newCore.ApiNode) and node.bodyList != null}"
+                        th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}">
+                        <td th:text="${bIter.index}"></td>
+                        <td th:text="${@newCoreController.guiString(body)}"></td>
+                        <td th:text="${body.value}"></td>
+                        <td th:text="${body.factor}"></td>
+                        <td th:text="${@newCoreController.offspringString(body)}"></td>
+                    </tr>
+                    <tr th:if="${node instanceof T(com.hcn.newCore.TransitionNode) and node.bodyList != null}"
+                        th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}">
+                        <td th:text="${bIter.index}"></td>
+                        <td th:text="${@newCoreController.guiString(body)}"></td>
+                        <td th:text="${body.value}"></td>
+                        <td th:text="${body.factor}"></td>
+                        <td th:text="${@newCoreController.offspringString(body)}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="tab-hcngen" class="tab-content" th:classappend="${activeTab == 'hcngen' ? ' active' : ''}">
+        <table class="level-table">
+            <thead>
+                <tr><th>#</th><th>Body</th><th>firstHcn</th><th>firstSuperiorHcn</th><th>lastGeneratedHcn</th></tr>
+            </thead>
+            <tbody>
+                <tr th:if="${matrix.lastTransition.bodyList != null}"
+                    th:each="body, bIter : ${@newCoreController.getBodies(matrix.lastTransition.bodyList)}">
+                    <td th:text="${bIter.index}"></td>
+                    <td th:text="${@newCoreController.guiString(body)}"></td>
+                    <td th:text="${body.firstHcn != null ? body.firstHcn.lapi + ' v=' + body.firstHcn.value + ' f=' + body.firstHcn.factor : ''}"></td>
+                    <td th:text="${body.firstSuperiorHcn != null ? body.firstSuperiorHcn.lapi + ' v=' + body.firstSuperiorHcn.value + ' f=' + body.firstSuperiorHcn.factor : ''}"></td>
+                    <td th:text="${body.lastGeneratedHcn != null ? body.lastGeneratedHcn.lapi + ' v=' + body.lastGeneratedHcn.value + ' f=' + body.lastGeneratedHcn.factor : ''}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="tab-lapi" class="tab-content" th:classappend="${activeTab == 'lapi' ? ' active' : ''}">
+        <div class="lapi-chain">
+            <div th:each="lapi, iter : ${@newCoreController.getLapiChain()}" class="lapi-box"
+                 th:classappend="${iter.first ? ' lapi-next' : ''}">
+                <div class="lapi-header" th:text="'Lapi ' + ${lapi.lapi} + ' (' + ${lapi.prime} + ')'"></div>
+                <div class="lapi-content">
+                    <table class="level-table">
+                        <thead><tr><th>#</th><th>Lapi</th><th>Value</th><th>Factor</th></tr></thead>
+                        <tbody>
+                            <tr th:if="${lapi.walker != null and lapi.walker.lastGeneratedHcn != null}" style="border-bottom: 3px solid #333;">
+                                <td><b>walker</b></td>
+                                <td th:text="${lapi.walker.lastGeneratedHcn.lapi}"></td>
+                                <td th:text="${lapi.walker.lastGeneratedHcn.value}"></td>
+                                <td th:text="${lapi.walker.lastGeneratedHcn.factor}"></td>
+                            </tr>
+                            <tr th:each="hcn, hIter : ${lapi.hcnList}">
+                                <td th:text="${hIter.index}"></td>
+                                <td th:text="${hcn.lapi}"></td>
+                                <td th:text="${hcn.value}"></td>
+                                <td th:text="${hcn.factor}"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.querySelector('.tab-btn[data-tab="' + tabId + '"]').classList.add('active');
+            document.getElementById('hiddenTab').value = tabId;
+        }
+
+        function selectBodyList(idx) {
+            document.querySelectorAll('.bodylist-panel').forEach(function(p) { p.style.display = 'none'; });
+            document.querySelectorAll('.bodylist-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.getElementById('bodylist-' + idx).style.display = '';
+            document.querySelectorAll('.bodylist-btn')[idx].classList.add('active');
+            document.getElementById('hiddenBodyList').value = idx;
+        }
+
+        function openBodyList(idx) {
+            switchTab('bodynodes');
+            selectBodyList(idx);
+        }
+
+        // Progress polling
+        var pollInterval = null;
+        function startPolling() {
+            document.getElementById('progressBar').style.display = 'flex';
+            document.getElementById('proveBtn').disabled = true;
+            pollInterval = setInterval(function() {
+                fetch('/newcore/progress').then(r => r.json()).then(data => {
+                    var pct = data.target > 0 ? (data.progress / data.target * 100) : 0;
+                    document.getElementById('progressFill').style.width = pct + '%';
+                    document.getElementById('progressText').textContent = data.progress + '/' + data.target;
+                    if (!data.proving) {
+                        clearInterval(pollInterval);
+                        location.reload();
+                    }
+                });
+            }, 500);
+        }
+        // Auto-start polling if proving
+        if (/*[[${matrix.proving}]]*/ false) { startPolling(); }
+    </script>
+</body>
+</html>
