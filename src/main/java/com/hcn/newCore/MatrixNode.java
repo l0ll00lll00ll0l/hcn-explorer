@@ -86,6 +86,8 @@ public abstract class MatrixNode {
     }
 
     protected abstract BodyNode provideNextBodyNode();
-
     protected abstract int determineBodyNodeIdLowLimit();
+    public void extensionCheck() {
+
+    }
 }

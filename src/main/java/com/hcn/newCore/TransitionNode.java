@@ -30,12 +30,11 @@ public class TransitionNode extends MatrixNode{
         return transitionFrom;
     }
 
-    public void extensionCheck(Transition provedTransition) {
-        if (bodyNodes.get(bodyNodes.lastKey()) == provedTransition) {
-            // probably unnecessary check
-            System.out.println("createNextTransition " + provedTransition.getValue());
+    @Override
+    public void extensionCheck() {
+            System.out.println("createNextTransition ");
             createNextTransition();
-        }
+
     }
 
     private void createNextTransition() {

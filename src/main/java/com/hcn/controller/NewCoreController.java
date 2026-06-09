@@ -91,10 +91,10 @@ public class NewCoreController {
             sb.append(", ");
         }
         BodyNode node = body.getBodyNode();
-        if (node instanceof Pip pip) {
-            sb.append("p").append(pip.getApi().getIndex()).append("^").append(pip.getBodyNodeId());
-        } else if (node instanceof Transition transition) {
-            sb.append("t").append(transition.getBodyNodeId());
+        if (node.getParentNode() instanceof ApiNode apiNode) {
+            sb.append("p").append(apiNode.getIndex()).append("^").append(node.getBodyNodeId());
+        } else {
+            sb.append("t").append(node.getBodyNodeId());
         }
     }
 
@@ -117,10 +117,10 @@ public class NewCoreController {
         for (int i = 0; i < body.getOffsprings().size(); i++) {
             if (i > 0) sb.append(", ");
             BodyNode node = body.getOffsprings().get(i).getBodyNode();
-            if (node instanceof Pip pip) {
-                sb.append(pip.getBodyNodeId());
-            } else if (node instanceof Transition transition) {
-                sb.append("t").append(transition.getBodyNodeId());
+            if (node.getParentNode() instanceof ApiNode) {
+                sb.append(node.getBodyNodeId());
+            } else {
+                sb.append("t").append(node.getBodyNodeId());
             }
         }
         return sb.toString();

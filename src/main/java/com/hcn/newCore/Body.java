@@ -60,13 +60,22 @@ public class Body implements Comparable<Body>{
     }
 
     public void gotDominated() {
-        System.out.println("dominated yet to implement");
+        /*
+        System.out.println("dominated yet to implement " + this);
+        deactivated = true;
+        bodyNode.getActiveBodies().remove(this);
+
+        if (bodyNode.getActiveBodies().isEmpty()) {
+            bodyNode.
+        }
+
+         */
     }
 
     public void matrixMaintainCheck() {
         if (proved) {return;}
         proved = true;
-        bodyNode.extensionCheck(this);
+        bodyNode.extensionCheck();
         if (parent != null) {parent.matrixMaintainCheck();}
     }
 
@@ -85,10 +94,10 @@ public class Body implements Comparable<Body>{
             for (int i = 0; i < offsprings.size(); i++) {
                 if (i > 0) sb.append(",");
                 BodyNode node = offsprings.get(i).getBodyNode();
-                if (node instanceof Pip pip) {
-                    sb.append(pip.getBodyNodeId());
-                } else if (node instanceof Transition transition) {
-                    sb.append("t").append(transition.getBodyNodeId());
+                if (node.getParentNode() instanceof ApiNode) {
+                    sb.append(node.getBodyNodeId());
+                } else {
+                    sb.append("t").append(node.getBodyNodeId());
                 }
             }
             sb.append("}");
@@ -101,10 +110,10 @@ public class Body implements Comparable<Body>{
             buildChain(body.parent, sb);
             sb.append(", ");
         }
-        if (body.bodyNode instanceof Pip pip) {
-            sb.append("p").append(pip.getApi().getIndex()).append("^").append(pip.getBodyNodeId());
-        } else if (body.bodyNode instanceof Transition transition) {
-            sb.append("t").append(transition.getBodyNodeId());
+        if (body.bodyNode.getParentNode() instanceof ApiNode apiNode) {
+            sb.append("p").append(apiNode.getIndex()).append("^").append(body.bodyNode.getBodyNodeId());
+        } else {
+            sb.append("t").append(body.bodyNode.getBodyNodeId());
         }
     }
 }

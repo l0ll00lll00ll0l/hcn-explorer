@@ -10,12 +10,12 @@ public class ApiNodeCreator {
                 .prime(newValue)
                 .prevMatrixNode(oldApiNode).nextMatrixNode(transitionNode).build();
 
-        Pip pipLower = null;
+        BodyNode pipLower = null;
         BodyNode transitionToRemove = null;
         if (transitionNode.getBodyNodes().containsKey(newIndex)) {
             int transitionTo = transitionNode.getTransitionTo();
             transitionToRemove = transitionNode.getBodyNodes().get(newIndex);
-            pipLower = Pip.builder().api(newApiNode)
+            pipLower = BodyNode.builder().parentNode(newApiNode)
                     .value(newValue.pow(transitionTo))
                     .factor(new ScientificNumber(transitionTo + 1, 0))
                     .bodyNodeId(transitionTo).proved(transitionToRemove.isProved()).build();
@@ -24,7 +24,7 @@ public class ApiNodeCreator {
 
         int transitionFrom = transitionNode.getTransitionFrom();
         BodyNode nextLowerTransition = transitionNode.getBodyNodes().get(newIndex + 1);
-        Pip pip = Pip.builder().api(newApiNode)
+        BodyNode pip = BodyNode.builder().parentNode(newApiNode)
                 .value(newValue.pow(transitionFrom))
                 .factor(new ScientificNumber(transitionFrom + 1, 0))
                 .bodyNodeId(transitionFrom).proved(nextLowerTransition.isProved()).build();
@@ -49,7 +49,7 @@ public class ApiNodeCreator {
 
     }
 
-    private static BodyList rebuildBodyNodesDualPip(Pip pipLower, Pip pip, TransitionNode transitionNode, BodyNode transitionToRemove, BodyNode nextLowerTransition) {
+    private static BodyList rebuildBodyNodesDualPip(BodyNode pipLower, BodyNode pip, TransitionNode transitionNode, BodyNode transitionToRemove, BodyNode nextLowerTransition) {
 
         Body bodyToRebuild = transitionNode.getBodyList().getSmallestBody();
         Body newBodyNode = null;

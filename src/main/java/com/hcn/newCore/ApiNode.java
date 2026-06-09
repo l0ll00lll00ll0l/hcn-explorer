@@ -19,7 +19,7 @@ public class ApiNode extends MatrixNode {
 
     @Override
     protected BodyNode provideNextBodyNode() {
-        return Pip.builder().api(this).bodyNodeId(bodyNodes.lastKey() + 1).value(bodyNodes.get(bodyNodes.lastKey()).getValue().multiply(prime))
+        return BodyNode.builder().parentNode(this).bodyNodeId(bodyNodes.lastKey() + 1).value(bodyNodes.get(bodyNodes.lastKey()).getValue().multiply(prime))
                 .factor(new ScientificNumber(bodyNodes.lastKey() + 2, 0)).build();
     }
 
@@ -28,8 +28,8 @@ public class ApiNode extends MatrixNode {
         return bodyNodes.lastKey();
     }
 
-
-    public void extensionCheck(Pip pip) {
+    @Override
+    public void extensionCheck() {
         if (transitionReleaseRequired()) {ApiNodeCreator.createNewApi(this, (TransitionNode) nextMatrixNode);}
         if (isLocalExtensionRequired()) {createNextBodyNode();}
     }

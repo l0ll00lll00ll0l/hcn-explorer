@@ -1,22 +1,30 @@
 package com.hcn.newCore;
 
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public interface BodyNode {
+@Getter
+@Setter
+@Builder
+public class BodyNode {
 
-    int getBodyNodeId();
+    private final MatrixNode parentNode;
+    private final int bodyNodeId;
+    @Builder.Default
+    private boolean proved = false;
+    private ScientificNumber value;
+    private ScientificNumber factor;
+    private final Set<Body> activeBodies = new HashSet<>();
 
-    ScientificNumber getValue();
-    void setValue(ScientificNumber value);
 
-    ScientificNumber getFactor();
-    void setFactor(ScientificNumber factor);
-
-    boolean isProved();
-    void setProved(boolean proved);
-
-    Set<Body> getActiveBodies();
-
-    void extensionCheck(Body newProvedBody);
+    public void extensionCheck() {
+        if (proved) {return;}
+        proved = true;
+        parentNode.extensionCheck();
+    }
 }

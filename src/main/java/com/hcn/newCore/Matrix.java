@@ -34,13 +34,13 @@ public class Matrix {
     public void initialize() {
 
         ApiNode p0 = ApiNode.builder().index(0).prevMatrixNode(null).prime(new ScientificNumber(2, 0)).build();
-        Pip pip01 = Pip.builder().api(p0).bodyNodeId(1).proved(true)
+        BodyNode pip01 = BodyNode.builder().parentNode(p0).bodyNodeId(1).proved(true)
                 .value(new ScientificNumber(2,0))
                 .factor(new ScientificNumber(2, 0)).build();
-        Pip pip02 = Pip.builder().api(p0).bodyNodeId(2).proved(true)
+        BodyNode pip02 = BodyNode.builder().parentNode(p0).bodyNodeId(2).proved(true)
                 .value(new ScientificNumber(4,0))
                 .factor(new ScientificNumber(3, 0)).build();
-        Pip pip03 = Pip.builder().api(p0).bodyNodeId(3)
+        BodyNode pip03 = BodyNode.builder().parentNode(p0).bodyNodeId(3)
                 .value(new ScientificNumber(8,0))
                 .factor(new ScientificNumber(4, 0)).build();
         p0.getBodyNodes().put(1, pip01);
@@ -49,12 +49,12 @@ public class Matrix {
 
         lastTransition = TransitionNode.builder()
                 .transitionFrom(2).transitionTo(1).firstIndex(1).lastIndex(2).primeCenter(new PrimeCenter()).build();
-        Transition t1 = Transition.builder().transitionNode(lastTransition).bodyNodeId(1)
+        BodyNode t1 = BodyNode.builder().parentNode(lastTransition).bodyNodeId(1)
                 .value(new ScientificNumber(1, 0))
                 .factor(new ScientificNumber(1, 0)).proved(true).build();
         lastTransition.getBodyNodes().put(1, t1);
-        Transition t2 = Transition.builder()
-                .transitionNode(lastTransition).bodyNodeId(2).value(new ScientificNumber(9, 0))
+        BodyNode t2 = BodyNode.builder()
+                .parentNode(lastTransition).bodyNodeId(2).value(new ScientificNumber(9, 0))
                 .factor(new ScientificNumber(3, 0)).build();
         lastTransition.getBodyNodes().put(2, t2);
 
