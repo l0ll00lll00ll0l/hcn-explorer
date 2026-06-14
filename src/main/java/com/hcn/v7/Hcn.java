@@ -1,27 +1,20 @@
-package com.hcn.core;
+package com.hcn.v7;
+
+import java.util.LinkedHashMap;
 
 public class Hcn implements Comparable<Hcn> {
-    private HcnGenerator hcnGenerator;
-    private Long tempId;
-    public Long getTempId() { return tempId; }
-    public void setTempId(Long tempId) { this.tempId = tempId; }
+    private HcnBody body;
     private int lastActivePrime;
     private ScientificNumber value;
     private ScientificNumber factor;
     
-    public Hcn(HcnGenerator hcnGenerator, int lastActivePrime) {
-        this.hcnGenerator = hcnGenerator;
+    public Hcn(HcnBody body, int lastActivePrime) {
+        this.body = body;
         this.lastActivePrime = lastActivePrime;
     }
     
     public HcnBody getBody() {
-        return hcnGenerator != null ? hcnGenerator.getCurrentHcnBody() : null;
-    }
-    public HcnGenerator getHcnGenerator() {
-        return hcnGenerator;
-    }
-    public void setHcnGenerator(HcnGenerator hcnGenerator) {
-        this.hcnGenerator = hcnGenerator;
+        return body;
     }
     public int getLastActivePrime() {
         return lastActivePrime;
@@ -38,6 +31,9 @@ public class Hcn implements Comparable<Hcn> {
     public void setFactor(ScientificNumber factor) {
         this.factor = factor;
     }
+    public void setBody(HcnBody body) {
+        this.body = body;
+    }
     public void setLastActivePrime(int lastActivePrime) {this.lastActivePrime = lastActivePrime;}
 
     @Override
@@ -47,13 +43,14 @@ public class Hcn implements Comparable<Hcn> {
     
     @Override
     public String toString() {
-        if (getBody() == null) {
+        if (this.body == null) {
             return "nullbody " + lastActivePrime + " v: " + value + " f: " + factor;
         }
-        return getBody().parentChainString() + " " + lastActivePrime + " v: " + value + " f: " + factor;
+
+        return this.body.parentChainString() + " " + lastActivePrime + " v: " + value + " f: " + factor;
     }
 
     public String fullPrint() {
-        return getBody().parentChainString() + "|" + lastActivePrime + " v: " + value + " f: " + factor;
+        return body.parentChainString() + "|" + lastActivePrime + " v: " + value + " f: " + factor;
     }
 }

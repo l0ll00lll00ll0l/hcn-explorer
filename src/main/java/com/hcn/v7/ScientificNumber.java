@@ -1,4 +1,4 @@
-package com.hcn.core;
+package com.hcn.v7;
 
 public class ScientificNumber implements Comparable<ScientificNumber> {
     private static long PRECISION1 = 100000000000L;   // 10^13

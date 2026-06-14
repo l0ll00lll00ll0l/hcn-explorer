@@ -1,4 +1,4 @@
-package com.hcn.core;
+package com.hcn.v7;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,18 +11,20 @@ import java.util.stream.StreamSupport;
 public class BodyList {
 
     private HcnBody smallestBody = null;
+    private int size = 0;
 
+    public int size() { return size; }
     public HcnBody getSmallestBody() { return smallestBody; }
-    public void setSmallestBodyForLoad(HcnBody body) { this.smallestBody = body; }
 
     public void clear() {
-        smallestBody = null;
+        smallestBody = null; size = 0;
     }
 
     public void remove(HcnBody body) {
         if (body.getSmallerBody() != null) body.getSmallerBody().setLargerBody(body.getLargerBody());
         else smallestBody = body.getLargerBody();
         if (body.getLargerBody() != null) body.getLargerBody().setSmallerBody(body.getSmallerBody());
+        size--;
     }
 
     public Stream<HcnBody> stream() {
@@ -62,6 +64,7 @@ public class BodyList {
             }
         }
 
+        size = added.size();
         return added;
     }
 
@@ -86,6 +89,7 @@ public class BodyList {
             while (ceilingBody != null && ceilingBody.getFactor().isNotBiggerThan(newBody.getFactor())) {
                 ceilingBody.deactivateFromLists();
                 toDelete.add(ceilingBody);
+                size--;
                 ceilingBody = ceilingBody.getLargerBody();
             }
 
@@ -105,8 +109,8 @@ public class BodyList {
     }
 
     private void acceptBody(HcnBody body, List<HcnBody> added) {
-        if (body.isDeactivated()) return;
         added.add(body);
         body.getPip().addActiveHcnBody(body);
+        size++;
     }
 }

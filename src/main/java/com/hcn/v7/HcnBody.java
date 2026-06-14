@@ -1,4 +1,4 @@
-package com.hcn.core;
+package com.hcn.v7;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,9 +6,6 @@ import java.util.stream.Collectors;
 
 public class HcnBody implements Comparable<HcnBody> {
     private HcnBody parent;
-    private Long tempId;
-    public Long getTempId() { return tempId; }
-    public void setTempId(Long tempId) { this.tempId = tempId; }
     private List<HcnBody> offsprings = new ArrayList<>();
     private PrimeIndexPower pip;
     private boolean proved = false;
@@ -16,7 +13,7 @@ public class HcnBody implements Comparable<HcnBody> {
     private ScientificNumber factor;
     private HcnBody smallerBody = null;
     private HcnBody largerBody = null;
-    private HcnGenerator hcnGenerator = null;
+    private Hcn lastGeneratedHcn = null;
     private List<LastActivePrimeIndexGroup> walkerBodyForLapi = new ArrayList<>();
 
     public HcnBody getParent() {
@@ -54,33 +51,20 @@ public class HcnBody implements Comparable<HcnBody> {
     public void setSmallerBody(HcnBody smallerBody) {this.smallerBody = smallerBody;}
     public void setLargerBody(HcnBody largerBody) {this.largerBody = largerBody;}
     public void setParent(HcnBody parent) {this.parent = parent;}
-    public void setParentForLoad(HcnBody parent) {this.parent = parent;}
-    private boolean deactivated = false;
     public boolean isDeactivated(){
-        return deactivated;
+        return !pip.getActiveHcnBodies().contains(this);
     }
     public String getBodyId() {
         return "p" + pip.getActivePrimeIndex().getIndex() + "^" + pip.getPower();
     }
     public String getOffspringPowers() {return offsprings.stream().map(o -> String.valueOf(o.pip.getPower())).collect(Collectors.joining(", "));}
-    public Hcn getLastGeneratedHcn() {return hcnGenerator != null ? hcnGenerator.getLastGeneratedHcn() : null;}
-    public void setLastGeneratedHcn(Hcn hcn) {
-        if (hcnGenerator == null) hcnGenerator = new HcnGenerator(this);
-        hcnGenerator.setLastGeneratedHcn(hcn);
-    }
-    public HcnGenerator getHcnGenerator() {return hcnGenerator;}
-    public void setHcnGenerator(HcnGenerator hcnGenerator) {this.hcnGenerator = hcnGenerator;}
+    public Hcn getLastGeneratedHcn() {return lastGeneratedHcn;}
+    public void setLastGeneratedHcn(Hcn lastGeneratedHcn) {this.lastGeneratedHcn = lastGeneratedHcn;}
     public List<LastActivePrimeIndexGroup> getWalkerBodyForLapi() {return walkerBodyForLapi;}
     public void addWalkerBodyForLapi(LastActivePrimeIndexGroup walkerBodyForLapi) {this.walkerBodyForLapi.add(walkerBodyForLapi);}
     public void removeWalkerBodyForLapi(LastActivePrimeIndexGroup walkerBodyForLapi) {this.walkerBodyForLapi.remove(walkerBodyForLapi);}
 
     public HcnBody() {}
-
-    public void setDeactivated(boolean deactivated) { this.deactivated = deactivated; }
-
-    private boolean matchesChain(String chain) {
-        return parentChainString().equals(chain);
-    }
 
     public HcnBody(HcnBody parent, PrimeIndexPower pip) {
         this.parent = parent;
@@ -92,15 +76,16 @@ public class HcnBody implements Comparable<HcnBody> {
         if (parent != null) {
             value = parent.value.multiply(valueMultiplier);
             factor = parent.factor.multiply(factorMultiplier);
-            if (parent.isDeactivated()) {
-                deactivated = true;
-            } else {
-                parent.offsprings.add(this);
-                if (parent.getHcnGenerator() != null) {
-                    hcnGenerator = parent.hcnGenerator;
-                    parent.hcnGenerator = null;
-                    hcnGenerator.setCurrentHcnBody(this);
-                }
+            parent.offsprings.add(this);
+            if (parent.lastGeneratedHcn != null) {
+                lastGeneratedHcn = parent.lastGeneratedHcn;
+                parent.lastGeneratedHcn = null;
+                lastGeneratedHcn.setBody(this);
+            }
+            if (!parent.walkerBodyForLapi.isEmpty()) {
+                this.walkerBodyForLapi.addAll(parent.walkerBodyForLapi);
+                parent.walkerBodyForLapi.clear();
+                walkerBodyForLapi.forEach(lapi -> lapi.setWalkerBody(this));
             }
         } else {
             value = valueMultiplier;
@@ -118,6 +103,14 @@ public class HcnBody implements Comparable<HcnBody> {
 
     public String parentChainString() {return getFullChain().stream().map(HcnBody::getBodyId).collect(Collectors.toList()).toString();}
 
+    public int lowestPossibleLapi() {
+        if (pip.getPower() < 2) {
+            return parent.lowestPossibleLapi();
+        } else {
+            return pip.getActivePrimeIndex().getIndex();
+        }
+    }
+
     private List<HcnBody> getFullChain() {
         List<HcnBody> chain = new ArrayList<>();
         HcnBody current = this;
@@ -129,30 +122,11 @@ public class HcnBody implements Comparable<HcnBody> {
     }
 
     public void deactivateFromLists() {
-        if (deactivated) {
+        if (isDeactivated()) {
             return;
         }
-        deactivated = true;
         pip.getActivePrimeIndex().getHcnBodyList().remove(this);
         pip.removeActiveHcnBody(this);
-        if (hcnGenerator != null) {
-            if (!hcnGenerator.getWalkerGeneratorForLapi().isEmpty()) {
-                for (LastActivePrimeIndexGroup lapi : hcnGenerator.getWalkerGeneratorForLapi()) {
-                    lapi.setWalkerDeleted(true);
-                    //System.out.println("lapi " + lapi.getLastActivePrimeIndex() + " was set walkerDeleted by " + this.parentChainString());
-                }
-            }
-            if (hcnGenerator.getSmallerGenerator() != null) {
-                hcnGenerator.getSmallerGenerator().setLargerGenerator(hcnGenerator.getLargerGenerator());
-            }
-            if (hcnGenerator.getLargerGenerator() != null) {
-                hcnGenerator.getLargerGenerator().setSmallerGenerator(hcnGenerator.getSmallerGenerator());
-            }
-            hcnGenerator.setLargerGenerator(null);
-            hcnGenerator.setSmallerGenerator(null);
-
-            hcnGenerator = null;
-        }
     }
 
     public void removeFixedHcnBody() {
@@ -219,15 +193,65 @@ public class HcnBody implements Comparable<HcnBody> {
     }
 
     public Hcn generateNextHcn(LastActivePrimeIndexGroup lapiGroup) {
-        if (hcnGenerator == null) {
-            hcnGenerator = new HcnGenerator(this);
+
+        if (lastGeneratedHcn == null) {
+            lastGeneratedHcn = computeHcnBasedOnReferenceBody(lapiGroup);
+            return lastGeneratedHcn;
+        } else {
+            if (lastGeneratedHcn.getLastActivePrime() + 1 == lapiGroup.getLastActivePrimeIndex()) {
+                Hcn preHcn = lastGeneratedHcn;
+                Hcn newHcn = new Hcn(this, preHcn.getLastActivePrime() + 1);
+                newHcn.setValue(preHcn.getValue().multiply(lapiGroup.getPrimeValue()));
+                newHcn.setFactor(preHcn.getFactor().multiply(new ScientificNumber(2, 0)));
+                lastGeneratedHcn = newHcn;
+                return newHcn;
+            } else {
+                lastGeneratedHcn = computeHcnBasedOnReferenceBody(lapiGroup);
+                return lastGeneratedHcn;
+            }
         }
-        return hcnGenerator.generateNextHcn(lapiGroup);
+    }
+
+    private Hcn computeHcnBasedOnReferenceBody(LastActivePrimeIndexGroup lapiGroup) {
+        HcnBody referenceBody = getReferenceBody(lapiGroup);
+
+        if (referenceBody == null) {
+            Hcn referenceHcn = lapiGroup.getLowerLapiGroup().getWalkerBody().lastGeneratedHcn;
+            Hcn newHcn = new Hcn(this, referenceHcn.getLastActivePrime() + 1);
+            newHcn.setValue(referenceHcn.getValue().multiply(referenceBody.getValueMultiplier(this)).multiply(lapiGroup.getPrimeValue()));
+            newHcn.setFactor(referenceHcn.getFactor().multiply(referenceBody.getFactorMultiplier(this)).multiply(new ScientificNumber(2, 0)));
+            return newHcn;
+        }
+
+        Hcn referenceHcn = referenceBody.lastGeneratedHcn;
+        Hcn newHcn = new Hcn(this, referenceHcn.getLastActivePrime());
+        newHcn.setValue(referenceHcn.getValue().multiply(referenceBody.getValueMultiplier(this)));
+        newHcn.setFactor(referenceHcn.getFactor().multiply(referenceBody.getFactorMultiplier(this)));
+        return newHcn;
+    }
+
+    private HcnBody getReferenceBody(LastActivePrimeIndexGroup lapiGroup) {
+
+        if (smallerBody == null) {
+            return null;
+        }
+        HcnBody referenceBody = smallerBody;
+        while (referenceBody.lastGeneratedHcn == null || referenceBody.lastGeneratedHcn.getLastActivePrime() != lapiGroup.getLastActivePrimeIndex()) {
+            referenceBody = referenceBody.smallerBody;
+        }
+
+        return referenceBody;
     }
 
     public void gotDominated() {
-        deactivated = true;
-        pip.removeActiveHcnBody(this);
-        pip.getActivePrimeIndex().deactivateRecursive(this, false);
+        deactivateFromLists();
+        pip.getActivePrimeIndex().deactivateRecursive(this);
+    }
+
+    public boolean isBody(String bodyString) {
+        if (parentChainString().equals(bodyString)) {
+            return true;
+        }
+        return false;
     }
 }

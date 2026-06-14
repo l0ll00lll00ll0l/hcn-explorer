@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>HCN Explorer</title>
+    <title>HCN Matrix V7</title>
     <style>
         body { font-family: monospace; margin: 20px; }
         .section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
@@ -61,9 +61,9 @@
     </style>
 </head>
 <body>
-    <h1>HCN Explorer</h1>
+    <h1>HCN Matrix V7</h1>
 
-    <form method="post" action="/core/proveNext" style="display: inline-block; margin-right: 10px;">
+    <form method="post" action="/v7/proveNext" style="display: inline-block; margin-right: 10px;">
         <input type="hidden" name="activeTab" class="activeTabField" value="matrix" />
         <input type="hidden" name="lapiView" class="lapiViewField" value="chain" />
         <label>Prove Count:
@@ -72,7 +72,7 @@
         <button type="submit">Prove Next</button>
     </form>
 
-    <form method="post" action="/core/proveUntilLapi" style="display: inline-block; margin-right: 10px;">
+    <form method="post" action="/v7/proveUntilLapi" style="display: inline-block; margin-right: 10px;">
         <input type="hidden" name="activeTab" class="activeTabField" value="matrix" />
         <input type="hidden" name="lapiView" class="lapiViewField" value="chain" />
         <label>Prove Lapi:
@@ -81,13 +81,13 @@
         <button type="submit">Prove Lapi</button>
     </form>
 
-    <form method="post" action="/core/reset" style="display: inline-block; margin-right: 10px;">
+    <form method="post" action="/v7/reset" style="display: inline-block; margin-right: 10px;">
         <input type="hidden" name="activeTab" class="activeTabField" value="matrix" />
         <input type="hidden" name="lapiView" class="lapiViewField" value="chain" />
         <button type="submit" style="background-color: #ff6b6b; color: white;">Reset</button>
     </form>
 
-    <form method="post" action="/core/setDisplayDecimals" style="display: inline-block;">
+    <form method="post" action="/v7/setDisplayDecimals" style="display: inline-block;">
         <input type="hidden" name="activeTab" class="activeTabField" value="matrix" />
         <input type="hidden" name="lapiView" class="lapiViewField" value="chain" />
         <label>Display Decimals:
@@ -96,46 +96,21 @@
         <button type="submit">Set</button>
     </form>
 
-    <form method="post" action="/core/save" style="display: inline-block; margin-left: 10px;" id="saveForm" onsubmit="startSaveWithProgress(event)">
-        <input type="hidden" name="activeTab" class="activeTabField" value="matrix" />
-        <input type="hidden" name="lapiView" class="lapiViewField" value="chain" />
-        <button type="submit" style="background-color: #4CAF50; color: white;">Save</button>
-    </form>
-
-    <!-- Save Progress Overlay -->
-    <div id="saveOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
-        <div style="background:white; padding:30px; border-radius:8px; min-width:350px; font-family:monospace; text-align:center;">
-            <h3 style="margin-top:0;">Saving...</h3>
-            <div id="progressPhase" style="margin-bottom:10px;">Starting...</div>
-            <div style="background:#ddd; border-radius:4px; height:24px; overflow:hidden;">
-                <div id="progressBar" style="background:#4CAF50; height:100%; width:0%; transition:width 0.3s;"></div>
-            </div>
-            <div id="progressDetail" style="margin-top:8px; font-size:11px; color:#666;"></div>
-        </div>
-    </div>
-
-    <a href="/" style="margin-left: 10px;"><button type="button" style="background-color: #666; color: white;">Back</button></a>
-
     <div class="mainpanel">
         <div class="tab-bar">
             <button class="tab-btn active" data-tab="matrix" onclick="switchTab('matrix')">Matrix</button>
             <button class="tab-btn" data-tab="hcnfilter" onclick="switchTab('hcnfilter')">LapiGroups</button>
             <button class="tab-btn" data-tab="bodylist" onclick="switchTab('bodylist')">ActivePrimeIndex BodyList</button>
-            <button class="tab-btn" data-tab="generators" onclick="switchTab('generators')">HcnGenerators</button>
-            <button th:if="${matrix.basicData}" class="tab-btn" data-tab="basicdatabody" onclick="switchTab('basicdatabody')">BasicData - Body</button>
         </div>
         <div id="tab-matrix" class="tab-content active">
         <div class="matrix-info">
-            <div>Proved: <span th:text="${matrix.provedCount}"></span></div>
-            <div>Last Active: p<span th:text="${matrix.lastActivePrimeIndex.index}"></span></div>
-            <div>Last Proved Prime Index: <span th:text="${matrix.lastProvedPrimeIndex}"></span></div>
-            <div th:if="${matrix.basicData}" >Reference Interval: <span th:text="${matrix.referenceInterval != null ? matrix.referenceInterval.lapi : 'null'}"></span></div>
-            <div style="margin-top: 6px; border-top: 1px solid #ccc; padding-top: 4px;">Total: <span th:text="${matrix.totalMs}"></span> ms</div>
-            <div>ExtendMatrix: <span th:text="${matrix.extendMatrixMs}"></span> ms</div>
-            <div>GenerateHcnList: <span th:text="${matrix.generateHcnListMs}"></span> ms</div>
-            <div th:if="${matrix.basicData}">DB: <span th:text="${matrix.dbMs}"></span> ms</div>
+            <div>Proved: <span th:text="${hcnGenerator.provedCount}"></span></div>
+            <div>Last Active: p<span th:text="${hcnGenerator.lastActivePrimeIndex.index}"></span></div>
+            <div style="margin-top: 6px; border-top: 1px solid #ccc; padding-top: 4px;">Total: <span th:text="${hcnGenerator.totalMs}"></span> ms</div>
+            <div>ExtendMatrix: <span th:text="${hcnGenerator.extendMatrixMs}"></span> ms</div>
+            <div>GenerateHcnList: <span th:text="${hcnGenerator.generateHcnListMs}"></span> ms</div>
         </div>
-        <div th:with="matrixChain=${@matrixController.buildMatrixChain(matrix.lastActivePrimeIndex)}">
+        <div th:with="matrixChain=${@matrixV7Controller.buildMatrixChain(hcnGenerator.lastActivePrimeIndex)}">
             <div class="matrix-columns">
                 <div th:each="item : ${matrixChain}" class="matrix-col">
                     <!-- ActivePrimeIndex: pip stack + prime circle -->
@@ -151,48 +126,20 @@
                             </div>
                         </div>
                         <div class="prime-circle" style="cursor: pointer;"
-                             th:text="${T(com.hcn.core.PrimeCenter).getPrime(item.index)}"
+                             th:text="${T(com.hcn.v7.PrimeCenter).getPrime(item.index)}"
                              th:onclick="'showBodyList(' + ${item.index} + ')'"></div>
                     </th:block>
                     <!-- FixedPowerGroup: single rectangle -->
                     <th:block th:if="${item.class.simpleName == 'FixedPowerGroup' and !item.fixedPowerGroup.isEmpty()}">
                         <div class="fpg-rect">
-                            <div th:text="${@matrixController.getPrimeRangeDisplay(item)}"></div>
+                            <div th:text="${@matrixV7Controller.getPrimeRangeDisplay(item)}"></div>
                             <div style="font-size: 0.7em; font-weight: normal;"
-                                 th:text="${@matrixController.getPrimeValueRangeDisplay(item)}"></div>
+                                 th:text="${@matrixV7Controller.getPrimeValueRangeDisplay(item)}"></div>
                         </div>
                     </th:block>
                 </div>
             </div>
         </div>
-
-        <!-- Reference Interval -->
-        <div th:if="${matrix.basicData and matrix.referenceInterval != null}" style="margin-top: 12px; border-top: 1px solid #ccc; padding-top: 8px;">
-            <strong>Reference Interval</strong>
-            <table class="level-table" style="margin-top: 4px;">
-                <thead>
-                    <tr><th>Lapi</th><th>Value</th><th>Factor</th><th>HCN List</th></tr>
-                </thead>
-                <tbody>
-                    <tr th:with="interval=${matrix.referenceInterval}">
-                        <td th:text="${interval.lapi}"></td>
-                        <td th:text="${interval.value}"></td>
-                        <td th:text="${interval.factor}"></td>
-                        <td>
-                            <details>
-                                <summary th:text="${interval.hcnList.size() + ' HCNs'}"></summary>
-                                <div>
-                                    <span th:each="hcn : ${interval.hcnList}">
-                                        <span th:text="${hcn.body.parentChainString() + '|' + hcn.lastActivePrime}"></span><br/>
-                                    </span>
-                                </div>
-                            </details>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
         </div>
 
         <div id="tab-hcnfilter" class="tab-content">
@@ -200,15 +147,15 @@
                 <label><input type="radio" name="lapiView" value="chain" checked onclick="switchLapiView('chain')"> BodyChain</label>
                 <label style="margin-left: 10px;"><input type="radio" name="lapiView" value="dist" onclick="switchLapiView('dist')"> Distribution</label>
             </div>
-            <div th:with="bodyOrder=${@matrixController.getBodyOrderMap()}, highestLapi=${matrix.highestLapiGroup}" style="display: flex; gap: 10px; overflow-x: auto; align-items: flex-start;">
-            <div th:each="group : ${@matrixController.getLapiGroupsReversed()}" style="min-width: 250px; flex-shrink: 0;">
+            <div th:with="bodyOrder=${@matrixV7Controller.getBodyOrderMap()}, highestLapi=${hcnGenerator.highestLapiGroup}" style="display: flex; gap: 10px; overflow-x: auto; align-items: flex-start;">
+            <div th:each="group : ${@matrixV7Controller.getLapiGroupsReversed()}" style="min-width: 250px; flex-shrink: 0;">
                 <h3 style="margin: 10px 0 4px;">LastActivePrimeIndex: <span th:text="${group.lastActivePrimeIndex}"></span></h3>
                 <table class="level-table">
                     <thead>
                         <tr><th>#</th><th class="col-chain">Chain</th><th class="col-dist" style="display:none;">Body</th><th>Lapi</th><th>Value</th><th>Factor</th></tr>
                     </thead>
                     <tbody>
-                        <tr th:each="hcn, iter : ${@matrixController.getHcnsForLapiGroup(group)}">
+                        <tr th:each="hcn, iter : ${@matrixV7Controller.getHcnsForLapiGroup(group)}">
                             <td th:text="${iter.index}"></td>
                             <td class="col-chain" th:text="${hcn.body.parentChainString()}"></td>
                             <td class="col-dist" style="display:none;" th:text="${bodyOrder.get(hcn.body)}"></td>
@@ -223,7 +170,7 @@
         </div>
 
         <div id="tab-bodylist" class="tab-content">
-            <div th:with="allApi=${@matrixController.getAllActivePrimeIndexes()}" style="text-align: center;">
+            <div th:with="allApi=${@matrixV7Controller.getAllActivePrimeIndexes()}" style="text-align: center;">
                 <div style="margin: 10px 0;">
                     <button onclick="changeApi(-1)" style="font-size: 1.5em; padding: 4px 12px;">&#9664;</button>
                     <span id="api-display" style="font-size: 2em; font-weight: bold; margin: 0 15px;"></span>
@@ -232,79 +179,28 @@
                 <div th:each="api : ${allApi}" th:id="'bodylist-' + ${api.index}" style="display: none; text-align: left;">
                     <table class="level-table">
                         <thead>
-                            <tr><th>#</th><th>Chain</th><th>Value</th><th>Factor</th><th>Proved</th><th>Deactivated</th><th>Offspring</th></tr>
+                            <tr><th>#</th><th>Chain</th><th>Value</th><th>Factor</th><th>Proved</th><th>Offspring</th></tr>
                         </thead>
                         <tbody>
-                            <tr th:each="body, iter : ${@matrixController.getActiveBodies(api)}"
-                                th:style="${body.deactivated ? (body.proved ? 'background-color: #c8e6c9;' : 'background-color: #ffcdd2;') : (body.proved ? 'background-color: #90EE90;' : '')}">
+                            <tr th:each="body, iter : ${@matrixV7Controller.getActiveBodies(api)}"
+                                th:style="${body.proved ? 'background-color: #90EE90;' : ''}">
                                 <td th:text="${iter.index}"></td>
                                 <td th:text="${body.parentChainString()}"></td>
                                 <td th:text="${body.value}"></td>
                                 <td th:text="${body.factor}"></td>
                                 <td th:text="${body.proved}"></td>
-                                <td th:text="${body.deactivated}"></td>
                                 <td th:text="${body.offspringPowers}"></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 <script th:inline="javascript">
-                    var apiList = [[${allApi.![index + ',' + T(com.hcn.core.PrimeCenter).getPrime(index)]}]];
+                    var apiList = [[${allApi.![index + ',' + T(com.hcn.v7.PrimeCenter).getPrime(index)]}]];
                 </script>
             </div>
         </div>
-
-        <!-- HcnGenerators Tab -->
-        <div id="tab-generators" class="tab-content">
-            <table class="level-table">
-                <thead>
-                    <tr><th>#</th><th>BdId</th><th>CurrentBody</th><th>Walker</th><th>LastActivePrime</th><th>Value</th><th>Factor</th></tr>
-                </thead>
-                <tbody>
-                    <tr th:each="gen, iter : ${@matrixController.getGeneratorList()}">
-                        <td th:text="${iter.index}"></td>
-                        <td th:text="${gen.basicDataId >= 0 ? gen.basicDataId : ''}"></td>
-                        <td th:text="${gen.currentHcnBody.parentChainString()}"></td>
-                        <td th:text="${gen.walkerGeneratorForLapi.isEmpty() ? '' : gen.walkerGeneratorForLapi.![lastActivePrimeIndex]}"></td>
-                        <td th:text="${gen.lastGeneratedHcn != null ? gen.lastGeneratedHcn.lastActivePrime : ''}"></td>
-                        <td th:text="${gen.lastGeneratedHcn != null ? gen.lastGeneratedHcn.value : ''}"></td>
-                        <td th:text="${gen.lastGeneratedHcn != null ? gen.lastGeneratedHcn.factor : ''}"></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- BasicData - Body Tab -->
-        <div th:if="${matrix.basicData}" id="tab-basicdatabody" class="tab-content">
-            <div style="margin-bottom:8px;">
-                <form th:action="@{/core/bodyPage}" method="post" style="display:inline;">
-                    <input type="hidden" name="page" th:value="${@matrixController.getBodyPage() - 1}"/>
-                    <button type="submit" th:disabled="${@matrixController.getBodyPage() == 0}">← Prev</button>
-                </form>
-                <span>Page <span th:text="${@matrixController.getBodyPage() + 1}"></span> (rows <span th:text="${@matrixController.getBodyPage() * @matrixController.getBodyPageSize() + 1}"></span>-<span th:text="${@matrixController.getBodyPage() * @matrixController.getBodyPageSize() + @matrixController.getBodyPageSize()}"></span> of <span th:text="${@matrixController.getBodyTotalCount()}"></span>)</span>
-                <form th:action="@{/core/bodyPage}" method="post" style="display:inline;">
-                    <input type="hidden" name="page" th:value="${@matrixController.getBodyPage() + 1}"/>
-                    <button type="submit">Next →</button>
-                </form>
-            </div>
-            <table class="level-table">
-                <thead>
-                    <tr><th>BasicDataId</th><th>Head</th><th>Tail</th><th>PipGroup</th><th>LastIndex</th><th>BodyChain</th></tr>
-                </thead>
-                <tbody>
-                    <tr th:each="row : ${@matrixController.getBasicDataBodies()}">
-                        <td th:text="${row.id}"></td>
-                        <td th:text="${row.head}"></td>
-                        <td th:text="${row.tail}"></td>
-                        <td th:text="${row.pipGroup}"></td>
-                        <td th:text="${row.lastIndex}"></td>
-                        <td th:utext="${row.bodyChain}"></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
     </div>
+
     <script>
         function showLevel(level) {
             document.querySelectorAll('.level-detail > div').forEach(function(d) { d.style.display = 'none'; });
@@ -373,41 +269,6 @@
                 });
             }
         });
-    </script>
-    <script>
-        function startSaveWithProgress(event) {
-            event.preventDefault();
-            document.getElementById('saveOverlay').style.display = 'flex';
-            var form = document.getElementById('saveForm');
-            fetch(form.action, {
-                method: 'POST',
-                body: new URLSearchParams(new FormData(form))
-            }).then(function() {
-                pollProgress();
-            });
-        }
-
-        function pollProgress() {
-            fetch('/api/save-progress')
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    document.getElementById('progressBar').style.width = data.percentage + '%';
-                    document.getElementById('progressPhase').textContent = 'Phase ' + data.phaseNumber + '/' + data.totalPhases + ': ' + data.phase;
-                    document.getElementById('progressDetail').textContent = data.itemsTotal > 0 ? data.itemsDone + ' / ' + data.itemsTotal : '';
-                    if (data.error) {
-                        document.getElementById('progressPhase').textContent = 'ERROR: ' + data.error;
-                        document.getElementById('progressBar').style.background = '#f44336';
-                        return;
-                    }
-                    if (data.active) {
-                        setTimeout(pollProgress, 200);
-                    } else {
-                        document.getElementById('progressPhase').textContent = 'Done!';
-                        document.getElementById('progressBar').style.width = '100%';
-                        setTimeout(function() { document.getElementById('saveOverlay').style.display = 'none'; }, 500);
-                    }
-                });
-        }
     </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-package com.hcn.core;
+package com.hcn.v7;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

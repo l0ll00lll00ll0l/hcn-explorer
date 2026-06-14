@@ -1,4 +1,4 @@
-package com.hcn.core;
+package com.hcn.v7;
 
 import org.junit.jupiter.api.Test;
 import java.util.List;
@@ -10,19 +10,18 @@ public class TXTcheckTest {
 
         TXTcheck txt = new TXTcheck();
         List<int[]> ref = txt.getReferenceHcns();
-        int count = ref.size();
+        int count = ref.size() - 1; // skip ref[0] which is HCN=1
 
-        Matrix matrix = new Matrix();
-        matrix.initialize();
+        HcnGenerator hcnGenerator = new HcnGenerator();
+        hcnGenerator.initialize();
         long batchStart = System.currentTimeMillis();
 
         for (int i = 0; i < count; i++) {
-            Hcn provedHcn = matrix.proveNextSuperior();
-            int[] fullExpected = ref.get(i);
+            Hcn provedHcn = hcnGenerator.proveNextSuperior();
+            int[] fullExpected = ref.get(i + 1);
             int[] activeIndexes = TXTcheck.getActiveIndexes(provedHcn);
-            if (activeIndexes.length == 0) continue;
             int[] expected = TXTcheck.referenceAtActiveIndexes(fullExpected, activeIndexes);
-            int[] actual = TXTcheck.exponentSignature(provedHcn, matrix.getLastActivePrimeIndex());
+            int[] actual = TXTcheck.exponentSignature(provedHcn, hcnGenerator.getLastActivePrimeIndex());
 
             if (!TXTcheck.signaturesEqual(expected, actual)) {
                 System.out.println("FIRST MISMATCH at HCN #" + (i + 1));

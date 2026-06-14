@@ -1,4 +1,4 @@
-package com.hcn.core;
+package com.hcn.v7;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -11,7 +11,7 @@ public class TXTcheck {
     private final List<int[]> referenceHcns = new ArrayList<>();
 
     public TXTcheck() {
-        loadFromResource("hcn50k.txt");
+        loadFromResource("hcn.txt");
     }
 
     private void loadFromResource(String filename) {

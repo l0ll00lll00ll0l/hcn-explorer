@@ -1,4 +1,4 @@
-package com.hcn.core;
+package com.hcn.v7;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,19 +6,12 @@ import java.util.stream.Collectors;
 
 public class FixedPowerGroup {
     private List<ActivePrimeIndex> fixedPowerGroup = new ArrayList<>();
-    private Long tempId;
-    public Long getTempId() { return tempId; }
-    public void setTempId(Long tempId) { this.tempId = tempId; }
     private ScientificNumber value = new ScientificNumber(1.0, 0);
     private ScientificNumber factor = new ScientificNumber(1.0, 0);
     private ActivePrimeIndex parentPrimeIndex = null;
     private ActivePrimeIndex offspringPrimeIndex = null;
 
     public void receivePrimeIndex(ActivePrimeIndex primeIndex) {
-        System.out.println("DEBUG FPG receivePrimeIndex: p" + primeIndex.getIndex() + " pip=" + primeIndex.getPips().firstKey() + " bodyListSize=" + primeIndex.getHcnBodyList().stream().count());
-        primeIndex.getHcnBodyList().stream().forEach(body -> {
-            System.out.println("DEBUG   FPG body: " + body + " deactivated=" + body.isDeactivated() + " hasGen=" + (body.getHcnGenerator() != null) + " offsprings=" + body.getOffsprings().size());
-        });
         fixedPowerGroup.add(primeIndex);
         value = value.multiply(new ScientificNumber(Math.pow(PrimeCenter.getPrime(primeIndex.getIndex()), primeIndex.getPips().firstEntry().getValue().getPower()), 0));
         factor = factor.multiply(new ScientificNumber((primeIndex.getPips().firstEntry().getValue().getPower() + 1), 0));
@@ -30,11 +23,7 @@ public class FixedPowerGroup {
 
     public ActivePrimeIndex reactivatePrimeIndex() {
         ActivePrimeIndex reactivatedPrimeIndex = fixedPowerGroup.remove(0);
-        reactivatedPrimeIndex.getHcnBodyList().addGroup(
-                parentPrimeIndex.getHcnBodyList().stream()
-                        .filter(hcnBody -> !hcnBody.isDeactivated())
-                        .map(hcnBody -> hcnBody.addReactivateHcnBodyFromParent(reactivatedPrimeIndex))
-                        .collect(Collectors.toList()));
+        reactivatedPrimeIndex.getHcnBodyList().addGroup(parentPrimeIndex.getHcnBodyList().stream().map(hcnBody -> hcnBody.addReactivateHcnBodyFromParent(reactivatedPrimeIndex)).collect(Collectors.toList()));
         parentPrimeIndex = reactivatedPrimeIndex;
         value = value.divide(new ScientificNumber(Math.pow(PrimeCenter.getPrime(reactivatedPrimeIndex.getIndex()), reactivatedPrimeIndex.getPips().firstEntry().getValue().getPower()), 0));
         factor = factor.divide(new ScientificNumber((reactivatedPrimeIndex.getPips().firstEntry().getValue().getPower() + 1), 0));
@@ -64,9 +53,5 @@ public class FixedPowerGroup {
     public void setParentPrimeIndex(ActivePrimeIndex parentPrimeIndex) {
         this.parentPrimeIndex = parentPrimeIndex;
     }
-
-    public void setValueForLoad(ScientificNumber value) { this.value = value; }
-    public void setFactorForLoad(ScientificNumber factor) { this.factor = factor; }
-    public void setOffspringPrimeIndexForLoad(ActivePrimeIndex offspringPrimeIndex) { this.offspringPrimeIndex = offspringPrimeIndex; }
 
 }
