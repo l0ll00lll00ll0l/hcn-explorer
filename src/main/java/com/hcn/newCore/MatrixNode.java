@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Set;
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @SuperBuilder
+@Slf4j
 public abstract class MatrixNode {
 
     protected MatrixNode prevMatrixNode = null;
@@ -21,10 +23,17 @@ public abstract class MatrixNode {
     protected final TreeMap<Integer, BodyNode> bodyNodes = new TreeMap<>();
 
     public void deactivatedMaintain() {
+        bodyList.deactivatedMaintain();
+        if (prevMatrixNode != null) {prevMatrixNode.deactivatedMaintain();}
+    }
 
+    protected BodyNode getLargestProvedBodyNode() {
+        if (bodyNodes.get(bodyNodes.lastKey()).isProved()) {return bodyNodes.get(bodyNodes.lastKey());}
+        return bodyNodes.get(bodyNodes.lastKey() - 1);
     }
 
     public void generateNewBodies(List<Body> incomingParents) {
+        log.debug(" generateNewBodies");
         Set<Body> createdBodies = incomingParents.stream()
                 .flatMap(previousBody -> bodyNodes.values().stream()
                         .map(bodyNode -> Body.builder().bodyNode(bodyNode).parent(previousBody)
@@ -32,23 +41,16 @@ public abstract class MatrixNode {
                                 .factor(bodyNode.getFactor().multiply(previousBody.getFactor())).build()))
                 .collect(Collectors.toSet());
 
-        //System.out.println("created bodies: " + createdBodies);
+        log.debug("  createdBodies {}", createdBodies);
 
         List<Body> successfullyAddedBodies = bodyList.mergeBodies(createdBodies);
-        successfullyAddedBodies.forEach(body -> body.getBodyNode().getActiveBodies().add(body));
-        successfullyAddedBodies.forEach(body -> {
-            body.getBodyNode().getActiveBodies().add(body);
-            if (body.getParent() != null) {
-                body.getParent().getOffsprings().add(body);
-                //System.out.println("afterOffspringset: " + body.getParent());
-            }
-        });
-        //System.out.println("successfullyAddedBodies: " + successfullyAddedBodies);
+        log.debug("  successfullyAddedBodies {}", successfullyAddedBodies);
 
         if (nextMatrixNode != null) {nextMatrixNode.generateNewBodies(successfullyAddedBodies);}
     }
 
     public void createNextBodyNode() {
+        log.debug("createNextBodyNode");
 
         int nextBodyNodeId = bodyNodes.lastKey() + 1;
         BodyNode nwxtBodyNode = provideNextBodyNode();
@@ -62,6 +64,10 @@ public abstract class MatrixNode {
 
             int bodyNodeIdLowLimit = determineBodyNodeIdLowLimit();
 
+            log.debug(" parent bodies with bod {}: {}", bodyNodeIdLowLimit, prevMatrixNode.bodyNodes.values().stream()
+                    .filter(pip -> pip.getBodyNodeId() >= bodyNodeIdLowLimit)
+                    .flatMap(pip -> pip.getActiveBodies().stream()));
+
             createdBodies = prevMatrixNode.bodyNodes.values().stream()
                     .filter(pip -> pip.getBodyNodeId() >= bodyNodeIdLowLimit)
                     .flatMap(pip -> pip.getActiveBodies().stream())
@@ -70,24 +76,14 @@ public abstract class MatrixNode {
                             .factor(nwxtBodyNode.getFactor().multiply(parentBody.getFactor())).build())
                     .collect(Collectors.toSet());
         }
-
-        //System.out.println("created bodies: " + createdBodies);
+        log.debug(" original createdBodies {}", createdBodies);
         List<Body> successfullyAddedLocalBodies = bodyList.mergeBodies(createdBodies);
-        successfullyAddedLocalBodies.forEach(body -> {
-            body.getBodyNode().getActiveBodies().add(body);
-            if (body.getParent() != null) {
-                body.getParent().getOffsprings().add(body);
-                //System.out.println("afterOffspringset: " + body.getParent());
-            }
-        });
-        //System.out.println("successfullyAddedLocalBodies: " + successfullyAddedLocalBodies);
+        log.debug("  successfullyAddedLocalBodies {}", successfullyAddedLocalBodies);
 
         if (nextMatrixNode != null) {nextMatrixNode.generateNewBodies(successfullyAddedLocalBodies);}
     }
 
     protected abstract BodyNode provideNextBodyNode();
     protected abstract int determineBodyNodeIdLowLimit();
-    public void extensionCheck() {
-
-    }
+    public abstract void extensionCheck();
 }

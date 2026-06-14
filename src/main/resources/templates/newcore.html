@@ -37,10 +37,10 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <div style="display: flex; align-items: center; gap: 12px;">
             <h2 style="margin: 0;">HCN - New Core</h2>
-            <form method="post" action="/newcore/prove" onsubmit="setTimeout(startPolling, 200)" style="display: flex; align-items: center; gap: 4px;">
+            <form id="proveForm" style="display: flex; align-items: center; gap: 4px;">
                 <input type="hidden" name="tab" id="hiddenTab" th:value="${activeTab}"/>
                 <input type="hidden" name="bodyListIdx" id="hiddenBodyList" th:value="${activeBodyList}"/>
-                <input type="number" name="count" value="1" min="1" style="width: 50px; font-family: monospace; padding: 2px 4px;"/>
+                <input type="number" name="count" id="proveCount" value="1" min="1" style="width: 50px; font-family: monospace; padding: 2px 4px;"/>
                 <button type="submit" id="proveBtn" style="font-family: monospace; padding: 4px 12px;" th:disabled="${matrix.proving}">Prove</button>
             </form>
             <div id="progressBar" style="display: none; align-items: center; gap: 6px;">
@@ -50,9 +50,22 @@
                 <span id="progressText" style="font-size: 11px;"></span>
             </div>
         </div>
-        <a href="/newcore/quit" style="font-family: monospace; padding: 4px 12px; border: 1px solid #ccc; text-decoration: none; color: black;">Quit</a>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <form method="post" action="/newcore/loglevel" style="display: flex; align-items: center; gap: 4px;">
+                <input type="hidden" name="tab" th:value="${activeTab}"/>
+                <input type="hidden" name="bodyListIdx" th:value="${activeBodyList}"/>
+                <select name="level" style="font-family: monospace; padding: 2px;">
+                    <option value="DEBUG" th:selected="${logLevel == 'DEBUG'}">DEBUG</option>
+                    <option value="INFO" th:selected="${logLevel == 'INFO'}">INFO</option>
+                    <option value="WARN" th:selected="${logLevel == 'WARN'}">WARN</option>
+                </select>
+                <button type="submit" style="font-family: monospace; padding: 4px 8px;">Set Log</button>
+            </form>
+            <a href="/newcore/quit" style="font-family: monospace; padding: 4px 12px; border: 1px solid #ccc; text-decoration: none; color: black;">Quit</a>
+        </div>
     </div>
 
+    <div th:if="${!matrix.proving}">
     <div class="tab-bar">
         <button class="tab-btn" th:classappend="${activeTab == 'matrix' ? ' active' : ''}" data-tab="matrix" onclick="switchTab('matrix')">Matrix</button>
         <button class="tab-btn" th:classappend="${activeTab == 'bodynodes' ? ' active' : ''}" data-tab="bodynodes" onclick="switchTab('bodynodes')">BodyNodes</button>
@@ -112,22 +125,28 @@
              th:id="'bodylist-' + ${iter.index}"
              th:style="${iter.index == activeBodyList ? '' : 'display:none;'}">
             <table class="level-table">
-                <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Offsprings</th></tr></thead>
+                <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Proved</th><th>Deact</th><th>Offsprings</th></tr></thead>
                 <tbody>
                     <tr th:if="${node instanceof T(com.hcn.newCore.ApiNode) and node.bodyList != null}"
-                        th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}">
+                        th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}"
+                        th:style="${body.deactivated ? (body.proved ? 'background-color: #c8e6c9;' : 'background-color: #e0e0e0;') : (body.proved ? 'background-color: #90EE90;' : '')}">
                         <td th:text="${bIter.index}"></td>
                         <td th:text="${@newCoreController.guiString(body)}"></td>
                         <td th:text="${body.value}"></td>
                         <td th:text="${body.factor}"></td>
+                        <td th:text="${body.proved}"></td>
+                        <td th:text="${body.deactivated}"></td>
                         <td th:text="${@newCoreController.offspringString(body)}"></td>
                     </tr>
                     <tr th:if="${node instanceof T(com.hcn.newCore.TransitionNode) and node.bodyList != null}"
-                        th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}">
+                        th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}"
+                        th:style="${body.deactivated ? (body.proved ? 'background-color: #c8e6c9;' : 'background-color: #e0e0e0;') : (body.proved ? 'background-color: #90EE90;' : '')}">
                         <td th:text="${bIter.index}"></td>
                         <td th:text="${@newCoreController.guiString(body)}"></td>
                         <td th:text="${body.value}"></td>
                         <td th:text="${body.factor}"></td>
+                        <td th:text="${body.proved}"></td>
+                        <td th:text="${body.deactivated}"></td>
                         <td th:text="${@newCoreController.offspringString(body)}"></td>
                     </tr>
                 </tbody>
@@ -180,6 +199,7 @@
             </div>
         </div>
     </div>
+    </div>
     <script>
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
@@ -202,6 +222,17 @@
             selectBodyList(idx);
         }
 
+        // Prove form via AJAX
+        document.getElementById('proveForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var count = document.getElementById('proveCount').value;
+            var tab = document.getElementById('hiddenTab').value;
+            var bodyListIdx = document.getElementById('hiddenBodyList').value;
+            var params = 'count=' + count + '&tab=' + tab + '&bodyListIdx=' + bodyListIdx;
+            fetch('/newcore/prove', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: params })
+                .then(function() { startPolling(); });
+        });
+
         // Progress polling
         var pollInterval = null;
         function startPolling() {
@@ -219,7 +250,7 @@
                 });
             }, 500);
         }
-        // Auto-start polling if proving
+        // Auto-start polling if proving (page was refreshed mid-prove)
         if (/*[[${matrix.proving}]]*/ false) { startPolling(); }
     </script>
 </body>

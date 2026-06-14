@@ -3,6 +3,7 @@ package com.hcn.newCore;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
+@Slf4j
 public class Lapi {
     private final int lapi;
     private final ScientificNumber prime;
@@ -37,12 +39,45 @@ public class Lapi {
         return newLowLapi;
     }
 
-    public void generateHcnList(ScientificNumber provedLimit, ScientificNumber targetValue) {
+    public void generateHcnList(ScientificNumber provedLimit, ScientificNumber targetValue, Body smallestBody) {
+        if (walker == null || walker.isDeactivated() || walker.getNextActiveBody() == null) {
+            walker = restoreWalker(smallestBody, provedLimit);
+        }
+        if (walker != null) {
+            moveWalkerIfNotSuperiorCheck();
+            createBaseHcnList(targetValue);
+            mergeLowerHcnlist(provedLimit);
+        }
+        if (higherLapi != null) {higherLapi.generateHcnList(provedLimit, targetValue, smallestBody);}
+    }
 
-        moveWalkerIfNotSuperiorCheck();
-        createBaseHcnList(targetValue);
-        mergeLowerHcnlist(provedLimit);
-        if (higherLapi != null) {higherLapi.generateHcnList(provedLimit, targetValue);}
+    private Body restoreWalker(Body smallestBody, ScientificNumber provedLimit) {
+        log.debug("Restoring walker required for lapi {} prev walkerBody: {}", lapi, walker);
+        Body result = null;
+        Body candidate = smallestBody;
+        while (candidate != null) {
+            if (!candidate.isDeactivated() && candidate.getLastGeneratedHcn() != null && candidate.getLastGeneratedHcn().getLapi() == lapi) {
+                result = candidate;
+            }
+            candidate = candidate.getNextActiveBody();
+        }
+        if (result == null) {
+            log.debug("  Restoring walker for lapi {} no body was found, return null", lapi);
+            return null;
+        }
+        log.debug("  Restoring walker for lapi {} last ActiveBody with lapi as lastgenHcn: {}", lapi, result);
+        // advance until lastGeneratedHcn value > provedLimit
+        while (result.getLastGeneratedHcn().getValue().isNotBiggerThan(provedLimit)) {
+            log.debug("  Restoring walker for lapi {} results lastgenhcn is smaller than provedlimit: {}", lapi, result);
+            Body next = result.getNextActiveBody();
+            if (next == null) return null;
+            result = next;
+            if (result.getLastGeneratedHcn() == null || result.getLastGeneratedHcn().getLapi() != lapi) {
+                result.generateNextHcn(this);
+            }
+        }
+        log.debug("  Restoring walker for lapi {} new walker identified: {}", lapi, result);
+        return result;
     }
 
     private void createBaseHcnList(ScientificNumber targetValue) {
@@ -63,7 +98,7 @@ public class Lapi {
             //check needed only if local recorder is from lower lapi
             if (hcnList.get(hcnList.size() - 1).getLapi() < lapi) {
                 while (walker.getLastGeneratedHcn().getFactor().isNotBiggerThan(hcnList.get(hcnList.size() - 1).getFactor())) {
-                    walker.gotDominated();
+                    walker.getLastGeneratedHcn().gotDominated();
                     walker = walker.getNextActiveBody();
                     walker.generateNextHcn(this);
                 }
@@ -88,7 +123,7 @@ public class Lapi {
                 hcnList.add(localSuperiorIndex + 1, lowerLapiNextHcn);
                 int indexToFactorCheck = localSuperiorIndex + 2;
                 while (indexToFactorCheck < hcnList.size() && hcnList.get(indexToFactorCheck).getFactor().isNotBiggerThan(lowerLapiNextHcn.getFactor())) {
-                    hcnList.get(indexToFactorCheck).getBody().gotDominated();
+                    hcnList.get(indexToFactorCheck).gotDominated();
                     hcnList.remove(indexToFactorCheck);
                 }
             }

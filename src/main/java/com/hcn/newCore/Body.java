@@ -3,11 +3,12 @@ package com.hcn.newCore;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter @Setter @Builder
+@Getter @Setter @Builder @Slf4j
 public class Body implements Comparable<Body>{
     private BodyNode bodyNode;
     private ScientificNumber value;
@@ -25,6 +26,8 @@ public class Body implements Comparable<Body>{
     @Builder.Default
     private Hcn firstSuperiorHcn = null;
     @Builder.Default
+    private Hcn firstDominatedHcn = null;
+    @Builder.Default
     private boolean deactivated = false;
 
     private boolean isSelfReferredGenerationPossible(Lapi lapi) {return lastGeneratedHcn != null && lastGeneratedHcn.getLapi() + 1 == lapi.getLapi();}
@@ -36,6 +39,7 @@ public class Body implements Comparable<Body>{
     }
 
     public Hcn generateNextHcn(Lapi lapi) {
+        boolean firstHcnGenerated = lastGeneratedHcn == null;
         if (isSelfReferredGenerationPossible(lapi)) {
             lastGeneratedHcn = Hcn.builder().body(this).lapi(lapi.getLapi()).value(lastGeneratedHcn.getValue().multiply(lapi.getPrime()))
                     .factor(lastGeneratedHcn.getFactor().multiply(new ScientificNumber(2, 0))).build();
@@ -44,6 +48,7 @@ public class Body implements Comparable<Body>{
             lastGeneratedHcn = Hcn.builder().body(this).lapi(lapi.getLapi()).value(this.value.divide(referenceHcn.getBody().value).multiply(referenceHcn.getValue()))
                     .factor(this.factor.divide(referenceHcn.getBody().factor).multiply(referenceHcn.getFactor())).build();
         }
+        if (firstHcnGenerated) {firstHcn = lastGeneratedHcn;}
         return lastGeneratedHcn;
     }
 
@@ -60,16 +65,26 @@ public class Body implements Comparable<Body>{
     }
 
     public void gotDominated() {
-        /*
-        System.out.println("dominated yet to implement " + this);
+
+        log.debug("dominated body: {}", this);;
+
         deactivated = true;
         bodyNode.getActiveBodies().remove(this);
 
         if (bodyNode.getActiveBodies().isEmpty()) {
-            bodyNode.
+            bodyNode.getParentNode().bodyNodes.remove(bodyNode.getBodyNodeId());
+            if (bodyNode.getParentNode().bodyNodes.size() == 1) {
+                System.out.println("used to be fixpowergroup trigger");
+            }
         }
 
-         */
+        if (parent != null) {
+            parent.offsprings.remove(this);
+            if (parent.offsprings.isEmpty()) {
+                parent.gotDominated();
+            }
+        }
+
     }
 
     public void matrixMaintainCheck() {

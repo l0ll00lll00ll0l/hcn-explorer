@@ -1,9 +1,14 @@
 package com.hcn.newCore;
 
+import lombok.extern.slf4j.Slf4j;
+import java.util.TreeMap;
+
+@Slf4j
 public class ApiNodeCreator {
 
     public static void createNewApi(ApiNode oldApiNode, TransitionNode transitionNode) {
 
+        log.debug("TransitionRelease between API-{} and transition {}", oldApiNode.getIndex(), transitionNode.getFirstIndex());
         int newIndex = transitionNode.getFirstIndex();
         ScientificNumber newValue = new ScientificNumber(transitionNode.getPrimeCenter().getPrime(newIndex), 0);
         ApiNode newApiNode = ApiNode.builder().index(newIndex)
@@ -23,7 +28,12 @@ public class ApiNodeCreator {
         }
 
         int transitionFrom = transitionNode.getTransitionFrom();
-        BodyNode nextLowerTransition = transitionNode.getBodyNodes().get(newIndex + 1);
+        BodyNode nextLowerTransition;
+        if (transitionNode.getBodyNodes().containsKey(newIndex + 1)) {
+            nextLowerTransition = transitionNode.getBodyNodes().get(newIndex + 1);
+        } else {
+            nextLowerTransition = transitionNode.getBodyNodes().get(transitionNode.bodyNodes.firstKey());
+        }
         BodyNode pip = BodyNode.builder().parentNode(newApiNode)
                 .value(newValue.pow(transitionFrom))
                 .factor(new ScientificNumber(transitionFrom + 1, 0))
@@ -49,47 +59,65 @@ public class ApiNodeCreator {
 
     }
 
-    private static BodyList rebuildBodyNodesDualPip(BodyNode pipLower, BodyNode pip, TransitionNode transitionNode, BodyNode transitionToRemove, BodyNode nextLowerTransition) {
+    private static BodyList rebuildBodyNodesDualPip(BodyNode newLowerPip, BodyNode newLargerPip, TransitionNode transitionNode, BodyNode transitionToRemove, BodyNode nextLowerTransition) {
 
+        log.debug(" TransitionRelease rebuildBodyNodesDualPip");
         Body bodyToRebuild = transitionNode.getBodyList().getSmallestBody();
-        Body newBodyNode = null;
+        TreeMap<ScientificNumber, Body> distinctParents = new TreeMap<>();
+
         do {
-            Body smallerBody = newBodyNode;
-            newBodyNode = Body.builder().parent(bodyToRebuild.getParent()).deactivated(bodyToRebuild.isDeactivated()).smallerBody(smallerBody).build();
-            if (smallerBody != null) {smallerBody.setLargerBody(newBodyNode);}
-            bodyToRebuild.setParent(newBodyNode);
+            Body newBodyNode = Body.builder().parent(bodyToRebuild.getParent()).proved(bodyToRebuild.isProved()).deactivated(bodyToRebuild.isDeactivated()).build();
+            BodyNode suitableNewPipForBody = getSuitableNewPipForBody(bodyToRebuild, transitionNode, newLowerPip, newLargerPip);
+            newBodyNode.setValue(newBodyNode.getParent().getValue().multiply(suitableNewPipForBody.getValue()));
+            log.debug("   bodyToRebuild {}", bodyToRebuild);
 
-            if (bodyToRebuild.getBodyNode().equals(transitionToRemove)) {
-                bodyToRebuild.setBodyNode(nextLowerTransition);
-                newBodyNode.setBodyNode(pipLower);
-                newBodyNode.setValue(newBodyNode.getParent().getValue().multiply(pipLower.getValue()));
-                newBodyNode.setFactor(newBodyNode.getParent().getFactor().multiply(pipLower.getFactor()));
-
-                // Deactivated bodies don't hold connections in offsprings, and not present in activeBodies
-                if (!bodyToRebuild.isDeactivated()) {
-                    newBodyNode.getParent().getOffsprings().remove(bodyToRebuild);
-                    newBodyNode.getParent().getOffsprings().add(newBodyNode);
-                    pipLower.getActiveBodies().add(newBodyNode);
-                    newBodyNode.getOffsprings().add(bodyToRebuild);
-                }
-
+            if (distinctParents.containsKey(newBodyNode.getValue())) {
+                newBodyNode = distinctParents.get(newBodyNode.getValue());
+                // in case stored body is not proved but new offspring is
+                if (bodyToRebuild.isProved()) {newBodyNode.setProved(true);}
+                log.debug("   newBodyNode found in distinctParents {}", newBodyNode);
             } else {
-                newBodyNode.setBodyNode(pip);
-                newBodyNode.setValue(newBodyNode.getParent().getValue().multiply(pip.getValue()));
-                newBodyNode.setFactor(newBodyNode.getParent().getFactor().multiply(pip.getFactor()));
-
-                // Deactivated bodies don't hold connections in offsprings, and not present in activeBodies
-                if (!bodyToRebuild.isDeactivated()) {
-                    newBodyNode.getParent().getOffsprings().remove(bodyToRebuild);
-                    newBodyNode.getParent().getOffsprings().add(newBodyNode);
-                    pip.getActiveBodies().add(newBodyNode);
-                    newBodyNode.getOffsprings().add(bodyToRebuild);
+                if (suitableNewPipForBody.equals(newLowerPip)) {
+                    newBodyNode.setBodyNode(newLowerPip);
+                    bodyToRebuild.setBodyNode(nextLowerTransition);
+                } else {
+                    newBodyNode.setBodyNode(newLargerPip);
                 }
+                distinctParents.put(newBodyNode.getValue(), newBodyNode);
+                newBodyNode.setFactor(newBodyNode.getParent().getFactor().multiply(suitableNewPipForBody.getFactor()));
+                log.debug("   newBodyNode updated {}", newBodyNode);
             }
+
+            if (!bodyToRebuild.isDeactivated()) {
+                newBodyNode.getParent().getOffsprings().remove(bodyToRebuild);
+                suitableNewPipForBody.getActiveBodies().add(newBodyNode);
+                newBodyNode.getOffsprings().add(bodyToRebuild);
+                if (!newBodyNode.getParent().getOffsprings().contains(newBodyNode)) {
+                    newBodyNode.getParent().getOffsprings().add(newBodyNode);
+                }
+                log.debug("   newBodyNode activity update {}", newBodyNode);
+            }
+            bodyToRebuild.setParent(newBodyNode);
             bodyToRebuild = bodyToRebuild.getLargerBody();
         } while (bodyToRebuild != null);
-        newBodyNode.setLargerBody(null);
 
-        return BodyList.builder().smallestBody(transitionNode.getBodyList().getSmallestBody().getParent()).build();
+        return createBodyList(distinctParents);
+    }
+
+
+    private static BodyList createBodyList(TreeMap<ScientificNumber, Body> distinctParents) {
+        BodyList bodyList = BodyList.builder().smallestBody(distinctParents.firstEntry().getValue()).build();
+        Body prevBody = null;
+        for (Body body : distinctParents.values()) {
+            body.setSmallerBody(prevBody);
+            if (prevBody != null) {prevBody.setLargerBody(body);}
+            prevBody = body;
+        }
+        return bodyList;
+    }
+
+    private static BodyNode getSuitableNewPipForBody(Body bodyToRebuild, TransitionNode transitionNode, BodyNode newLowerPip, BodyNode newLargerPip) {
+        if (bodyToRebuild.getBodyNode().getBodyNodeId() == transitionNode.getFirstIndex() - 1) {return newLowerPip;} else {return newLargerPip;}
     }
 }
+

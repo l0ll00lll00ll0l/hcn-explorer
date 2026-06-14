@@ -12,4 +12,16 @@ public class Hcn {
     private final int lapi;
     private ScientificNumber value;
     private ScientificNumber factor;
+
+    public void matrixMaintainCheck() {
+        if (!body.isProved()) {
+            body.setFirstSuperiorHcn(this);
+            body.matrixMaintainCheck();
+        }
+    }
+
+    public void gotDominated() {
+        body.setLastGeneratedHcn(this);
+        body.gotDominated();
+    }
 }

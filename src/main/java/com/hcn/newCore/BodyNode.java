@@ -24,7 +24,7 @@ public class BodyNode {
 
     public void extensionCheck() {
         if (proved) {return;}
-        proved = true;
         parentNode.extensionCheck();
+        proved = true;
     }
 }

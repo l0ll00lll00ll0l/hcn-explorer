@@ -1,6 +1,9 @@
 package com.hcn.controller;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
 import com.hcn.newCore.*;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,7 +20,8 @@ public class NewCoreController {
 
     private Matrix matrix;
     private String activeTab = "matrix";
-    private int activeBodyList = -1; // -1 means last
+    private int activeBodyList = -1;
+    private String currentLogLevel = "INFO";
 
     @GetMapping("/newcore")
     public String index(Model model) {
@@ -26,10 +30,26 @@ public class NewCoreController {
             matrix.initialize();
         }
         model.addAttribute("matrix", matrix);
-        model.addAttribute("matrixChain", getMatrixChain());
+        model.addAttribute("logLevel", currentLogLevel);
+        if (!matrix.isProving()) {
+            List<MatrixNode> chain = getMatrixChain();
+            model.addAttribute("matrixChain", chain);
+            model.addAttribute("activeBodyList", activeBodyList == -1 ? chain.size() - 1 : activeBodyList);
+        }
         model.addAttribute("activeTab", activeTab);
-        model.addAttribute("activeBodyList", activeBodyList == -1 ? getMatrixChain().size() - 1 : activeBodyList);
         return "newcore";
+    }
+
+    @PostMapping("/newcore/loglevel")
+    public String setLogLevel(@RequestParam String level,
+                              @RequestParam(defaultValue = "matrix") String tab,
+                              @RequestParam(defaultValue = "-1") int bodyListIdx) {
+        activeTab = tab;
+        activeBodyList = bodyListIdx;
+        currentLogLevel = level.toUpperCase();
+        LoggerContext ctx = (LoggerContext) LoggerFactory.getILoggerFactory();
+        ctx.getLogger("com.hcn.newCore").setLevel(Level.toLevel(currentLogLevel));
+        return "redirect:/newcore";
     }
 
     @GetMapping("/newcore/quit")
@@ -41,15 +61,19 @@ public class NewCoreController {
     }
 
     @PostMapping("/newcore/prove")
+    @ResponseBody
     public String prove(@RequestParam(defaultValue = "1") int count,
                         @RequestParam(defaultValue = "matrix") String tab,
                         @RequestParam(defaultValue = "-1") int bodyListIdx) {
         activeTab = tab;
         activeBodyList = bodyListIdx;
         if (!matrix.isProving()) {
+            matrix.setProving(true);
+            matrix.setProveTarget(count);
+            matrix.setProveProgress(0);
             new Thread(() -> matrix.proveLapi(count)).start();
         }
-        return "redirect:/newcore";
+        return "{\"started\":true}";
     }
 
     @GetMapping("/newcore/progress")

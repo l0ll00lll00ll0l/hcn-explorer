@@ -1,21 +1,16 @@
 package com.hcn.newCore;
 
-import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.slf4j.Slf4j;
 
 
-@Getter @Setter @SuperBuilder
+@Getter @Setter @SuperBuilder @Slf4j
 public class ApiNode extends MatrixNode {
 
     private int index;
     private ScientificNumber prime;
-
-    @Override
-    public void deactivatedMaintain() {
-        System.out.println("deactivated body maintain for ApiNode yet to be implemented");
-    }
 
     @Override
     protected BodyNode provideNextBodyNode() {
@@ -30,8 +25,27 @@ public class ApiNode extends MatrixNode {
 
     @Override
     public void extensionCheck() {
-        if (transitionReleaseRequired()) {ApiNodeCreator.createNewApi(this, (TransitionNode) nextMatrixNode);}
-        if (isLocalExtensionRequired()) {createNextBodyNode();}
+        log.debug("LocalExtension trigger at {}", index);
+        if (transitionReleaseRequired()) {
+            ApiNodeCreator.createNewApi(this, (TransitionNode) nextMatrixNode);
+        }
+        if (isLocalExtensionRequired()) {
+            log.debug("  LocalExtension required at {}", index);
+            createNextBodyNode();}
+        if (nextMatrixNodeExtensionRequired()) {
+            log.debug("  NextMatrixNodeExtension required at {}", index);
+            nextMatrixNode.createNextBodyNode();
+        }
+    }
+
+    private boolean nextMatrixNodeExtensionRequired() {
+        if (nextMatrixNode instanceof ApiNode apinode) {
+            BodyNode lastNode = apinode.getBodyNodes().get(apinode.bodyNodes.lastKey());
+            if (lastNode.isProved() && lastNode.getBodyNodeId() < bodyNodes.lastKey() - 1) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean transitionReleaseRequired() {return nextMatrixNode instanceof TransitionNode transitionNode && bodyNodes.lastKey() > transitionNode.getTransitionFrom();}
@@ -41,13 +55,9 @@ public class ApiNode extends MatrixNode {
             return true;
         } else {
             int pipToCreate = bodyNodes.lastKey() + 1;
-            ApiNode prevAoiNode = (ApiNode) prevMatrixNode;
-            int largestPreviousProvedPip = prevAoiNode.bodyNodes.lastKey() -1;
-            if (largestPreviousProvedPip < pipToCreate) {
-                return false;
-            } else {
-                return true;
-            }
+            int largestPreviousProvedPip = prevMatrixNode.getLargestProvedBodyNode().getBodyNodeId();
+            log.debug("isLocalExtensionRequired, pipToCreate: {}, largestPreviousProvedPip: {}", pipToCreate, largestPreviousProvedPip);
+            if (largestPreviousProvedPip < pipToCreate) {return false;} else {return true;}
         }
     }
 }
