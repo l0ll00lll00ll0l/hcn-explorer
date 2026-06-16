@@ -52,4 +52,14 @@ public class TransitionNode extends MatrixNode{
             body.setFactor(body.getFactor().multiply(new ScientificNumber(transitionTo + 1, 0)));
         });
     }
+
+    @Override
+    public String toString() {
+        return "TransitionNode{" +
+                "transitionFrom=" + transitionFrom +
+                ", transitionTo=" + transitionTo +
+                ", firstIndex=" + firstIndex +
+                ", lastIndex=" + lastIndex +
+                '}';
+    }
 }

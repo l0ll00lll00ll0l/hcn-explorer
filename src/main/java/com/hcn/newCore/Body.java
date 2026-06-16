@@ -66,17 +66,9 @@ public class Body implements Comparable<Body>{
 
     public void gotDominated() {
 
-        log.debug("dominated body: {}", this);;
-
         deactivated = true;
         bodyNode.getActiveBodies().remove(this);
-
-        if (bodyNode.getActiveBodies().isEmpty()) {
-            bodyNode.getParentNode().bodyNodes.remove(bodyNode.getBodyNodeId());
-            if (bodyNode.getParentNode().bodyNodes.size() == 1) {
-                System.out.println("used to be fixpowergroup trigger");
-            }
-        }
+        log.debug("dominated body: {}, active size: {} activeBody: {}", this, bodyNode.getActiveBodies().size(), bodyNode.getActiveBodies());
 
         if (parent != null) {
             parent.offsprings.remove(this);
@@ -85,6 +77,13 @@ public class Body implements Comparable<Body>{
             }
         }
 
+        if (bodyNode.getActiveBodies().isEmpty()) {
+            log.debug("removing BodyNode: {} by {}", bodyNode, this);
+            bodyNode.getParentNode().bodyNodes.remove(bodyNode.getBodyNodeId());
+            if (bodyNode.getParentNode().bodyNodes.size() == 1) {
+                TransitionNodeCreator.createNewTransitionNode((ApiNode) bodyNode.getParentNode());
+            }
+        }
     }
 
     public void matrixMaintainCheck() {

@@ -24,7 +24,19 @@ public class BodyNode {
 
     public void extensionCheck() {
         if (proved) {return;}
-        parentNode.extensionCheck();
         proved = true;
+        parentNode.extensionCheck();
+    }
+
+    @Override
+    public String toString() {
+        return "BodyNode{" +
+                "parentNode=" + parentNode +
+                ", bodyNodeId=" + bodyNodeId +
+                ", proved=" + proved +
+                ", value=" + value +
+                ", factor=" + factor +
+                ", activeBodies=" + activeBodies +
+                '}';
     }
 }

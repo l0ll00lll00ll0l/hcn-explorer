@@ -21,6 +21,8 @@ public class NewCoreController {
     private Matrix matrix;
     private String activeTab = "matrix";
     private int activeBodyList = -1;
+    private int activeMatrixNodeIdx = 0;
+    private int activeBodyNodeId = -1;
     private String currentLogLevel = "INFO";
 
     @GetMapping("/newcore")
@@ -35,6 +37,8 @@ public class NewCoreController {
             List<MatrixNode> chain = getMatrixChain();
             model.addAttribute("matrixChain", chain);
             model.addAttribute("activeBodyList", activeBodyList == -1 ? chain.size() - 1 : activeBodyList);
+            model.addAttribute("activeMatrixNodeIdx", activeMatrixNodeIdx);
+            model.addAttribute("activeBodyNodeId", activeBodyNodeId);
         }
         model.addAttribute("activeTab", activeTab);
         return "newcore";
@@ -79,6 +83,7 @@ public class NewCoreController {
     @GetMapping("/newcore/progress")
     @ResponseBody
     public String progress() {
+        if (matrix == null) return "{\"proving\":false,\"progress\":0,\"target\":0}";
         return "{\"proving\":" + matrix.isProving() + ",\"progress\":" + matrix.getProveProgress() + ",\"target\":" + matrix.getProveTarget() + "}";
     }
 
@@ -147,6 +152,48 @@ public class NewCoreController {
                 sb.append("t").append(node.getBodyNodeId());
             }
         }
+        return sb.toString();
+    }
+
+    public String matrixNodeLabel(MatrixNode node) {
+        if (node instanceof ApiNode a) return "p" + a.getIndex();
+        if (node instanceof TransitionNode t) return "p" + t.getFirstIndex() + "→p" + t.getLastIndex();
+        return "";
+    }
+
+    public String getBodyNodesJson(List<MatrixNode> chain) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < chain.size(); i++) {
+            if (i > 0) sb.append(",");
+            MatrixNode node = chain.get(i);
+            sb.append("[");
+            boolean first = true;
+            for (var entry : node.getBodyNodes().descendingMap().entrySet()) {
+                BodyNode bn = entry.getValue();
+                if (!first) sb.append(",");
+                first = false;
+                sb.append("{\"id\":").append(bn.getBodyNodeId())
+                  .append(",\"value\":\"").append(bn.getValue()).append("\"")
+                  .append(",\"factor\":\"").append(bn.getFactor()).append("\"")
+                  .append(",\"proved\":").append(bn.isProved())
+                  .append(",\"activeBodiesCount\":").append(bn.getActiveBodies().size())
+                  .append(",\"activeBodies\":[");
+                boolean firstBody = true;
+                for (Body body : bn.getActiveBodies()) {
+                    if (!firstBody) sb.append(",");
+                    firstBody = false;
+                    sb.append("{\"guiString\":\"").append(guiString(body).replace("\"", "\\\"")).append("\"")
+                      .append(",\"value\":\"").append(body.getValue()).append("\"")
+                      .append(",\"factor\":\"").append(body.getFactor()).append("\"")
+                      .append(",\"proved\":").append(body.isProved())
+                      .append(",\"deactivated\":").append(body.isDeactivated())
+                      .append("}");
+                }
+                sb.append("]}");
+            }
+            sb.append("]");
+        }
+        sb.append("]");
         return sb.toString();
     }
 }

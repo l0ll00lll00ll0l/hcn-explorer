@@ -41,7 +41,8 @@ public class ApiNode extends MatrixNode {
     private boolean nextMatrixNodeExtensionRequired() {
         if (nextMatrixNode instanceof ApiNode apinode) {
             BodyNode lastNode = apinode.getBodyNodes().get(apinode.bodyNodes.lastKey());
-            if (lastNode.isProved() && lastNode.getBodyNodeId() < bodyNodes.lastKey() - 1) {
+            log.debug("  NextMatrixNodeExtension required at {}, this: {}, last: {}", index, getLargestProvedBodyNode(), nextMatrixNode.getLargestProvedBodyNode());
+            if (lastNode.isProved() && lastNode.getBodyNodeId() < getLargestProvedBodyNode().getBodyNodeId()) {
                 return true;
             }
         }
@@ -59,5 +60,13 @@ public class ApiNode extends MatrixNode {
             log.debug("isLocalExtensionRequired, pipToCreate: {}, largestPreviousProvedPip: {}", pipToCreate, largestPreviousProvedPip);
             if (largestPreviousProvedPip < pipToCreate) {return false;} else {return true;}
         }
+    }
+
+    @Override
+    public String toString() {
+        return "ApiNode{" +
+                "index=" + index +
+                ", prime=" + prime +
+                '}';
     }
 }

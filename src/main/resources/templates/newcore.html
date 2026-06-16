@@ -68,7 +68,8 @@
     <div th:if="${!matrix.proving}">
     <div class="tab-bar">
         <button class="tab-btn" th:classappend="${activeTab == 'matrix' ? ' active' : ''}" data-tab="matrix" onclick="switchTab('matrix')">Matrix</button>
-        <button class="tab-btn" th:classappend="${activeTab == 'bodynodes' ? ' active' : ''}" data-tab="bodynodes" onclick="switchTab('bodynodes')">BodyNodes</button>
+        <button class="tab-btn" th:classappend="${activeTab == 'bodynodes' ? ' active' : ''}" data-tab="bodynodes" onclick="switchTab('bodynodes')">BodyList</button>
+        <button class="tab-btn" th:classappend="${activeTab == 'bodynode' ? ' active' : ''}" data-tab="bodynode" onclick="switchTab('bodynode')">BodyNode</button>
         <button class="tab-btn" th:classappend="${activeTab == 'hcngen' ? ' active' : ''}" data-tab="hcngen" onclick="switchTab('hcngen')">Hcn Generation</button>
         <button class="tab-btn" th:classappend="${activeTab == 'lapi' ? ' active' : ''}" data-tab="lapi" onclick="switchTab('lapi')">Lapi</button>
     </div>
@@ -81,7 +82,8 @@
                     <div class="matrix-box-header" th:text="${node.prime}"></div>
                     <div class="matrix-box-content">
                         <div th:each="entry : ${node.bodyNodes.descendingMap()}" class="transition-panel"
-                             th:style="${entry.value.proved ? 'background-color: #90EE90;' : ''}">
+                             th:style="'cursor:pointer;' + ${entry.value.proved ? 'background-color: #90EE90;' : ''}"
+                             th:onclick="'openBodyNode(' + ${iter.index} + ',' + ${entry.value.bodyNodeId} + ')'">
                             <span class="transition-id" th:text="${entry.value.bodyNodeId}"></span>
                             <span th:text="'v=' + ${entry.value.value} + ' f=' + ${entry.value.factor}"></span>
                             <span th:text="'(' + ${entry.value.activeBodies.size()} + ')'" ></span>
@@ -95,7 +97,8 @@
                     <div class="matrix-box-header" th:text="${node.transitionFrom} + ' → ' + ${node.transitionTo}"></div>
                     <div class="matrix-box-content">
                         <div th:each="entry : ${node.bodyNodes.descendingMap()}" class="transition-panel"
-                             th:style="${entry.value.proved ? 'background-color: #90EE90;' : ''}">
+                             th:style="'cursor:pointer;' + ${entry.value.proved ? 'background-color: #90EE90;' : ''}"
+                             th:onclick="'openBodyNode(' + ${iter.index} + ',' + ${entry.value.bodyNodeId} + ')'">
                             <span class="transition-id" th:text="${entry.value.bodyNodeId}"></span>
                             <span th:text="'v=' + ${entry.value.value} + ' f=' + ${entry.value.factor}"></span>
                             <span th:text="'(' + ${entry.value.activeBodies.size()} + ')'" ></span>
@@ -154,6 +157,23 @@
         </div>
     </div>
 
+    <div id="tab-bodynode" class="tab-content" th:classappend="${activeTab == 'bodynode' ? ' active' : ''}">
+        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px;">
+            <label>MatrixNode:
+                <select id="matrixNodeSelect" onchange="onMatrixNodeChange()" style="font-family: monospace;">
+                    <option th:each="node, iter : ${matrixChain}" th:value="${iter.index}"
+                            th:selected="${iter.index == activeMatrixNodeIdx}"
+                            th:text="${@newCoreController.matrixNodeLabel(node)}"></option>
+                </select>
+            </label>
+            <label>BodyNode:
+                <select id="bodyNodeSelect" onchange="onBodyNodeChange()" style="font-family: monospace;">
+                </select>
+            </label>
+        </div>
+        <div id="bodynode-detail"></div>
+    </div>
+
     <div id="tab-hcngen" class="tab-content" th:classappend="${activeTab == 'hcngen' ? ' active' : ''}">
         <table class="level-table">
             <thead>
@@ -200,7 +220,7 @@
         </div>
     </div>
     </div>
-    <script>
+    <script th:inline="javascript">
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
             document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -220,6 +240,68 @@
         function openBodyList(idx) {
             switchTab('bodynodes');
             selectBodyList(idx);
+        }
+
+        function openBodyNode(matrixIdx, bodyNodeId) {
+            switchTab('bodynode');
+            document.getElementById('matrixNodeSelect').value = matrixIdx;
+            onMatrixNodeChange();
+            document.getElementById('bodyNodeSelect').value = bodyNodeId;
+            onBodyNodeChange();
+        }
+
+        // BodyNode tab data
+        var parsedBodyNodes = JSON.parse(/*[[${matrixChain != null ? @newCoreController.getBodyNodesJson(matrixChain) : '[]'}]]*/ '[]');
+
+        function onMatrixNodeChange() {
+            var idx = parseInt(document.getElementById('matrixNodeSelect').value);
+            var select = document.getElementById('bodyNodeSelect');
+            select.innerHTML = '';
+            if (parsedBodyNodes[idx]) {
+                parsedBodyNodes[idx].forEach(function(bn) {
+                    var opt = document.createElement('option');
+                    opt.value = bn.id;
+                    opt.textContent = bn.id + ' (v=' + bn.value + ' f=' + bn.factor + ')';
+                    select.appendChild(opt);
+                });
+            }
+            onBodyNodeChange();
+        }
+
+        function onBodyNodeChange() {
+            var matrixIdx = parseInt(document.getElementById('matrixNodeSelect').value);
+            var bodyNodeId = parseInt(document.getElementById('bodyNodeSelect').value);
+            var detail = document.getElementById('bodynode-detail');
+            if (!parsedBodyNodes[matrixIdx]) { detail.innerHTML = ''; return; }
+            var bn = parsedBodyNodes[matrixIdx].find(function(b) { return b.id === bodyNodeId; });
+            if (!bn) { detail.innerHTML = ''; return; }
+            var html = '<table class="level-table"><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody>';
+            html += '<tr><td>ID</td><td>' + bn.id + '</td></tr>';
+            html += '<tr><td>Value</td><td>' + bn.value + '</td></tr>';
+            html += '<tr><td>Factor</td><td>' + bn.factor + '</td></tr>';
+            html += '<tr><td>Proved</td><td>' + bn.proved + '</td></tr>';
+            html += '<tr><td>Active Bodies</td><td>' + bn.activeBodiesCount + '</td></tr>';
+            html += '</tbody></table>';
+            if (bn.activeBodies.length > 0) {
+                html += '<h4 style="margin: 10px 0 4px;">Active Bodies</h4>';
+                html += '<table class="level-table"><thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Proved</th><th>Deact</th></tr></thead><tbody>';
+                bn.activeBodies.forEach(function(b, i) {
+                    html += '<tr><td>' + i + '</td><td>' + b.guiString + '</td><td>' + b.value + '</td><td>' + b.factor + '</td><td>' + b.proved + '</td><td>' + b.deactivated + '</td></tr>';
+                });
+                html += '</tbody></table>';
+            }
+            detail.innerHTML = html;
+        }
+
+        // Initialize bodynode select on page load
+        if (document.getElementById('matrixNodeSelect')) { onMatrixNodeChange(); }
+        // Restore selection if coming from click
+        var initBodyNodeId = /*[[${activeBodyNodeId != null ? activeBodyNodeId : -1}]]*/ -1;
+        if (initBodyNodeId >= 0) {
+            document.getElementById('matrixNodeSelect').value = /*[[${activeMatrixNodeIdx != null ? activeMatrixNodeIdx : 0}]]*/ 0;
+            onMatrixNodeChange();
+            document.getElementById('bodyNodeSelect').value = initBodyNodeId;
+            onBodyNodeChange();
         }
 
         // Prove form via AJAX

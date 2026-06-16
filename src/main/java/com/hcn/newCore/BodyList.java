@@ -3,9 +3,11 @@ package com.hcn.newCore;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.TreeMap;
@@ -13,6 +15,7 @@ import java.util.TreeMap;
 @Getter
 @Setter
 @Builder
+@Slf4j
 public class BodyList implements Iterable<Body> {
     private Body smallestBody;
 
@@ -57,6 +60,7 @@ public class BodyList implements Iterable<Body> {
 
             // check if newBody's factor is superior to floor's factor
             if (!newBody.getFactor().isBiggerThan(current.getFactor())) {
+                log.debug("  current {} prevents newbody {}", current, newBody);
                 continue;
             }
 
@@ -64,6 +68,7 @@ public class BodyList implements Iterable<Body> {
             Body ceiling = current.getLargerBody();
             while (ceiling != null && ceiling.getFactor().isNotBiggerThan(newBody.getFactor())) {
                 Body next = ceiling.getLargerBody();
+                log.debug("  newBody {} dominates {}", newBody, ceiling);
                 dominated.add(ceiling);
                 ceiling = next;
             }
@@ -74,14 +79,17 @@ public class BodyList implements Iterable<Body> {
             newBody.setLargerBody(ceiling);
             if (ceiling != null) ceiling.setSmallerBody(newBody);
             newBody.getBodyNode().getActiveBodies().add(newBody);
+            log.debug("  newBody {} is added as active", newBody);
             if (newBody.getParent() != null) {
                 newBody.getParent().getOffsprings().add(newBody);
+                log.debug("  parentOffspring added {}", newBody.getParent());
             }
             added.add(newBody);
             current = newBody;
         }
 
-        dominated.forEach(Body::gotDominated);
+        log.debug("Bodylist create, domination calls to begin:");
+        dominated.forEach(body -> body.gotDominated());
         return added;
     }
 

@@ -46,6 +46,7 @@ public abstract class MatrixNode {
         List<Body> successfullyAddedBodies = bodyList.mergeBodies(createdBodies);
         log.debug("  successfullyAddedBodies {}", successfullyAddedBodies);
 
+        parentDeactivationCheck(incomingParents);
         if (nextMatrixNode != null) {nextMatrixNode.generateNewBodies(successfullyAddedBodies);}
     }
 
@@ -57,30 +58,39 @@ public abstract class MatrixNode {
         bodyNodes.put(nextBodyNodeId, nwxtBodyNode);
 
         Set<Body> createdBodies;
+        List<Body> successfullyAddedLocalBodies;
         // at p0, we initiate new body chain
         if (prevMatrixNode == null) {
             createdBodies = Set.of(Body.builder().bodyNode(nwxtBodyNode).parent(null).value(nwxtBodyNode.getValue()).factor(nwxtBodyNode.getFactor()).build());
+            log.debug(" original createdBodies {}", createdBodies);
+            successfullyAddedLocalBodies = bodyList.mergeBodies(createdBodies);
+            log.debug("  successfullyAddedLocalBodies {}", successfullyAddedLocalBodies);
         } else {
 
             int bodyNodeIdLowLimit = determineBodyNodeIdLowLimit();
-
-            log.debug(" parent bodies with bod {}: {}", bodyNodeIdLowLimit, prevMatrixNode.bodyNodes.values().stream()
+            List<Body> parents = prevMatrixNode.bodyNodes.values().stream()
                     .filter(pip -> pip.getBodyNodeId() >= bodyNodeIdLowLimit)
-                    .flatMap(pip -> pip.getActiveBodies().stream()));
+                    .flatMap(pip -> pip.getActiveBodies().stream()).collect(Collectors.toList());
 
-            createdBodies = prevMatrixNode.bodyNodes.values().stream()
-                    .filter(pip -> pip.getBodyNodeId() >= bodyNodeIdLowLimit)
-                    .flatMap(pip -> pip.getActiveBodies().stream())
-                    .map(parentBody ->  Body.builder().bodyNode(nwxtBodyNode).parent(parentBody)
+            log.debug(" parent bodies with bod {}: {}", bodyNodeIdLowLimit, parents);
+
+            createdBodies = parents.stream().map(parentBody ->  Body.builder().bodyNode(nwxtBodyNode).parent(parentBody)
                             .value(nwxtBodyNode.getValue().multiply(parentBody.getValue()))
                             .factor(nwxtBodyNode.getFactor().multiply(parentBody.getFactor())).build())
                     .collect(Collectors.toSet());
+            log.debug(" original createdBodies {}", createdBodies);
+            successfullyAddedLocalBodies = bodyList.mergeBodies(createdBodies);
+            log.debug("  successfullyAddedLocalBodies {}", successfullyAddedLocalBodies);
+
+            parentDeactivationCheck(parents);
         }
-        log.debug(" original createdBodies {}", createdBodies);
-        List<Body> successfullyAddedLocalBodies = bodyList.mergeBodies(createdBodies);
-        log.debug("  successfullyAddedLocalBodies {}", successfullyAddedLocalBodies);
+
 
         if (nextMatrixNode != null) {nextMatrixNode.generateNewBodies(successfullyAddedLocalBodies);}
+    }
+
+    private void parentDeactivationCheck(List<Body> parents) {
+        parents.stream().filter(body -> body.getOffsprings().isEmpty()).forEach(Body::gotDominated);
     }
 
     protected abstract BodyNode provideNextBodyNode();

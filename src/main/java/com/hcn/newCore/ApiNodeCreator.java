@@ -6,14 +6,14 @@ import java.util.TreeMap;
 @Slf4j
 public class ApiNodeCreator {
 
-    public static void createNewApi(ApiNode oldApiNode, TransitionNode transitionNode) {
+    public static void createNewApi(ApiNode parentApiNode, TransitionNode transitionNode) {
 
-        log.debug("TransitionRelease between API-{} and transition {}", oldApiNode.getIndex(), transitionNode.getFirstIndex());
+        log.debug("TransitionRelease between API-{} and transition {}", parentApiNode.getIndex(), transitionNode.getFirstIndex());
         int newIndex = transitionNode.getFirstIndex();
         ScientificNumber newValue = new ScientificNumber(transitionNode.getPrimeCenter().getPrime(newIndex), 0);
         ApiNode newApiNode = ApiNode.builder().index(newIndex)
                 .prime(newValue)
-                .prevMatrixNode(oldApiNode).nextMatrixNode(transitionNode).build();
+                .prevMatrixNode(parentApiNode).nextMatrixNode(transitionNode).build();
 
         BodyNode pipLower = null;
         BodyNode transitionToRemove = null;
@@ -40,18 +40,20 @@ public class ApiNodeCreator {
                 .bodyNodeId(transitionFrom).proved(nextLowerTransition.isProved()).build();
         newApiNode.getBodyNodes().put(pip.getBodyNodeId(), pip);
 
-        recalculateTransitions(transitionNode);
+        recalculateTransitions(transitionNode, transitionToRemove);
         newApiNode.setBodyList(rebuildBodyNodesDualPip(pipLower, pip, transitionNode, transitionToRemove, nextLowerTransition));
 
-        oldApiNode.setNextMatrixNode(newApiNode);
+        parentApiNode.setNextMatrixNode(newApiNode);
         transitionNode.setPrevMatrixNode(newApiNode);
     }
 
-    private static void recalculateTransitions(TransitionNode transitionNode) {
+    private static void recalculateTransitions(TransitionNode transitionNode, BodyNode transitionToRemove) {
         ScientificNumber valueExcluded = new ScientificNumber(Math.pow(transitionNode.getPrimeCenter().getPrime(transitionNode.getFirstIndex()), transitionNode.getTransitionFrom()), 0);
         ScientificNumber factorExcluded = new ScientificNumber(transitionNode.getTransitionFrom() + 1, 0);
         transitionNode.setFirstIndex(transitionNode.getFirstIndex() + 1);
-        transitionNode.getBodyNodes().remove(transitionNode.getBodyNodes().firstKey());
+        if (transitionToRemove != null) {
+            transitionNode.getBodyNodes().remove(transitionNode.getBodyNodes().firstKey());
+        }
         transitionNode.getBodyNodes().forEach((key, transition) -> {
                     transition.setValue(transition.getValue().divide(valueExcluded));
                     transition.setFactor(transition.getFactor().divide(factorExcluded));
@@ -92,6 +94,7 @@ public class ApiNodeCreator {
                 newBodyNode.getParent().getOffsprings().remove(bodyToRebuild);
                 suitableNewPipForBody.getActiveBodies().add(newBodyNode);
                 newBodyNode.getOffsprings().add(bodyToRebuild);
+                newBodyNode.setDeactivated(false);
                 if (!newBodyNode.getParent().getOffsprings().contains(newBodyNode)) {
                     newBodyNode.getParent().getOffsprings().add(newBodyNode);
                 }
