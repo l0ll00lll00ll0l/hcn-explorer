@@ -30,7 +30,7 @@ public class Body implements Comparable<Body>{
     @Builder.Default
     private boolean deactivated = false;
 
-    private boolean isSelfReferredGenerationPossible(Lapi lapi) {return lastGeneratedHcn != null && lastGeneratedHcn.getLapi() + 1 == lapi.getLapi();}
+    private boolean isSelfReferredGenerationPossible(Lapi lapi) {return lastGeneratedHcn != null && lastGeneratedHcn.getLapi() + 1 == lapi.getPrime().getIndex();}
 
     public Body getNextActiveBody() {
         Body candidate = largerBody;
@@ -41,11 +41,11 @@ public class Body implements Comparable<Body>{
     public Hcn generateNextHcn(Lapi lapi) {
         boolean firstHcnGenerated = lastGeneratedHcn == null;
         if (isSelfReferredGenerationPossible(lapi)) {
-            lastGeneratedHcn = Hcn.builder().body(this).lapi(lapi.getLapi()).value(lastGeneratedHcn.getValue().multiply(lapi.getPrime()))
+            lastGeneratedHcn = Hcn.builder().body(this).lapi(lapi.getPrime().getIndex()).value(lastGeneratedHcn.getValue().multiply(lapi.getPrime().getValue()))
                     .factor(lastGeneratedHcn.getFactor().multiply(new ScientificNumber(2, 0))).build();
         } else {
             Hcn referenceHcn = findReferenceHcnForHcnGeneration(lapi);
-            lastGeneratedHcn = Hcn.builder().body(this).lapi(lapi.getLapi()).value(this.value.divide(referenceHcn.getBody().value).multiply(referenceHcn.getValue()))
+            lastGeneratedHcn = Hcn.builder().body(this).lapi(lapi.getPrime().getIndex()).value(this.value.divide(referenceHcn.getBody().value).multiply(referenceHcn.getValue()))
                     .factor(this.factor.divide(referenceHcn.getBody().factor).multiply(referenceHcn.getFactor())).build();
         }
         if (firstHcnGenerated) {firstHcn = lastGeneratedHcn;}
@@ -61,14 +61,13 @@ public class Body implements Comparable<Body>{
     }
 
     private boolean isReferenceCandidateSuitable(Lapi lapi, Body referenceCandidate) {
-        return referenceCandidate != null && referenceCandidate.lastGeneratedHcn != null && referenceCandidate.lastGeneratedHcn.getLapi() == lapi.getLapi();
+        return referenceCandidate != null && referenceCandidate.lastGeneratedHcn != null && referenceCandidate.lastGeneratedHcn.getLapi() == lapi.getPrime().getIndex();
     }
 
     public void gotDominated() {
 
         deactivated = true;
         bodyNode.getActiveBodies().remove(this);
-        log.debug("dominated body: {}, active size: {} activeBody: {}", this, bodyNode.getActiveBodies().size(), bodyNode.getActiveBodies());
 
         if (parent != null) {
             parent.offsprings.remove(this);
@@ -78,7 +77,6 @@ public class Body implements Comparable<Body>{
         }
 
         if (bodyNode.getActiveBodies().isEmpty()) {
-            log.debug("removing BodyNode: {} by {}", bodyNode, this);
             bodyNode.getParentNode().bodyNodes.remove(bodyNode.getBodyNodeId());
             if (bodyNode.getParentNode().bodyNodes.size() == 1) {
                 TransitionNodeCreator.createNewTransitionNode((ApiNode) bodyNode.getParentNode());
@@ -125,7 +123,7 @@ public class Body implements Comparable<Body>{
             sb.append(", ");
         }
         if (body.bodyNode.getParentNode() instanceof ApiNode apiNode) {
-            sb.append("p").append(apiNode.getIndex()).append("^").append(body.bodyNode.getBodyNodeId());
+            sb.append("p").append(apiNode.indexes.get(0).getIndex()).append("^").append(body.bodyNode.getBodyNodeId());
         } else {
             sb.append("t").append(body.bodyNode.getBodyNodeId());
         }

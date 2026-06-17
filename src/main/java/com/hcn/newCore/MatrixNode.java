@@ -6,6 +6,7 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
@@ -21,6 +22,7 @@ public abstract class MatrixNode {
     protected MatrixNode nextMatrixNode= null;
     protected BodyList bodyList;
     protected final TreeMap<Integer, BodyNode> bodyNodes = new TreeMap<>();
+    protected final List<Prime> indexes = new ArrayList<>();
 
     public void deactivatedMaintain() {
         bodyList.deactivatedMaintain();
@@ -33,7 +35,7 @@ public abstract class MatrixNode {
     }
 
     public void generateNewBodies(List<Body> incomingParents) {
-        log.debug(" generateNewBodies");
+        //log.debug(" generateNewBodies");
         Set<Body> createdBodies = incomingParents.stream()
                 .flatMap(previousBody -> bodyNodes.values().stream()
                         .map(bodyNode -> Body.builder().bodyNode(bodyNode).parent(previousBody)
@@ -41,20 +43,21 @@ public abstract class MatrixNode {
                                 .factor(bodyNode.getFactor().multiply(previousBody.getFactor())).build()))
                 .collect(Collectors.toSet());
 
-        log.debug("  createdBodies {}", createdBodies);
+        //log.debug("  createdBodies {}", createdBodies);
 
         List<Body> successfullyAddedBodies = bodyList.mergeBodies(createdBodies);
-        log.debug("  successfullyAddedBodies {}", successfullyAddedBodies);
+        //log.debug("  successfullyAddedBodies {}", successfullyAddedBodies);
 
         parentDeactivationCheck(incomingParents);
         if (nextMatrixNode != null) {nextMatrixNode.generateNewBodies(successfullyAddedBodies);}
     }
 
     public void createNextBodyNode() {
-        log.debug("createNextBodyNode");
+        //log.debug("createNextBodyNode");
 
         int nextBodyNodeId = bodyNodes.lastKey() + 1;
         BodyNode nwxtBodyNode = provideNextBodyNode();
+        //log.debug("nwxtBodyNode: {}", nwxtBodyNode);
         bodyNodes.put(nextBodyNodeId, nwxtBodyNode);
 
         Set<Body> createdBodies;
@@ -62,9 +65,9 @@ public abstract class MatrixNode {
         // at p0, we initiate new body chain
         if (prevMatrixNode == null) {
             createdBodies = Set.of(Body.builder().bodyNode(nwxtBodyNode).parent(null).value(nwxtBodyNode.getValue()).factor(nwxtBodyNode.getFactor()).build());
-            log.debug(" original createdBodies {}", createdBodies);
+            //log.debug(" original createdBodies {}", createdBodies);
             successfullyAddedLocalBodies = bodyList.mergeBodies(createdBodies);
-            log.debug("  successfullyAddedLocalBodies {}", successfullyAddedLocalBodies);
+            //log.debug("  successfullyAddedLocalBodies {}", successfullyAddedLocalBodies);
         } else {
 
             int bodyNodeIdLowLimit = determineBodyNodeIdLowLimit();
@@ -72,15 +75,15 @@ public abstract class MatrixNode {
                     .filter(pip -> pip.getBodyNodeId() >= bodyNodeIdLowLimit)
                     .flatMap(pip -> pip.getActiveBodies().stream()).collect(Collectors.toList());
 
-            log.debug(" parent bodies with bod {}: {}", bodyNodeIdLowLimit, parents);
+            //log.debug(" parent bodies with bod {}: {}", bodyNodeIdLowLimit, parents);
 
             createdBodies = parents.stream().map(parentBody ->  Body.builder().bodyNode(nwxtBodyNode).parent(parentBody)
                             .value(nwxtBodyNode.getValue().multiply(parentBody.getValue()))
                             .factor(nwxtBodyNode.getFactor().multiply(parentBody.getFactor())).build())
                     .collect(Collectors.toSet());
-            log.debug(" original createdBodies {}", createdBodies);
+            //log.debug(" original createdBodies {}", createdBodies);
             successfullyAddedLocalBodies = bodyList.mergeBodies(createdBodies);
-            log.debug("  successfullyAddedLocalBodies {}", successfullyAddedLocalBodies);
+            //log.debug("  successfullyAddedLocalBodies {}", successfullyAddedLocalBodies);
 
             parentDeactivationCheck(parents);
         }

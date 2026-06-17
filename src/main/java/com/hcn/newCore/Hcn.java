@@ -24,4 +24,14 @@ public class Hcn {
         body.setLastGeneratedHcn(this);
         body.gotDominated();
     }
+
+    @Override
+    public String toString() {
+        return "Hcn{" +
+                "body=" + body +
+                ", lapi=" + lapi +
+                ", value=" + value +
+                ", factor=" + factor +
+                '}';
+    }
 }

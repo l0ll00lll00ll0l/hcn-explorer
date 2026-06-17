@@ -121,7 +121,7 @@ public class NewCoreController {
         }
         BodyNode node = body.getBodyNode();
         if (node.getParentNode() instanceof ApiNode apiNode) {
-            sb.append("p").append(apiNode.getIndex()).append("^").append(node.getBodyNodeId());
+            sb.append("p").append(apiNode.getIndexes().get(0).getIndex()).append("^").append(node.getBodyNodeId());
         } else {
             sb.append("t").append(node.getBodyNodeId());
         }
@@ -156,8 +156,8 @@ public class NewCoreController {
     }
 
     public String matrixNodeLabel(MatrixNode node) {
-        if (node instanceof ApiNode a) return "p" + a.getIndex();
-        if (node instanceof TransitionNode t) return "p" + t.getFirstIndex() + "→p" + t.getLastIndex();
+        if (node instanceof ApiNode a) return "p" + a.getIndexes().get(0).getIndex();
+        if (node instanceof TransitionNode t) return "p" + t.getIndexes().get(0).getIndex() + "→p" + t.getIndexes().get(t.getIndexes().size() - 1).getIndex();
         return "";
     }
 

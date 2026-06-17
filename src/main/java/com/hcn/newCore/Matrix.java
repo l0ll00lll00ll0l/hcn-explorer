@@ -3,10 +3,12 @@ package com.hcn.newCore;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Getter
 @Setter
 @Builder
@@ -33,7 +35,8 @@ public class Matrix {
 
     public void initialize() {
 
-        ApiNode p0 = ApiNode.builder().index(0).prevMatrixNode(null).prime(new ScientificNumber(2, 0)).build();
+        ApiNode p0 = ApiNode.builder().prevMatrixNode(null).build();
+        p0.getIndexes().add(lapiPrimeCenter.getPrime(0));
         BodyNode pip01 = BodyNode.builder().parentNode(p0).bodyNodeId(1).proved(true)
                 .value(new ScientificNumber(2,0))
                 .factor(new ScientificNumber(2, 0)).build();
@@ -47,8 +50,11 @@ public class Matrix {
         p0.getBodyNodes().put(2, pip02);
         p0.getBodyNodes().put(3, pip03);
 
+        PrimeCenter primeCenter = new PrimeCenter();
         lastTransition = TransitionNode.builder()
-                .transitionFrom(2).transitionTo(1).firstIndex(1).lastIndex(2).primeCenter(new PrimeCenter()).build();
+                .transitionFrom(2).transitionTo(1).primeCenter(primeCenter).build();
+        lastTransition.indexes.add(primeCenter.getPrime(1));
+        lastTransition.indexes.add(primeCenter.getPrime(2));
         BodyNode t1 = BodyNode.builder().parentNode(lastTransition).bodyNodeId(1)
                 .value(new ScientificNumber(1, 0))
                 .factor(new ScientificNumber(1, 0)).proved(true).build();
@@ -140,9 +146,9 @@ public class Matrix {
         provedHcns.add(hcn1);
         provedHcns.add(hcn2);
 
-        nextLapi = Lapi.builder().lapi(1).prime(new ScientificNumber(3, 0)).walker(b11).build();
+        nextLapi = Lapi.builder().prime(lapiPrimeCenter.getPrime(1)).walker(b11).build();
         nextLapi.getHcnList().add(hcn2);
-        lowestLapi = Lapi.builder().lapi(0).prime(new ScientificNumber(2, 0)).walker(b31).build();
+        lowestLapi = Lapi.builder().prime(lapiPrimeCenter.getPrime(0)).walker(b31).build();
         lowestLapi.getHcnList().add(hcn3);
         highestLapi = lowestLapi;
 
@@ -163,8 +169,7 @@ public class Matrix {
 
     private void proveNextLapi() {
         maintainLapiGroups();
-        nextLapi = Lapi.builder().prime(new ScientificNumber(lapiPrimeCenter.getPrime(highestLapi.getLapi() + 1), 0))
-                .lapi(highestLapi.getLapi() + 1).walker(lastTransition.getBodyList().getSmallestBody()).build();
+        nextLapi = Lapi.builder().prime(lapiPrimeCenter.getPrime(highestLapi.getPrime().getIndex() + 1)).walker(lastTransition.getBodyList().getSmallestBody()).build();
         nextLapi.getHcnList().add(findLastSuperiorHcn(determineTargetValue()));
         maintainProvedHcns();
     }
@@ -180,13 +185,16 @@ public class Matrix {
         nextLapi = null;
 
         // delete dead lapis
-        while (lowestProvedLapiWithinInterval > lowestLapi.getLapi()) {
+        while (lowestProvedLapiWithinInterval > lowestLapi.getPrime().getIndex()) {
             lowestLapi = lowestLapi.deleteLapi();
         }
     }
 
     private ScientificNumber determineTargetValue() {
-        return  nextLapi.getWalker().getLastGeneratedHcn().getValue().multiply(nextLapi.getPrime());
+        //log.debug("nextLapi: {}", nextLapi);
+        //log.debug("nextLapi.getWalker(): {}", nextLapi.getWalker());
+        //log.debug("bodylist: {}", lastTransition.bodyList);
+        return  nextLapi.getWalker().getLastGeneratedHcn().getValue().multiply(nextLapi.getPrime().getValue());
     }
 
     private Hcn findLastSuperiorHcn(ScientificNumber targetValue) {
@@ -196,6 +204,8 @@ public class Matrix {
             largestGeneratedSuperiorHcn = extendLapiHcnListsUntilTarget(targetValue);
             candidateIsSuperior = true;
             Hcn targetHcn = nextLapi.getWalker().generateNextHcn(nextLapi);
+
+            //log.debug("targetHcn: {} for targetValue: {}", targetHcn, targetValue);
 
             if (largestGeneratedSuperiorHcn.getFactor().isNotSmallerThan(targetHcn.getFactor())) {
                 candidateIsSuperior = false;

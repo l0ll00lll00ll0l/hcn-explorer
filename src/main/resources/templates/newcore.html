@@ -79,7 +79,7 @@
             <div th:each="node, iter : ${matrixChain}" class="matrix-box">
                 <!-- ApiNode -->
                 <th:block th:if="${node instanceof T(com.hcn.newCore.ApiNode)}">
-                    <div class="matrix-box-header" th:text="${node.prime}"></div>
+                    <div class="matrix-box-header" th:text="${node.indexes.get(0).intValue}"></div>
                     <div class="matrix-box-content">
                         <div th:each="entry : ${node.bodyNodes.descendingMap()}" class="transition-panel"
                              th:style="'cursor:pointer;' + ${entry.value.proved ? 'background-color: #90EE90;' : ''}"
@@ -90,7 +90,7 @@
                         </div>
                     </div>
                     <div class="bodynode-btn" th:attr="onclick='openBodyList(' + ${iter.index} + ')'" th:text="'BodyNodes (' + ${node.bodyList != null ? node.bodyList.size() : 0} + ')'"></div>
-                    <div class="matrix-box-footer" th:text="'p' + ${node.index}"></div>
+                    <div class="matrix-box-footer" th:text="'p' + ${node.indexes.get(0).index}"></div>
                 </th:block>
                 <!-- TransitionNode -->
                 <th:block th:if="${node instanceof T(com.hcn.newCore.TransitionNode)}">
@@ -105,7 +105,7 @@
                         </div>
                     </div>
                     <div class="bodynode-btn" th:attr="onclick='openBodyList(' + ${iter.index} + ')'" th:text="'BodyNodes (' + ${node.bodyList != null ? node.bodyList.size() : 0} + ')'"></div>
-                    <div class="matrix-box-footer" th:text="'p' + ${node.firstIndex} + ' → p' + ${node.lastIndex}"></div>
+                    <div class="matrix-box-footer" th:text="'p' + ${node.indexes.get(0).index} + ' → p' + ${node.indexes.get(node.indexes.size() - 1).index}"></div>
                 </th:block>
             </div>
         </div>
@@ -117,11 +117,11 @@
                 <button class="bodylist-btn" th:classappend="${iter.index == activeBodyList ? ' active' : ''}"
                         th:attr="onclick='selectBodyList(' + ${iter.index} + ')'"
                         th:if="${node instanceof T(com.hcn.newCore.ApiNode)}"
-                        th:text="'p' + ${node.index}"></button>
+                        th:text="'p' + ${node.indexes.get(0).index}"></button>
                 <button class="bodylist-btn" th:classappend="${iter.index == activeBodyList ? ' active' : ''}"
                         th:attr="onclick='selectBodyList(' + ${iter.index} + ')'"
                         th:if="${node instanceof T(com.hcn.newCore.TransitionNode)}"
-                        th:text="'p' + ${node.firstIndex} + '→p' + ${node.lastIndex}"></button>
+                        th:text="'p' + ${node.indexes.get(0).index} + '→p' + ${node.indexes.get(node.indexes.size() - 1).index}"></button>
             </span>
         </div>
         <div th:each="node, iter : ${matrixChain}" class="bodylist-panel"
@@ -196,7 +196,7 @@
         <div class="lapi-chain">
             <div th:each="lapi, iter : ${@newCoreController.getLapiChain()}" class="lapi-box"
                  th:classappend="${iter.first ? ' lapi-next' : ''}">
-                <div class="lapi-header" th:text="'Lapi ' + ${lapi.lapi} + ' (' + ${lapi.prime} + ')'"></div>
+                <div class="lapi-header" th:text="'Lapi ' + ${lapi.prime.index} + ' (' + ${lapi.prime.intValue} + ')'"></div>
                 <div class="lapi-content">
                     <table class="level-table">
                         <thead><tr><th>#</th><th>Lapi</th><th>Value</th><th>Factor</th></tr></thead>
