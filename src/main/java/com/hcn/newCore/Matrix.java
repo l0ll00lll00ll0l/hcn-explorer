@@ -21,9 +21,16 @@ public class Matrix {
     private Lapi highestLapi;
     private int lowestProvedLapiWithinInterval;
     private int provedCount;
-    private int lastProvedPrimeIndex;
     private final PrimeCenter lapiPrimeCenter = new PrimeCenter();
     private ScientificNumber provedLimit;
+
+    // Timing
+    @Builder.Default
+    private long totalTimeMs = 0;
+    @Builder.Default
+    private long matrixMaintainTimeMs = 0;
+    @Builder.Default
+    private long generateHcnListTimeMs = 0;
 
     // Progress tracking
     @Builder.Default
@@ -154,16 +161,17 @@ public class Matrix {
 
         //force lapi0 deletion
         lowestProvedLapiWithinInterval = 1;
-        lastProvedPrimeIndex = 0;
         provedCount = 2;
         provedLimit = new ScientificNumber(6, 0);
     }
 
     public void proveLapi(int count) {
+        long start = System.currentTimeMillis();
         for (int i = 0; i < count; i++) {
             proveNextLapi();
             proveProgress = i + 1;
         }
+        totalTimeMs = System.currentTimeMillis() - start;
         proving = false;
     }
 
@@ -220,10 +228,13 @@ public class Matrix {
     }
 
     private Hcn extendLapiHcnListsUntilTarget(ScientificNumber targetValue) {
-        // hcnlist creation, dominated bodies removed 1 by 1
+        long t0 = System.currentTimeMillis();
         lowestLapi.generateHcnList(provedLimit, targetValue, lastTransition.getBodyList().getSmallestBody());
+        generateHcnListTimeMs += System.currentTimeMillis() - t0;
 
+        long t1 = System.currentTimeMillis();
         matrixMaintainCheck();
+        matrixMaintainTimeMs += System.currentTimeMillis() - t1;
 
         Hcn largestGeneratedSuperiorHcn = highestLapi.getHcnList().get(highestLapi.getHcnList().size() - 1);
         provedLimit = targetValue;

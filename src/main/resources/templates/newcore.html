@@ -49,6 +49,14 @@
                 </div>
                 <span id="progressText" style="font-size: 11px;"></span>
             </div>
+            <span th:if="${!matrix.proving}" style="font-size: 11px; color: #555;">
+                | proved: <b th:text="${matrix.provedCount}"></b>
+                | nextLapi: <b th:text="${matrix.nextLapi.prime.index} + ' (' + ${matrix.nextLapi.prime.intValue} + ')'"></b>
+                | limit: <b th:text="${matrix.provedLimit}"></b>
+                | total: <b th:text="${matrix.totalTimeMs} + 'ms'"></b>
+                | hcnList: <b th:text="${matrix.generateHcnListTimeMs} + 'ms'"></b>
+                | maintain: <b th:text="${matrix.matrixMaintainTimeMs} + 'ms'"></b>
+            </span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
             <form method="post" action="/newcore/loglevel" style="display: flex; align-items: center; gap: 4px;">
