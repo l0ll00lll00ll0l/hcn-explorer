@@ -30,26 +30,10 @@ public class Body implements Comparable<Body>{
     @Builder.Default
     private boolean deactivated = false;
 
-    private boolean isSelfReferredGenerationPossible(Lapi lapi) {return lastGeneratedHcn != null && lastGeneratedHcn.getLapi() + 1 == lapi.getPrime().getIndex();}
-
     public Body getNextActiveBody() {
         Body candidate = largerBody;
         while (candidate != null && candidate.deactivated) {candidate = candidate.largerBody;}
         return candidate;
-    }
-
-    public Hcn generateNextHcn(Lapi lapi) {
-        boolean firstHcnGenerated = lastGeneratedHcn == null;
-        if (isSelfReferredGenerationPossible(lapi)) {
-            lastGeneratedHcn = Hcn.builder().body(this).lapi(lapi.getPrime().getIndex()).value(lastGeneratedHcn.getValue().multiply(lapi.getPrime().getValue()))
-                    .factor(lastGeneratedHcn.getFactor().multiply(new ScientificNumber(2, 0))).build();
-        } else {
-            Hcn referenceHcn = findReferenceHcnForHcnGeneration(lapi);
-            lastGeneratedHcn = Hcn.builder().body(this).lapi(lapi.getPrime().getIndex()).value(this.value.divide(referenceHcn.getBody().value).multiply(referenceHcn.getValue()))
-                    .factor(this.factor.divide(referenceHcn.getBody().factor).multiply(referenceHcn.getFactor())).build();
-        }
-        if (firstHcnGenerated) {firstHcn = lastGeneratedHcn;}
-        return lastGeneratedHcn;
     }
 
     private Hcn findReferenceHcnForHcnGeneration(Lapi lapi) {

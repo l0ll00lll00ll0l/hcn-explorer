@@ -153,7 +153,9 @@ public class Matrix {
         provedHcns.add(hcn1);
         provedHcns.add(hcn2);
 
-        nextLapi = Lapi.builder().prime(lapiPrimeCenter.getPrime(1)).walker(b11).build();
+        nextLapi = Lapi.builder().prime(lapiPrimeCenter.getPrime(1)).walker(b11)
+                .valueMultiplier(new ScientificNumber(1, 0))
+                .factorMultiplier(new ScientificNumber(1, 0)).build();
         nextLapi.getHcnList().add(hcn2);
         lowestLapi = Lapi.builder().prime(lapiPrimeCenter.getPrime(0)).walker(b31).build();
         lowestLapi.getHcnList().add(hcn3);
@@ -171,13 +173,17 @@ public class Matrix {
             proveNextLapi();
             proveProgress = i + 1;
         }
-        totalTimeMs = System.currentTimeMillis() - start;
+        totalTimeMs += System.currentTimeMillis() - start;
         proving = false;
     }
 
     private void proveNextLapi() {
         maintainLapiGroups();
-        nextLapi = Lapi.builder().prime(lapiPrimeCenter.getPrime(highestLapi.getPrime().getIndex() + 1)).walker(lastTransition.getBodyList().getSmallestBody()).build();
+        Prime newPrime = lapiPrimeCenter.getPrime(highestLapi.getPrime().getIndex() + 1);
+        nextLapi = Lapi.builder().prime(newPrime)
+                .walker(lastTransition.getBodyList().getSmallestBody())
+                .valueMultiplier(highestLapi.getValueMultiplier().multiply(newPrime.getValue()))
+                .factorMultiplier(highestLapi.getFactorMultiplier().multiply(new ScientificNumber(2, 0))).build();
         nextLapi.getHcnList().add(findLastSuperiorHcn(determineTargetValue()));
         maintainProvedHcns();
     }
@@ -211,7 +217,7 @@ public class Matrix {
         do {
             largestGeneratedSuperiorHcn = extendLapiHcnListsUntilTarget(targetValue);
             candidateIsSuperior = true;
-            Hcn targetHcn = nextLapi.getWalker().generateNextHcn(nextLapi);
+            Hcn targetHcn = nextLapi.generateHcn(nextLapi.getWalker());
 
             //log.debug("targetHcn: {} for targetValue: {}", targetHcn, targetValue);
 
@@ -242,12 +248,16 @@ public class Matrix {
     }
 
     private void matrixMaintainCheck() {
+        Prime prevLastMatrixIndex = lastTransition.getIndexes().get(lastTransition.getIndexes().size() - 1);
         highestLapi.getHcnList().forEach(hcn -> {
             if (!hcn.getBody().isDeactivated()) {
                 hcn.matrixMaintainCheck();
-                hcn.getBody().matrixMaintainCheck();
             }
         });
+        if (prevLastMatrixIndex != lastTransition.getIndexes().get(lastTransition.getIndexes().size() - 1)) {
+            lowestLapi.recalculateMultipliers(prevLastMatrixIndex);
+            nextLapi.recalculateMultipliers(prevLastMatrixIndex);
+        }
     }
 
     private void maintainProvedHcns() {
