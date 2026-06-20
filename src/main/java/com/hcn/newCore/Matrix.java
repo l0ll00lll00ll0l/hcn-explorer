@@ -23,6 +23,8 @@ public class Matrix {
     private int provedCount;
     private final PrimeCenter lapiPrimeCenter = new PrimeCenter();
     private ScientificNumber provedLimit;
+    @Builder.Default
+    private String dbName = null;
 
     // Timing
     @Builder.Default
@@ -185,6 +187,7 @@ public class Matrix {
                 .valueMultiplier(highestLapi.getValueMultiplier().multiply(newPrime.getValue()))
                 .factorMultiplier(highestLapi.getFactorMultiplier().multiply(new ScientificNumber(2, 0))).build();
         nextLapi.getHcnList().add(findLastSuperiorHcn(determineTargetValue()));
+        provedHcns.clear();
         maintainProvedHcns();
     }
 
@@ -253,6 +256,7 @@ public class Matrix {
             if (!hcn.getBody().isDeactivated()) {
                 hcn.matrixMaintainCheck();
             }
+            provedHcns.add(hcn);
         });
         if (prevLastMatrixIndex != lastTransition.getIndexes().get(lastTransition.getIndexes().size() - 1)) {
             lowestLapi.recalculateMultipliers(prevLastMatrixIndex);

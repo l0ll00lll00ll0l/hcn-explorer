@@ -12,6 +12,8 @@ public class Hcn {
     private final int lapi;
     private ScientificNumber value;
     private ScientificNumber factor;
+    @Builder.Default
+    private Integer tempId = null;
 
     public void matrixMaintainCheck() {
         if (!body.isProved()) {

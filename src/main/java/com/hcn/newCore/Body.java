@@ -17,6 +17,8 @@ public class Body implements Comparable<Body>{
     private final List<Body> offsprings = new ArrayList<>();
     @Builder.Default
     private boolean proved = false;
+    @Builder.Default
+    private Integer tempId = null;
     private Body smallerBody;
     private Body largerBody;
     @Builder.Default

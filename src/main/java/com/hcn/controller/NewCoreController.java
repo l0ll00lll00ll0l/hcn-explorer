@@ -2,8 +2,13 @@ package com.hcn.controller;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
+import com.hcn.db.DatabaseService;
+import com.hcn.db.MatrixDeserializer;
+import com.hcn.db.MatrixSerializer;
 import com.hcn.newCore.*;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +29,9 @@ public class NewCoreController {
     private int activeMatrixNodeIdx = 0;
     private int activeBodyNodeId = -1;
     private String currentLogLevel = "INFO";
+
+    @Autowired
+    private DatabaseService databaseService;
 
     @GetMapping("/newcore")
     public String index(Model model) {
@@ -53,6 +61,48 @@ public class NewCoreController {
         currentLogLevel = level.toUpperCase();
         LoggerContext ctx = (LoggerContext) LoggerFactory.getILoggerFactory();
         ctx.getLogger("com.hcn.newCore").setLevel(Level.toLevel(currentLogLevel));
+        return "redirect:/newcore";
+    }
+
+    @PostMapping("/newcore/save")
+    public String save() {
+        if (matrix != null && !matrix.isProving()) {
+            if (matrix.getDbName() == null) {
+                matrix.setDbName(databaseService.assignDbName());
+            }
+            if (!databaseService.databaseExists(matrix.getDbName())) {
+                databaseService.createDatabase(matrix.getDbName());
+            } else {
+                databaseService.truncateTmpTables(matrix.getDbName());
+            }
+            MatrixSerializer serializer = new MatrixSerializer();
+            List<MatrixNode> nodes = serializer.buildMatrixNodeSet(matrix);
+            List<Lapi> lapis = serializer.buildLapiList(matrix);
+            JdbcTemplate dbTemplate = databaseService.createTemplateForDb(matrix.getDbName());
+            dbTemplate.execute(serializer.buildMatrixNodeInsert(nodes));
+            dbTemplate.execute(serializer.buildPrimeInsert(nodes, lapis));
+            dbTemplate.execute(serializer.buildBodyNodeInsert(nodes));
+            dbTemplate.execute(serializer.buildBodyInsert(nodes));
+            String orphanInsert = serializer.buildOrphanBodyNodeInsert();
+            if (orphanInsert != null) dbTemplate.execute(orphanInsert);
+            dbTemplate.execute(serializer.buildLapiInsert(lapis));
+            String lapiHcnInsert = serializer.buildLapiHcnInsert(lapis);
+            if (lapiHcnInsert != null) dbTemplate.execute(lapiHcnInsert);
+            String hcnInsert = serializer.buildHcnInsert();
+            if (hcnInsert != null) dbTemplate.execute(hcnInsert);
+            dbTemplate.execute(serializer.buildMatrixInsert(matrix));
+        }
+        return "redirect:/newcore";
+    }
+
+    @GetMapping("/newcore/load")
+    public String load(@RequestParam String db) {
+        JdbcTemplate dbTemplate = databaseService.createTemplateForDb(db);
+        MatrixDeserializer deserializer = new MatrixDeserializer(dbTemplate);
+        matrix = deserializer.load();
+        matrix.setDbName(db);
+        activeTab = "matrix";
+        activeBodyList = -1;
         return "redirect:/newcore";
     }
 

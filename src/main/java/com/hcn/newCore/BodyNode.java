@@ -20,6 +20,8 @@ public class BodyNode {
     private ScientificNumber value;
     private ScientificNumber factor;
     private final Set<Body> activeBodies = new HashSet<>();
+    @Builder.Default
+    private Integer tempId = null;
 
 
     public void extensionCheck() {

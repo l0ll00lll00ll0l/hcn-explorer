@@ -6,6 +6,9 @@
         body { font-family: monospace; margin: 40px; }
         .config-panel { border: 1px solid #ccc; padding: 30px; max-width: 500px; margin-bottom: 30px; }
         button { margin-top: 10px; padding: 8px 20px; font-family: monospace; font-size: 1em; }
+        table { border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+        th { background: #333; color: white; padding: 6px 10px; text-align: left; }
+        td { padding: 6px 10px; border-bottom: 1px solid #ddd; }
     </style>
 </head>
 <body>
@@ -23,6 +26,21 @@
         <form method="get" action="/newcore">
             <button type="submit">Start newCore</button>
         </form>
+    </div>
+
+    <div class="config-panel" th:if="${!databases.isEmpty()}">
+        <h3>Saved Databases</h3>
+        <table>
+            <thead><tr><th>Name</th><th></th></tr></thead>
+            <tbody>
+                <tr th:each="db : ${databases}">
+                    <td th:text="${db}"></td>
+                    <td><a th:href="@{/newcore/load(db=${db})}" style="font-family: monospace;">Load</a></td>
+                    <td><a th:href="@{/delete(db=${db})}" style="font-family: monospace; color: red;"
+                           onclick="return confirm('Delete ' + this.closest('tr').firstElementChild.textContent.trim() + '?');">Delete</a></td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </body>
 </html>

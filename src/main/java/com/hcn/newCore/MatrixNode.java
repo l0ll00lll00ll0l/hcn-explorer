@@ -20,6 +20,7 @@ public abstract class MatrixNode {
 
     protected MatrixNode prevMatrixNode = null;
     protected MatrixNode nextMatrixNode= null;
+    protected Integer tempId = null;
     protected BodyList bodyList;
     protected final TreeMap<Integer, BodyNode> bodyNodes = new TreeMap<>();
     protected final List<Prime> indexes = new ArrayList<>();
