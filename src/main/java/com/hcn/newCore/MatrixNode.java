@@ -1,6 +1,5 @@
 package com.hcn.newCore;
 
-import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
@@ -47,14 +46,14 @@ public abstract class MatrixNode {
         //log.debug("  createdBodies {}", createdBodies);
 
         List<Body> successfullyAddedBodies = bodyList.mergeBodies(createdBodies);
-        //log.debug("  successfullyAddedBodies {}", successfullyAddedBodies);
+        //log.debug("  bodyList {}", bodyList);
 
         parentDeactivationCheck(incomingParents);
         if (nextMatrixNode != null) {nextMatrixNode.generateNewBodies(successfullyAddedBodies);}
     }
 
     public void createNextBodyNode() {
-        //log.debug("createNextBodyNode");
+        //log.debug("createNextBodyNode for indexes: {}", indexes);
 
         int nextBodyNodeId = bodyNodes.lastKey() + 1;
         BodyNode nwxtBodyNode = provideNextBodyNode();
@@ -84,7 +83,7 @@ public abstract class MatrixNode {
                     .collect(Collectors.toSet());
             //log.debug(" original createdBodies {}", createdBodies);
             successfullyAddedLocalBodies = bodyList.mergeBodies(createdBodies);
-            //log.debug("  successfullyAddedLocalBodies {}", successfullyAddedLocalBodies);
+            //log.debug("  bodyList {}", bodyList);
 
             parentDeactivationCheck(parents);
         }

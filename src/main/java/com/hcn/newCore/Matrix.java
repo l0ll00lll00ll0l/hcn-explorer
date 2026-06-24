@@ -208,10 +208,7 @@ public class Matrix {
     }
 
     private ScientificNumber determineTargetValue() {
-        //log.debug("nextLapi: {}", nextLapi);
-        //log.debug("nextLapi.getWalker(): {}", nextLapi.getWalker());
-        //log.debug("bodylist: {}", lastTransition.bodyList);
-        return  nextLapi.getWalker().getLastGeneratedHcn().getValue().multiply(nextLapi.getPrime().getValue());
+        return nextLapi.getWalker().getValue().multiply(nextLapi.getValueMultiplier());
     }
 
     private Hcn findLastSuperiorHcn(ScientificNumber targetValue) {

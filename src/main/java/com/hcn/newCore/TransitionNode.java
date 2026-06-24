@@ -45,7 +45,7 @@ public class TransitionNode extends MatrixNode{
         } else {
             TransitionNode nextTransitionNode = (TransitionNode) nextMatrixNode;
             newPrime = nextTransitionNode.releaseFirstIndex();
-            log.debug("created prime: {}", newPrime);
+            //log.debug("created prime: {}", newPrime);
             prepareIntermediateNodeForBodyNodeCreation(newPrime);
         }
         createNextBodyNode();
@@ -64,36 +64,36 @@ public class TransitionNode extends MatrixNode{
     }
 
     private void prepareLastNodeForBodyNodeCreation(Prime newPrime) {
-        log.debug(" prepareNodeForBodyNodeCreation");
+        //log.debug(" prepareNodeForBodyNodeCreation");
         indexes.add(newPrime);
         ScientificNumber valueMultiplier = indexes.get(indexes.size() - 2).getValue();
-        log.debug("  prepareNodeForBodyNodeCreation: {}", valueMultiplier);
+        //log.debug("  prepareNodeForBodyNodeCreation: {}", valueMultiplier);
         bodyNodes.values().forEach(bodyNode -> {
             bodyNode.setValue(bodyNode.getValue().multiply(valueMultiplier));
             bodyNode.setFactor(bodyNode.getFactor().multiply(new ScientificNumber(transitionTo + 1, 0)));
-            log.debug("  prepareNodeForBodyNodeCreation bodyNode {}: ", bodyNode);
+            //log.debug("  prepareNodeForBodyNodeCreation bodyNode {}: ", bodyNode);
         });
         bodyList.forEach(body -> {
             body.setValue(body.getValue().multiply(valueMultiplier));
             body.setFactor(body.getFactor().multiply(new ScientificNumber(transitionTo + 1, 0)));
-            log.debug("  prepareNodeForBodyNodeCreation body {}: ", body);
+            //log.debug("  prepareNodeForBodyNodeCreation body {}: ", body);
         });
     }
 
     private void prepareIntermediateNodeForBodyNodeCreation(Prime newPrime) {
-        log.debug(" prepareNodeForBodyNodeCreation");
+        //log.debug(" prepareNodeForBodyNodeCreation");
         indexes.add(newPrime);
         ScientificNumber valueMultiplier = new ScientificNumber(Math.pow(indexes.get(indexes.size() - 1).getIntValue(), transitionTo), 0);
-        log.debug("  prepareNodeForBodyNodeCreation: {}", valueMultiplier);
+        //log.debug("  prepareNodeForBodyNodeCreation: {}", valueMultiplier);
         bodyNodes.values().forEach(bodyNode -> {
             bodyNode.setValue(bodyNode.getValue().multiply(valueMultiplier));
             bodyNode.setFactor(bodyNode.getFactor().multiply(new ScientificNumber(transitionTo + 1, 0)));
-            log.debug("  prepareNodeForBodyNodeCreation bodyNode {}: ", bodyNode);
+            //log.debug("  prepareNodeForBodyNodeCreation bodyNode {}: ", bodyNode);
         });
         bodyList.forEach(body -> {
             body.setValue(body.getValue().multiply(valueMultiplier));
             body.setFactor(body.getFactor().multiply(new ScientificNumber(transitionTo + 1, 0)));
-            log.debug("  prepareNodeForBodyNodeCreation body {}: ", body);
+            //log.debug("  prepareNodeForBodyNodeCreation body {}: ", body);
         });
     }
 

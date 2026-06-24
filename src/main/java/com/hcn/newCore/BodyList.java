@@ -52,6 +52,9 @@ public class BodyList implements Iterable<Body> {
 
         Body current = smallestBody;
         List<Body> dominated = new ArrayList<>();
+        if (!sorted.isEmpty() && sorted.get(0).getValue().isSmallerThan(smallestBody.getValue())) {
+            log.warn("mergeBodies: incoming body {} is smaller than smallestBody {}", sorted.get(0), smallestBody);
+        }
         for (Body newBody : sorted) {
             // advance current until we find the floor (largest body smaller than newBody)
             while (current.getLargerBody() != null && current.getLargerBody().getValue().isSmallerThan(newBody.getValue())) {

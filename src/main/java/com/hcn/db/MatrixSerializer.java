@@ -20,6 +20,7 @@ public class MatrixSerializer {
     private int hcnTempId = 0;
     private final List<BodyNode> orphanBodyNodes = new ArrayList<>();
     private final List<Hcn> collectedHcns = new ArrayList<>();
+    private final List<Body> orphanBodies = new ArrayList<>();
 
     public List<MatrixNode> buildMatrixNodeSet(Matrix matrix) {
         List<MatrixNode> nodes = new ArrayList<>();
@@ -49,6 +50,13 @@ public class MatrixSerializer {
             if (current.getLastGeneratedHcn() != null) current.getLastGeneratedHcn().setTempId(null);
             if (current.getFirstHcn() != null) current.getFirstHcn().setTempId(null);
             if (current.getFirstSuperiorHcn() != null) current.getFirstSuperiorHcn().setTempId(null);
+            // reset parent chain
+            Body parent = current.getParent();
+            while (parent != null && parent.getTempId() != null) {
+                parent.setTempId(null);
+                parent.getBodyNode().setTempId(null);
+                parent = parent.getParent();
+            }
             current = current.getLargerBody();
         }
     }
@@ -201,35 +209,67 @@ public class MatrixSerializer {
     public String buildBodyInsert(List<MatrixNode> nodes) {
         StringBuilder sb = new StringBuilder("INSERT INTO tmp_body (id, body_node, value_mantissa, value_exponent, factor_mantissa, factor_exponent, parent, proved, smaller_body, larger_body, last_generated_hcn, first_hcn, first_superior_hcn, deactivated) VALUES ");
         boolean first = true;
+        List<Body> insertedBodies = new ArrayList<>();
         for (MatrixNode node : nodes) {
             if (node.getBodyList() == null) continue;
             Body current = node.getBodyList().getSmallestBody();
             while (current != null) {
                 if (!first) sb.append(", ");
                 first = false;
-                if (current.getBodyNode().getTempId() == null) {
-                    assignBodyNodeTempId(current.getBodyNode());
-                    orphanBodyNodes.add(current.getBodyNode());
-                }
-                sb.append(String.format("(%d, %d, %s, %d, %s, %d, %s, %b, %s, %s, %s, %s, %s, %b)",
-                        assignBodyTempId(current),
-                        current.getBodyNode().getTempId(),
-                        current.getValue().getMantissa(),
-                        current.getValue().getExponent(),
-                        current.getFactor().getMantissa(),
-                        current.getFactor().getExponent(),
-                        current.getParent() != null ? assignBodyTempId(current.getParent()) : "NULL",
-                        current.isProved(),
-                        current.getSmallerBody() != null ? assignBodyTempId(current.getSmallerBody()) : "NULL",
-                        current.getLargerBody() != null ? assignBodyTempId(current.getLargerBody()) : "NULL",
-                        current.getLastGeneratedHcn() != null ? assignHcnTempId(current.getLastGeneratedHcn()) : "NULL",
-                        current.getFirstHcn() != null ? assignHcnTempId(current.getFirstHcn()) : "NULL",
-                        current.getFirstSuperiorHcn() != null ? assignHcnTempId(current.getFirstSuperiorHcn()) : "NULL",
-                        current.isDeactivated()));
+                appendBodyValues(sb, current);
+                insertedBodies.add(current);
                 current = current.getLargerBody();
             }
         }
+        // collect orphan bodies reachable via parent chains
+        collectOrphanBodies(insertedBodies);
+        for (Body orphan : orphanBodies) {
+            sb.append(", ");
+            appendBodyValues(sb, orphan);
+        }
         return sb.toString();
+    }
+
+    private void collectOrphanBodies(List<Body> insertedBodies) {
+        java.util.Set<Body> inserted = new java.util.HashSet<>(insertedBodies);
+        java.util.Set<Body> checked = new java.util.HashSet<>(inserted);
+        for (Body body : insertedBodies) {
+            Body parent = body.getParent();
+            while (parent != null && !checked.contains(parent)) {
+                checked.add(parent);
+                if (!inserted.contains(parent)) {
+                    assignBodyTempId(parent);
+                    orphanBodies.add(parent);
+                    if (parent.getBodyNode().getTempId() == null) {
+                        assignBodyNodeTempId(parent.getBodyNode());
+                        orphanBodyNodes.add(parent.getBodyNode());
+                    }
+                }
+                parent = parent.getParent();
+            }
+        }
+    }
+
+    private void appendBodyValues(StringBuilder sb, Body current) {
+        if (current.getBodyNode().getTempId() == null) {
+            assignBodyNodeTempId(current.getBodyNode());
+            orphanBodyNodes.add(current.getBodyNode());
+        }
+        sb.append(String.format("(%d, %d, %s, %d, %s, %d, %s, %b, %s, %s, %s, %s, %s, %b)",
+                assignBodyTempId(current),
+                current.getBodyNode().getTempId(),
+                current.getValue().getMantissa(),
+                current.getValue().getExponent(),
+                current.getFactor().getMantissa(),
+                current.getFactor().getExponent(),
+                current.getParent() != null ? assignBodyTempId(current.getParent()) : "NULL",
+                current.isProved(),
+                current.getSmallerBody() != null ? assignBodyTempId(current.getSmallerBody()) : "NULL",
+                current.getLargerBody() != null ? assignBodyTempId(current.getLargerBody()) : "NULL",
+                current.getLastGeneratedHcn() != null ? assignHcnTempId(current.getLastGeneratedHcn()) : "NULL",
+                current.getFirstHcn() != null ? assignHcnTempId(current.getFirstHcn()) : "NULL",
+                current.getFirstSuperiorHcn() != null ? assignHcnTempId(current.getFirstSuperiorHcn()) : "NULL",
+                current.isDeactivated()));
     }
 
     public String buildOrphanBodyNodeInsert() {
