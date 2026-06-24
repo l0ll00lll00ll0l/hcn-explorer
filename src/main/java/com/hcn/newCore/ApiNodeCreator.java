@@ -40,6 +40,7 @@ public class ApiNodeCreator {
         recalculateTransitions(transitionNode, transitionToRemove);
         newApiNode.setBodyList(rebuildBodyNodesDualPip(pipLower, pip, transitionNode, transitionToRemove, nextLowerTransition));
 
+        transitionNode.indexes.remove(0);
         parentApiNode.setNextMatrixNode(newApiNode);
         transitionNode.setPrevMatrixNode(newApiNode);
     }
@@ -49,7 +50,6 @@ public class ApiNodeCreator {
         ScientificNumber factorExcluded = new ScientificNumber(transitionNode.getTransitionFrom() + 1, 0);
         //log.debug("valueExcluded: {}", valueExcluded);
         //log.debug("factorExcluded: {}", factorExcluded);
-        transitionNode.indexes.remove(0);
         if (transitionToRemove != null) {
             transitionNode.getBodyNodes().remove(transitionNode.getBodyNodes().firstKey());
         }
@@ -57,7 +57,6 @@ public class ApiNodeCreator {
                     transition.setValue(transition.getValue().divide(valueExcluded));
                     transition.setFactor(transition.getFactor().divide(factorExcluded));
             //log.debug("transition after update: {}", transition);
-
         });
 
     }
@@ -122,7 +121,7 @@ public class ApiNodeCreator {
     }
 
     private static BodyNode getSuitableNewPipForBody(Body bodyToRebuild, TransitionNode transitionNode, BodyNode newLowerPip, BodyNode newLargerPip) {
-        if (bodyToRebuild.getBodyNode().getBodyNodeId() > transitionNode.indexes.get(0).getIndex() - 1) {
+        if (bodyToRebuild.getBodyNode().getBodyNodeId() > transitionNode.indexes.get(0).getIndex()) {
             return newLargerPip;
         } else {
             return newLowerPip;

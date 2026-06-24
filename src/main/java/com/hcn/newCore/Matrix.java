@@ -63,7 +63,6 @@ public class Matrix {
         lastTransition = TransitionNode.builder()
                 .transitionFrom(2).transitionTo(1).primeCenter(primeCenter).build();
         lastTransition.indexes.add(primeCenter.getPrime(1));
-        lastTransition.indexes.add(primeCenter.getPrime(2));
         BodyNode t1 = BodyNode.builder().parentNode(lastTransition).bodyNodeId(1)
                 .value(new ScientificNumber(1, 0))
                 .factor(new ScientificNumber(1, 0)).proved(true).build();
@@ -248,16 +247,20 @@ public class Matrix {
     }
 
     private void matrixMaintainCheck() {
-        Prime prevLastMatrixIndex = lastTransition.getIndexes().get(lastTransition.getIndexes().size() - 1);
+
+        Prime prevLastMatrixIndex = lastTransition.getLastPrime();
+
         highestLapi.getHcnList().forEach(hcn -> {
             if (!hcn.getBody().isDeactivated()) {
                 hcn.matrixMaintainCheck();
             }
             provedHcns.add(hcn);
         });
-        if (prevLastMatrixIndex != lastTransition.getIndexes().get(lastTransition.getIndexes().size() - 1)) {
-            lowestLapi.recalculateMultipliers(prevLastMatrixIndex);
-            nextLapi.recalculateMultipliers(prevLastMatrixIndex);
+
+        Prime currentLastMatrixIndex = lastTransition.getLastPrime();
+        if (prevLastMatrixIndex != currentLastMatrixIndex) {
+            lowestLapi.recalculateMultipliers(currentLastMatrixIndex);
+            nextLapi.recalculateMultipliers(currentLastMatrixIndex);
         }
     }
 

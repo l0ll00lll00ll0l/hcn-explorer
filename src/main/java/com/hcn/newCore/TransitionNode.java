@@ -16,18 +16,20 @@ public class TransitionNode extends MatrixNode{
 
     @Override
     protected BodyNode provideNextBodyNode() {
-        if (nextMatrixNode == null) {
-            return BodyNode.builder().parentNode(this).bodyNodeId(bodyNodes.lastKey() + 1)
-                    .value(bodyNodes.get(bodyNodes.lastKey()).getValue()
-                            .multiply(indexes.get(indexes.size() - 2).getValue()))
-                    .factor(bodyNodes.get(bodyNodes.lastKey()).getFactor().multiply(new ScientificNumber((double) (transitionFrom + 1) / (transitionTo + 1), 0))).build();
-        } else {
-            return BodyNode.builder().parentNode(this).bodyNodeId(bodyNodes.lastKey() + 1)
-                    .value(bodyNodes.get(bodyNodes.lastKey()).getValue()
-                            .multiply(indexes.get(indexes.size() - 1).getValue()))
-                    .factor(bodyNodes.get(bodyNodes.lastKey()).getFactor().multiply(new ScientificNumber((double) (transitionFrom + 1) / (transitionTo + 1), 0))).build();
-        }
+        return BodyNode.builder().parentNode(this).bodyNodeId(bodyNodes.lastKey() + 1)
+                .value(bodyNodes.get(bodyNodes.lastKey()).getValue()
+                        .multiply(indexes.get(indexes.size() - 1).getValue()))
+                .factor(bodyNodes.get(bodyNodes.lastKey()).getFactor()
+                        .multiply(new ScientificNumber((double) (transitionFrom + 1) / (transitionTo + 1), 0)))
+                .build();
+    }
 
+    public Prime getLastPrime() {
+        if (indexes.isEmpty()) {
+            return prevMatrixNode.getIndexes().get(prevMatrixNode.getIndexes().size() - 1);
+        } else {
+            return indexes.get(indexes.size() - 1);
+        }
     }
 
     @Override
@@ -38,16 +40,13 @@ public class TransitionNode extends MatrixNode{
     @Override
     public void extensionCheck() {
         //log.debug("LocalExtension required at TransitionNode {}-{}", transitionFrom, transitionTo);
-        Prime newPrime = null;
+        Prime newPrime;
         if (nextMatrixNode == null) {
-            newPrime = primeCenter.getPrime(indexes.get(indexes.size() - 1).getIndex() + 1);
-            prepareLastNodeForBodyNodeCreation(newPrime);
+            newPrime = primeCenter.getPrime(getLastPrime().getIndex() + 1);
         } else {
-            TransitionNode nextTransitionNode = (TransitionNode) nextMatrixNode;
-            newPrime = nextTransitionNode.releaseFirstIndex();
-            //log.debug("created prime: {}", newPrime);
-            prepareIntermediateNodeForBodyNodeCreation(newPrime);
+            newPrime = ((TransitionNode) nextMatrixNode).releaseFirstIndex();
         }
+        prepareNodeForBodyNodeCreation(newPrime);
         createNextBodyNode();
     }
 
@@ -58,29 +57,11 @@ public class TransitionNode extends MatrixNode{
             transition.setValue(transition.getValue().divide(valueExcluded));
             transition.setFactor(transition.getFactor().divide(factorExcluded));
             //log.debug("transition after update: {}", transition);
-
         });
         return indexes.remove(0);
     }
 
-    private void prepareLastNodeForBodyNodeCreation(Prime newPrime) {
-        //log.debug(" prepareNodeForBodyNodeCreation");
-        indexes.add(newPrime);
-        ScientificNumber valueMultiplier = indexes.get(indexes.size() - 2).getValue();
-        //log.debug("  prepareNodeForBodyNodeCreation: {}", valueMultiplier);
-        bodyNodes.values().forEach(bodyNode -> {
-            bodyNode.setValue(bodyNode.getValue().multiply(valueMultiplier));
-            bodyNode.setFactor(bodyNode.getFactor().multiply(new ScientificNumber(transitionTo + 1, 0)));
-            //log.debug("  prepareNodeForBodyNodeCreation bodyNode {}: ", bodyNode);
-        });
-        bodyList.forEach(body -> {
-            body.setValue(body.getValue().multiply(valueMultiplier));
-            body.setFactor(body.getFactor().multiply(new ScientificNumber(transitionTo + 1, 0)));
-            //log.debug("  prepareNodeForBodyNodeCreation body {}: ", body);
-        });
-    }
-
-    private void prepareIntermediateNodeForBodyNodeCreation(Prime newPrime) {
+    private void prepareNodeForBodyNodeCreation(Prime newPrime) {
         //log.debug(" prepareNodeForBodyNodeCreation");
         indexes.add(newPrime);
         ScientificNumber valueMultiplier = new ScientificNumber(Math.pow(indexes.get(indexes.size() - 1).getIntValue(), transitionTo), 0);
