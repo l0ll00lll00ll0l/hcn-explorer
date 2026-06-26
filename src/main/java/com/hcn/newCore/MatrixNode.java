@@ -45,11 +45,13 @@ public abstract class MatrixNode {
 
         //log.debug("  createdBodies {}", createdBodies);
 
-        List<Body> successfullyAddedBodies = bodyList.mergeBodies(createdBodies);
+        bodyList.mergeBodies(createdBodies);
         //log.debug("  bodyList {}", bodyList);
 
         parentDeactivationCheck(incomingParents);
-        if (nextMatrixNode != null) {nextMatrixNode.generateNewBodies(successfullyAddedBodies);}
+        if (nextMatrixNode != null) {nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());} else {
+            bodyList.resetActiveBodyChain();
+        }
     }
 
     public void createNextBodyNode() {
@@ -61,12 +63,11 @@ public abstract class MatrixNode {
         bodyNodes.put(nextBodyNodeId, nwxtBodyNode);
 
         Set<Body> createdBodies;
-        List<Body> successfullyAddedLocalBodies;
         // at p0, we initiate new body chain
         if (prevMatrixNode == null) {
             createdBodies = Set.of(Body.builder().bodyNode(nwxtBodyNode).parent(null).value(nwxtBodyNode.getValue()).factor(nwxtBodyNode.getFactor()).build());
             //log.debug(" original createdBodies {}", createdBodies);
-            successfullyAddedLocalBodies = bodyList.mergeBodies(createdBodies);
+            bodyList.mergeBodies(createdBodies);
             //log.debug("  successfullyAddedLocalBodies {}", successfullyAddedLocalBodies);
         } else {
 
@@ -82,14 +83,15 @@ public abstract class MatrixNode {
                             .factor(nwxtBodyNode.getFactor().multiply(parentBody.getFactor())).build())
                     .collect(Collectors.toSet());
             //log.debug(" original createdBodies {}", createdBodies);
-            successfullyAddedLocalBodies = bodyList.mergeBodies(createdBodies);
+            bodyList.mergeBodies(createdBodies);
             //log.debug("  bodyList {}", bodyList);
 
             parentDeactivationCheck(parents);
         }
 
-
-        if (nextMatrixNode != null) {nextMatrixNode.generateNewBodies(successfullyAddedLocalBodies);}
+        if (nextMatrixNode != null) {nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());} else {
+            bodyList.resetActiveBodyChain();
+        }
     }
 
     private void parentDeactivationCheck(List<Body> parents) {

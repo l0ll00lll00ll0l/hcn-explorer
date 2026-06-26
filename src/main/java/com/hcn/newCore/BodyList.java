@@ -18,6 +18,8 @@ import java.util.TreeMap;
 @Slf4j
 public class BodyList implements Iterable<Body> {
     private Body smallestBody;
+    private final List<Body> successfullyAddedNewBodies = new ArrayList<>();
+    private final List<Body> dominatedBodies = new ArrayList<>();
 
     public int size() {
         int count = 0;
@@ -31,10 +33,11 @@ public class BodyList implements Iterable<Body> {
         return count;
     }
 
-    public List<Body> mergeBodies(Collection<Body> otherBodyList) {
+    public void mergeBodies(Collection<Body> otherBodyList) {
+        successfullyAddedNewBodies.clear();
+        dominatedBodies.clear();
         List<Body> sorted = new ArrayList<>(otherBodyList);
         sorted.sort(Body::compareTo);
-        List<Body> added = new java.util.ArrayList<>();
 
         if (smallestBody == null) {
             Body previousBody = null;
@@ -42,16 +45,15 @@ public class BodyList implements Iterable<Body> {
                 if (previousBody == null || body.getFactor().isBiggerThan(previousBody.getFactor())) {
                     body.setSmallerBody(previousBody);
                     if (previousBody != null) previousBody.setLargerBody(body);
-                    added.add(body);
+                    successfullyAddedNewBodies.add(body);
                     previousBody = body;
                 }
             }
-            if (!added.isEmpty()) smallestBody = added.get(0);
-            return added;
+            if (!successfullyAddedNewBodies.isEmpty()) smallestBody = successfullyAddedNewBodies.get(0);
+            return;
         }
 
         Body current = smallestBody;
-        List<Body> dominated = new ArrayList<>();
         if (!sorted.isEmpty() && sorted.get(0).getValue().isSmallerThan(smallestBody.getValue())) {
             log.warn("mergeBodies: incoming body {} is smaller than smallestBody {}", sorted.get(0), smallestBody);
         }
@@ -72,7 +74,7 @@ public class BodyList implements Iterable<Body> {
             while (ceiling != null && ceiling.getFactor().isNotBiggerThan(newBody.getFactor())) {
                 Body next = ceiling.getLargerBody();
                 //log.debug("  newBody {} dominates {}", newBody, ceiling);
-                dominated.add(ceiling);
+                dominatedBodies.add(ceiling);
                 ceiling = next;
             }
 
@@ -87,13 +89,13 @@ public class BodyList implements Iterable<Body> {
                 newBody.getParent().getOffsprings().add(newBody);
                 //log.debug("  parentOffspring added {}", newBody.getParent());
             }
-            added.add(newBody);
+            successfullyAddedNewBodies.add(newBody);
             current = newBody;
         }
 
         //log.debug("Bodylist create, domination calls to begin:");
-        dominated.forEach(body -> body.gotDominated());
-        return added;
+        dominatedBodies.forEach(body -> body.gotDominated());
+        return;
     }
 
     @Override
@@ -125,5 +127,20 @@ public class BodyList implements Iterable<Body> {
             public boolean hasNext() { return current != null; }
             public Body next() { Body c = current; current = current.getLargerBody(); return c; }
         };
+    }
+
+    public void resetActiveBodyChain() {
+        dominatedBodies.forEach(dominatedBody -> {
+            if (dominatedBody.getSmallerBody() == null && dominatedBody.getLargerBody() == null) {
+                //log.debug("dominated body: {} sm: {} lb: {} sab: {} lab: {}", dominatedBody, dominatedBody.getSmallerBody(), dominatedBody.getLargerBody(), dominatedBody.getSmallerActiveBody(), dominatedBody.getLargerActiveBody());
+            }
+            dominatedBody.removeFromActiveList();
+        });
+        successfullyAddedNewBodies.forEach(newBody -> {
+            if (newBody.getSmallerBody() == null && newBody.getLargerBody() == null) {
+                //log.debug("fishy new active body: {} sm: {} lb: {} sab: {} lab: {}", newBody, newBody.getSmallerBody(), newBody.getLargerBody(), newBody.getSmallerActiveBody(), newBody.getLargerActiveBody());
+            }
+            newBody.addToActiveBodyList();
+        });
     }
 }

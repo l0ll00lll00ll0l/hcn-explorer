@@ -123,6 +123,17 @@ public class Matrix {
         b32.setSmallerBody(b22);
         b32.setLargerBody(null);
 
+        b11.setSmallerActiveBody(null);
+        b11.setLargerActiveBody(b21);
+        b21.setSmallerActiveBody(b11);
+        b21.setLargerActiveBody(b31);
+        b31.setSmallerActiveBody(b21);
+        b31.setLargerActiveBody(b22);
+        b22.setSmallerActiveBody(b31);
+        b22.setLargerActiveBody(b32);
+        b32.setSmallerActiveBody(b22);
+        b32.setLargerActiveBody(null);
+
         lastTransition.setBodyList(BodyList.builder().smallestBody(b11).build());
 
         b01.getOffsprings().add(b11);
@@ -180,11 +191,6 @@ public class Matrix {
 
     private void proveNextLapi() {
         maintainLapiGroups();
-        Prime newPrime = lapiPrimeCenter.getPrime(highestLapi.getPrime().getIndex() + 1);
-        nextLapi = Lapi.builder().prime(newPrime)
-                .walker(lastTransition.getBodyList().getSmallestBody())
-                .valueMultiplier(highestLapi.getValueMultiplier().multiply(newPrime.getValue()))
-                .factorMultiplier(highestLapi.getFactorMultiplier().multiply(new ScientificNumber(2, 0))).build();
         nextLapi.getHcnList().add(findLastSuperiorHcn(determineTargetValue()));
         provedHcns.clear();
         maintainProvedHcns();
@@ -198,12 +204,17 @@ public class Matrix {
         nextLapi.setLowerLapi(highestLapi);
         highestLapi.setHigherLapi(nextLapi);
         highestLapi = nextLapi;
-        nextLapi = null;
 
         // delete dead lapis
         while (lowestProvedLapiWithinInterval > lowestLapi.getPrime().getIndex()) {
             lowestLapi = lowestLapi.deleteLapi();
         }
+
+        Prime newPrime = lapiPrimeCenter.getPrime(highestLapi.getPrime().getIndex() + 1);
+        nextLapi = Lapi.builder().prime(newPrime)
+                .walker(highestLapi.getWalker())
+                .valueMultiplier(highestLapi.getValueMultiplier().multiply(newPrime.getValue()))
+                .factorMultiplier(highestLapi.getFactorMultiplier().multiply(new ScientificNumber(2, 0))).build();
     }
 
     private ScientificNumber determineTargetValue() {
@@ -222,7 +233,7 @@ public class Matrix {
 
             if (largestGeneratedSuperiorHcn.getFactor().isNotSmallerThan(targetHcn.getFactor())) {
                 candidateIsSuperior = false;
-                nextLapi.setWalker(nextLapi.getWalker().getNextActiveBody());
+                nextLapi.setWalker(nextLapi.getWalker().getLargerActiveBody());
                 targetHcn.gotDominated();
                 lastTransition.deactivatedMaintain();
                 targetValue = determineTargetValue();

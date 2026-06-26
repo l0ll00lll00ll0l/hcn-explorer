@@ -186,13 +186,27 @@
     </div>
 
     <div id="tab-hcngen" class="tab-content" th:classappend="${activeTab == 'hcngen' ? ' active' : ''}">
+        <label style="margin-bottom: 8px; display: inline-flex; align-items: center; gap: 4px; font-size: 11px;">
+            <input type="checkbox" id="showDeactivated" checked onchange="toggleDeactivated()"/> Show Deactivated Bodies
+        </label>
         <table class="level-table">
             <thead>
                 <tr><th>#</th><th>Body</th><th>firstHcn</th><th>firstSuperiorHcn</th><th>lastGeneratedHcn</th></tr>
             </thead>
-            <tbody>
+            <tbody id="hcngen-bodylist">
                 <tr th:if="${matrix.lastTransition.bodyList != null}"
-                    th:each="body, bIter : ${@newCoreController.getBodies(matrix.lastTransition.bodyList)}">
+                    th:each="body, bIter : ${@newCoreController.getBodies(matrix.lastTransition.bodyList)}"
+                    th:data-deactivated="${body.deactivated}">
+                    <td th:text="${bIter.index}"></td>
+                    <td th:text="${@newCoreController.guiString(body)}"></td>
+                    <td th:text="${body.firstHcn != null ? body.firstHcn.lapi + ' v=' + body.firstHcn.value + ' f=' + body.firstHcn.factor : ''}"></td>
+                    <td th:text="${body.firstSuperiorHcn != null ? body.firstSuperiorHcn.lapi + ' v=' + body.firstSuperiorHcn.value + ' f=' + body.firstSuperiorHcn.factor : ''}"></td>
+                    <td th:text="${body.lastGeneratedHcn != null ? body.lastGeneratedHcn.lapi + ' v=' + body.lastGeneratedHcn.value + ' f=' + body.lastGeneratedHcn.factor : ''}"></td>
+                </tr>
+            </tbody>
+            <tbody id="hcngen-activelist" style="display:none;">
+                <tr th:if="${matrix.lastTransition.bodyList != null}"
+                    th:each="body, bIter : ${@newCoreController.getActiveBodiesChain(matrix.lastTransition.bodyList)}">
                     <td th:text="${bIter.index}"></td>
                     <td th:text="${@newCoreController.guiString(body)}"></td>
                     <td th:text="${body.firstHcn != null ? body.firstHcn.lapi + ' v=' + body.firstHcn.value + ' f=' + body.firstHcn.factor : ''}"></td>
@@ -238,6 +252,12 @@
             document.getElementById('tab-' + tabId).classList.add('active');
             document.querySelector('.tab-btn[data-tab="' + tabId + '"]').classList.add('active');
             document.getElementById('hiddenTab').value = tabId;
+        }
+
+        function toggleDeactivated() {
+            var checked = document.getElementById('showDeactivated').checked;
+            document.getElementById('hcngen-bodylist').style.display = checked ? '' : 'none';
+            document.getElementById('hcngen-activelist').style.display = checked ? 'none' : '';
         }
 
         function selectBodyList(idx) {

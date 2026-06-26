@@ -210,6 +210,8 @@ public class MatrixDeserializer {
             Integer parentId = (Integer) rs.getObject("parent");
             Integer smallerId = (Integer) rs.getObject("smaller_body");
             Integer largerId = (Integer) rs.getObject("larger_body");
+            Integer smallerActiveId = (Integer) rs.getObject("smaller_active_body");
+            Integer largerActiveId = (Integer) rs.getObject("larger_active_body");
             Integer lastGenHcnId = (Integer) rs.getObject("last_generated_hcn");
             Integer firstHcnId = (Integer) rs.getObject("first_hcn");
             Integer firstSuperiorHcnId = (Integer) rs.getObject("first_superior_hcn");
@@ -218,6 +220,8 @@ public class MatrixDeserializer {
             body.setParent(parentId != null ? bodyMap.get(parentId) : null);
             body.setSmallerBody(smallerId != null ? bodyMap.get(smallerId) : null);
             body.setLargerBody(largerId != null ? bodyMap.get(largerId) : null);
+            body.setSmallerActiveBody(smallerActiveId != null ? bodyMap.get(smallerActiveId) : null);
+            body.setLargerActiveBody(largerActiveId != null ? bodyMap.get(largerActiveId) : null);
             body.setLastGeneratedHcn(lastGenHcnId != null ? hcnMap.get(lastGenHcnId) : null);
             body.setFirstHcn(firstHcnId != null ? hcnMap.get(firstHcnId) : null);
             body.setFirstSuperiorHcn(firstSuperiorHcnId != null ? hcnMap.get(firstSuperiorHcnId) : null);

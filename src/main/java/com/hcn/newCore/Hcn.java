@@ -24,6 +24,7 @@ public class Hcn {
 
     public void gotDominated() {
         body.setLastGeneratedHcn(this);
+        body.removeFromActiveList();
         body.gotDominated();
     }
 

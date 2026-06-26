@@ -105,6 +105,8 @@ public class DatabaseService {
                     proved BOOLEAN,
                     smaller_body INT,
                     larger_body INT,
+                    smaller_active_body INT,
+                    larger_active_body INT,
                     last_generated_hcn INT,
                     first_hcn INT,
                     first_superior_hcn INT,

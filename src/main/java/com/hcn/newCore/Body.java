@@ -21,6 +21,8 @@ public class Body implements Comparable<Body>{
     private Integer tempId = null;
     private Body smallerBody;
     private Body largerBody;
+    private Body smallerActiveBody;
+    private Body largerActiveBody;
     @Builder.Default
     private Hcn lastGeneratedHcn = null;
     @Builder.Default
@@ -36,6 +38,35 @@ public class Body implements Comparable<Body>{
         Body candidate = largerBody;
         while (candidate != null && candidate.deactivated) {candidate = candidate.largerBody;}
         return candidate;
+    }
+
+    public Body getPrevActiveBody() {
+        Body candidate = smallerBody;
+        while (candidate != null && candidate.deactivated) {candidate = candidate.smallerBody;}
+        return candidate;
+    }
+
+    public void removeFromActiveList() {
+        if (smallerActiveBody != null) {
+            smallerActiveBody.setLargerActiveBody(largerActiveBody);
+        }
+        if (largerActiveBody != null) {
+            largerActiveBody.setSmallerActiveBody(smallerActiveBody);
+        }
+        smallerActiveBody = null;
+        largerActiveBody = null;
+    }
+
+    public void addToActiveBodyList() {
+        this.smallerActiveBody = getPrevActiveBody();
+        this.largerActiveBody = getNextActiveBody();
+
+        if (smallerActiveBody != null) {
+            smallerActiveBody.setLargerActiveBody(this);
+        }
+        if (largerActiveBody != null) {
+            largerActiveBody.setSmallerActiveBody(this);
+        }
     }
 
     private Hcn findReferenceHcnForHcnGeneration(Lapi lapi) {

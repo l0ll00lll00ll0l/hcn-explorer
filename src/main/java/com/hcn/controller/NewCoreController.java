@@ -158,6 +158,19 @@ public class NewCoreController {
         return bodies;
     }
 
+    public List<Body> getActiveBodiesChain(BodyList bodyList) {
+        List<Body> bodies = new ArrayList<>();
+        Body current = bodyList.getSmallestBody();
+        while (current != null && current.isDeactivated()) {
+            current = current.getLargerBody();
+        }
+        while (current != null) {
+            bodies.add(current);
+            current = current.getLargerActiveBody();
+        }
+        return bodies;
+    }
+
     public String guiString(Body body) {
         StringBuilder sb = new StringBuilder();
         buildGuiString(body, sb);

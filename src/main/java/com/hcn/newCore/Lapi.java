@@ -40,7 +40,7 @@ public class Lapi {
     }
 
     public void generateHcnList(ScientificNumber provedLimit, ScientificNumber targetValue, Body smallestBody) {
-        if (walker == null || walker.isDeactivated() || walker.getNextActiveBody() == null) {
+        if (walker == null || walker.isDeactivated() || walker.getLargerActiveBody() == null) {
             walker = restoreWalker(smallestBody, provedLimit);
         }
         if (walker != null) {
@@ -52,30 +52,37 @@ public class Lapi {
     }
 
     private Body restoreWalker(Body smallestBody, ScientificNumber provedLimit) {
+        //log.debug("restoreWalker lapi={} smallestBody={} provedLimit={}", prime.getIndex(), smallestBody, provedLimit);
         Body result = null;
         Body candidate = smallestBody;
         while (candidate != null) {
+            //log.debug("  candidate={} deactivated={} lastGenHcn={}", candidate, candidate.isDeactivated(), candidate.getLastGeneratedHcn());
             if (!candidate.isDeactivated() && candidate.getLastGeneratedHcn() != null && candidate.getLastGeneratedHcn().getLapi() == prime.getIndex()) {
                 result = candidate;
+                //log.debug("  -> result updated to {}", result);
             }
             candidate = candidate.getNextActiveBody();
         }
+        //log.debug("  after scan: result={}", result);
         if (result == null) return null;
         while (result.getLastGeneratedHcn().getValue().isNotBiggerThan(provedLimit)) {
             Body next = result.getNextActiveBody();
+            //log.debug("  advancing past provedLimit: result={} next={}", result, next);
             if (next == null) return null;
             result = next;
             if (result.getLastGeneratedHcn() == null || result.getLastGeneratedHcn().getLapi() != prime.getIndex()) {
+                //log.debug("  generating hcn for result={}", result);
                 generateHcn(result);
             }
         }
+        //log.debug("  restoreWalker returning: {}", result);
         return result;
     }
 
     private void createBaseHcnList(ScientificNumber targetValue) {
         while (walker.getLastGeneratedHcn().getValue().isSmallerThan(targetValue)) {
             hcnList.add(walker.getLastGeneratedHcn());
-            Body walkercandidate = walker.getNextActiveBody();
+            Body walkercandidate = walker.getLargerActiveBody();
             if (walkercandidate == null) {
                 break;
             }
@@ -87,10 +94,15 @@ public class Lapi {
     private void moveWalkerIfNotSuperiorCheck() {
         if (lowerLapi != null) {
             if (hcnList.get(hcnList.size() - 1).getLapi() < prime.getIndex()) {
+                //log.debug("moveWalkerIfNotSuperiorCheck lapi={} walker={} lastHcnFactor={} hcnListLastFactor={}",
+                //        prime.getIndex(), walker, walker.getLastGeneratedHcn().getFactor(), hcnList.get(hcnList.size() - 1).getFactor());
                 while (walker.getLastGeneratedHcn().getFactor().isNotBiggerThan(hcnList.get(hcnList.size() - 1).getFactor())) {
+                    //log.debug("  dominating walker hcn: {} moving to largerActiveBody: {}", walker.getLastGeneratedHcn(), walker.getLargerActiveBody());
                     walker.getLastGeneratedHcn().gotDominated();
                     walker = walker.getNextActiveBody();
+                    //log.debug("  new walker: {}", walker);
                     generateHcn(walker);
+                    //log.debug("  generated hcn for walker, lastGenHcn={}", walker.getLastGeneratedHcn());
                 }
             }
         }

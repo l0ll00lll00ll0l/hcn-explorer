@@ -207,7 +207,7 @@ public class MatrixSerializer {
         return buildBodyNodeInsertFromList(allBodyNodes, true);
     }
     public String buildBodyInsert(List<MatrixNode> nodes) {
-        StringBuilder sb = new StringBuilder("INSERT INTO tmp_body (id, body_node, value_mantissa, value_exponent, factor_mantissa, factor_exponent, parent, proved, smaller_body, larger_body, last_generated_hcn, first_hcn, first_superior_hcn, deactivated) VALUES ");
+        StringBuilder sb = new StringBuilder("INSERT INTO tmp_body (id, body_node, value_mantissa, value_exponent, factor_mantissa, factor_exponent, parent, proved, smaller_body, larger_body, smaller_active_body, larger_active_body, last_generated_hcn, first_hcn, first_superior_hcn, deactivated) VALUES ");
         boolean first = true;
         List<Body> insertedBodies = new ArrayList<>();
         for (MatrixNode node : nodes) {
@@ -255,7 +255,7 @@ public class MatrixSerializer {
             assignBodyNodeTempId(current.getBodyNode());
             orphanBodyNodes.add(current.getBodyNode());
         }
-        sb.append(String.format("(%d, %d, %s, %d, %s, %d, %s, %b, %s, %s, %s, %s, %s, %b)",
+        sb.append(String.format("(%d, %d, %s, %d, %s, %d, %s, %b, %s, %s, %s, %s, %s, %s, %s, %b)",
                 assignBodyTempId(current),
                 current.getBodyNode().getTempId(),
                 current.getValue().getMantissa(),
@@ -266,6 +266,8 @@ public class MatrixSerializer {
                 current.isProved(),
                 current.getSmallerBody() != null ? assignBodyTempId(current.getSmallerBody()) : "NULL",
                 current.getLargerBody() != null ? assignBodyTempId(current.getLargerBody()) : "NULL",
+                current.getSmallerActiveBody() != null ? assignBodyTempId(current.getSmallerActiveBody()) : "NULL",
+                current.getLargerActiveBody() != null ? assignBodyTempId(current.getLargerActiveBody()) : "NULL",
                 current.getLastGeneratedHcn() != null ? assignHcnTempId(current.getLastGeneratedHcn()) : "NULL",
                 current.getFirstHcn() != null ? assignHcnTempId(current.getFirstHcn()) : "NULL",
                 current.getFirstSuperiorHcn() != null ? assignHcnTempId(current.getFirstSuperiorHcn()) : "NULL",
