@@ -25,8 +25,11 @@ public abstract class MatrixNode {
     protected final List<Prime> indexes = new ArrayList<>();
 
     public void deactivatedMaintain() {
-        bodyList.deactivatedMaintain();
-        if (prevMatrixNode != null) {prevMatrixNode.deactivatedMaintain();}
+        ScientificNumber smallestPossibleExtension = getSmallestPossibleExtension();
+        bodyList.deactivatedMaintain(smallestPossibleExtension);
+        if (prevMatrixNode != null) {
+            prevMatrixNode.deactivatedMaintain();
+        }
     }
 
     protected BodyNode getLargestProvedBodyNode() {
@@ -65,6 +68,7 @@ public abstract class MatrixNode {
         Set<Body> createdBodies;
         // at p0, we initiate new body chain
         if (prevMatrixNode == null) {
+
             createdBodies = Set.of(Body.builder().bodyNode(nwxtBodyNode).parent(null).value(nwxtBodyNode.getValue()).factor(nwxtBodyNode.getFactor()).build());
             //log.debug(" original createdBodies {}", createdBodies);
             bodyList.mergeBodies(createdBodies);
@@ -100,5 +104,8 @@ public abstract class MatrixNode {
 
     protected abstract BodyNode provideNextBodyNode();
     protected abstract int determineBodyNodeIdLowLimit();
+    protected abstract ScientificNumber determineDeactivationLimitMultiplier();
+    public abstract ScientificNumber getSmallestPossibleExtension();
+    protected abstract ScientificNumber getValurForNextMatrixExtension(int bodyNodeId);
     public abstract void extensionCheck();
 }

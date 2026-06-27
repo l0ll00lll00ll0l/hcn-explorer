@@ -17,8 +17,7 @@ public class TransitionNode extends MatrixNode{
     @Override
     protected BodyNode provideNextBodyNode() {
         return BodyNode.builder().parentNode(this).bodyNodeId(bodyNodes.lastKey() + 1)
-                .value(bodyNodes.get(bodyNodes.lastKey()).getValue()
-                        .multiply(indexes.get(indexes.size() - 1).getValue()))
+                .value(bodyNodes.get(bodyNodes.lastKey()).getValue().multiply(indexes.get(indexes.size() - 1).getValue()))
                 .factor(bodyNodes.get(bodyNodes.lastKey()).getFactor()
                         .multiply(new ScientificNumber((double) (transitionFrom + 1) / (transitionTo + 1), 0)))
                 .build();
@@ -35,6 +34,36 @@ public class TransitionNode extends MatrixNode{
     @Override
     protected int determineBodyNodeIdLowLimit() {
         return transitionFrom;
+    }
+
+    @Override
+    protected ScientificNumber determineDeactivationLimitMultiplier() {
+        return  indexes.stream().filter(prime -> prime.getIndex() == bodyNodes.firstKey() + 1).findFirst().get().getValue();
+    }
+
+    @Override
+    public ScientificNumber getSmallestPossibleExtension() {
+        Prime nextprime;
+        if (nextMatrixNode == null) {
+            nextprime = primeCenter.getPrime(bodyNodes.lastKey() + 1);
+        } else {
+            nextprime = nextMatrixNode.indexes.get(0);
+        }
+        ScientificNumber localextensionSmallest = bodyNodes.lastEntry().getValue().getValue().multiply(nextprime.getValue());
+
+        ScientificNumber valueForLocalExtension = prevMatrixNode.getValurForNextMatrixExtension(transitionFrom);
+        localextensionSmallest = localextensionSmallest.multiply(valueForLocalExtension);
+        ScientificNumber prevExtensionSmallest = prevMatrixNode.getSmallestPossibleExtension().multiply(bodyNodes.firstEntry().getValue().getValue());
+        if (prevExtensionSmallest.isSmallerThan(localextensionSmallest)) {
+            return prevExtensionSmallest;
+        } else {
+            return localextensionSmallest;
+        }
+    }
+
+    @Override
+    protected ScientificNumber getValurForNextMatrixExtension(int bodyNodeId) {
+        return bodyNodes.firstEntry().getValue().getValue().multiply(prevMatrixNode.getValurForNextMatrixExtension(transitionFrom));
     }
 
     @Override

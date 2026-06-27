@@ -11,13 +11,55 @@ public class ApiNode extends MatrixNode {
 
     @Override
     protected BodyNode provideNextBodyNode() {
-        return BodyNode.builder().parentNode(this).bodyNodeId(bodyNodes.lastKey() + 1).value(bodyNodes.get(bodyNodes.lastKey()).getValue().multiply(indexes.get(0).getValue()))
+        return BodyNode.builder().parentNode(this).bodyNodeId(bodyNodes.lastKey() + 1)
+                .value(bodyNodes.get(bodyNodes.lastKey()).getValue().multiply(indexes.get(0).getValue()))
                 .factor(new ScientificNumber(bodyNodes.lastKey() + 2, 0)).build();
     }
 
     @Override
     protected int determineBodyNodeIdLowLimit() {
         return bodyNodes.lastKey();
+    }
+
+    @Override
+    protected ScientificNumber determineDeactivationLimitMultiplier() {
+        if (prevMatrixNode == null) {return new ScientificNumber(1, 0);}
+        return indexes.get(0).getValue();
+    }
+
+    @Override
+    public ScientificNumber getSmallestPossibleExtension() {
+
+        ScientificNumber localextensionSmallest = bodyNodes.lastEntry().getValue().getValue().multiply(indexes.get(0).getValue());
+
+        if (prevMatrixNode != null) {
+            ScientificNumber valueForLocalExtension = prevMatrixNode.getValurForNextMatrixExtension(bodyNodes.lastEntry().getValue().getBodyNodeId());
+            localextensionSmallest = localextensionSmallest.multiply(valueForLocalExtension);
+            ScientificNumber prevExtensionSmallest = prevMatrixNode.getSmallestPossibleExtension().multiply(bodyNodes.firstEntry().getValue().getValue());
+            if (prevExtensionSmallest.isSmallerThan(localextensionSmallest)) {
+                return prevExtensionSmallest;
+            } else {
+                return localextensionSmallest;
+            }
+        }
+        return localextensionSmallest;
+    }
+
+    @Override
+    protected ScientificNumber getValurForNextMatrixExtension(int bodyNodeIdTrigger) {
+
+        ScientificNumber localSuitableMultiplier;
+        if (bodyNodes.firstKey() < bodyNodeIdTrigger) {
+            localSuitableMultiplier = bodyNodes.get(bodyNodeIdTrigger).getValue();
+        } else {
+            localSuitableMultiplier = bodyNodes.firstEntry().getValue().getValue();
+        }
+
+        if (prevMatrixNode != null) {
+            return localSuitableMultiplier.multiply(prevMatrixNode.getValurForNextMatrixExtension(bodyNodeIdTrigger));
+        } else {
+            return localSuitableMultiplier;
+        }
     }
 
     @Override

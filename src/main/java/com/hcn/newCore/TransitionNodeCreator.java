@@ -28,7 +28,8 @@ public class TransitionNodeCreator {
         }
 
         TransitionNode newTransitionNode = TransitionNode.builder().transitionFrom(fixPip.getBodyNodeId())
-                .transitionTo(fixPip.getBodyNodeId() - 1).prevMatrixNode(fixNode.prevMatrixNode).nextMatrixNode(apiNodeToTurnIntoTransition.getNextMatrixNode())
+                .transitionTo(fixPip.getBodyNodeId() - 1).prevMatrixNode(fixNode.prevMatrixNode)
+                .nextMatrixNode(apiNodeToTurnIntoTransition.getNextMatrixNode())
                 .build();
         newTransitionNode.indexes.addAll(primeList);
 

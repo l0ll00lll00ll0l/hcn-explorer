@@ -112,8 +112,8 @@ public class BodyList implements Iterable<Body> {
         return sb.toString();
     }
 
-    public void deactivatedMaintain() {
-        while (smallestBody.isDeactivated()) {
+    public void deactivatedMaintain(ScientificNumber smallestPossibleExtension) {
+        while (smallestBody.isDeactivated() && smallestBody.getLargerBody().getValue().isSmallerThan(smallestPossibleExtension)) {
             smallestBody = smallestBody.getLargerBody();
             smallestBody.getSmallerBody().setLargerBody(null);
             smallestBody.setSmallerBody(null);
