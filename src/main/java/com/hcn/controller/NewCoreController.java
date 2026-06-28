@@ -224,6 +224,10 @@ public class NewCoreController {
         return "";
     }
 
+    public int totalActiveHcnGen(BodyNode bn) {
+        return bn.getActiveBodies().stream().mapToInt(Body::getActiveHcnGeneratorCount).sum();
+    }
+
     public String getBodyNodesJson(List<MatrixNode> chain) {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < chain.size(); i++) {
@@ -240,9 +244,10 @@ public class NewCoreController {
                   .append(",\"factor\":\"").append(bn.getFactor()).append("\"")
                   .append(",\"proved\":").append(bn.isProved())
                   .append(",\"activeBodiesCount\":").append(bn.getActiveBodies().size())
+                  .append(",\"totalActiveHcnGen\":").append(bn.getActiveBodies().stream().mapToInt(Body::getActiveHcnGeneratorCount).sum())
                   .append(",\"activeBodies\":[");
                 boolean firstBody = true;
-                for (Body body : bn.getActiveBodies()) {
+                for (Body body : bn.getActiveBodies().stream().sorted().toList()) {
                     if (!firstBody) sb.append(",");
                     firstBody = false;
                     sb.append("{\"guiString\":\"").append(guiString(body).replace("\"", "\\\"")).append("\"")
@@ -250,6 +255,8 @@ public class NewCoreController {
                       .append(",\"factor\":\"").append(body.getFactor()).append("\"")
                       .append(",\"proved\":").append(body.isProved())
                       .append(",\"deactivated\":").append(body.isDeactivated())
+                      .append(",\"activeHcnGeneratorCount\":").append(body.getActiveHcnGeneratorCount())
+                      .append(",\"log\":\"").append(body.getValue().logBase(body.getFactor())).append("\"")
                       .append("}");
                 }
                 sb.append("]}");

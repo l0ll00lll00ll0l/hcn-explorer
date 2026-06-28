@@ -21,10 +21,15 @@
         </form>
     </div>
 
-    <div class="config-panel" th:if="${!databases.isEmpty()}">
+    <div class="config-panel" th:unless="${postgresRunning}">
+        <h3>Database</h3>
+        <p style="color: red; font-size: 12px;">● PostgreSQL is not running. Start it with: <code>sudo docker-compose up -d</code></p>
+    </div>
+
+    <div class="config-panel" th:if="${postgresRunning and !databases.isEmpty()}">
         <h3>Saved Databases</h3>
         <table>
-            <thead><tr><th>Name</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th></th><th></th></tr></thead>
             <tbody>
                 <tr th:each="db : ${databases}">
                     <td th:text="${db}"></td>

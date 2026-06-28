@@ -69,6 +69,18 @@ public class Body implements Comparable<Body>{
         }
     }
 
+    public int getActiveHcnGeneratorCount() {
+        if (bodyNode.getParentNode() instanceof TransitionNode transitionNode && transitionNode.getTransitionTo() == 1) {
+            return 1;
+        } else {
+            int activeHcnGeneratorCount = 0;
+            for (Body offspring : offsprings) {
+                activeHcnGeneratorCount += offspring.getActiveHcnGeneratorCount();
+            }
+            return activeHcnGeneratorCount;
+        }
+    }
+
     private Hcn findReferenceHcnForHcnGeneration(Lapi lapi) {
         Body referenceCandidate = smallerBody;
         while (!isReferenceCandidateSuitable(lapi, referenceCandidate)) {

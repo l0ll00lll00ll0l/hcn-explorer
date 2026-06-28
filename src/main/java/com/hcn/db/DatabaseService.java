@@ -43,6 +43,15 @@ public class DatabaseService {
         }
     }
 
+    public boolean isPostgresRunning() {
+        try {
+            jdbcTemplate.queryForObject("SELECT 1", Integer.class);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public boolean databaseExists(String dbName) {
         return jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM pg_database WHERE datname = ?", Integer.class, dbName) > 0;

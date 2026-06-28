@@ -96,11 +96,10 @@
                              th:style="'cursor:pointer;' + ${entry.value.proved ? 'background-color: #90EE90;' : ''}"
                              th:onclick="'openBodyNode(' + ${iter.index} + ',' + ${entry.value.bodyNodeId} + ')'">
                             <span class="transition-id" th:text="${entry.value.bodyNodeId}"></span>
-                            <span th:text="'v=' + ${entry.value.value} + ' f=' + ${entry.value.factor}"></span>
-                            <span th:text="'(' + ${entry.value.activeBodies.size()} + ')'" ></span>
+                            <span th:text="'(' + ${@newCoreController.totalActiveHcnGen(entry.value)} + ')'" ></span>
                         </div>
                     </div>
-                    <div class="bodynode-btn" th:attr="onclick='openBodyList(' + ${iter.index} + ')'" th:text="'BodyNodes (' + ${node.bodyList != null ? node.bodyList.size() : 0} + ')'"></div>
+                    <div class="bodynode-btn" th:attr="onclick='openBodyList(' + ${iter.index} + ')'" th:text="'Bodies (' + ${node.bodyList != null ? node.bodyList.size() : 0} + ')'"></div>
                     <div class="matrix-box-footer" th:text="'p' + ${node.indexes.get(0).index}"></div>
                 </th:block>
                 <!-- TransitionNode -->
@@ -111,11 +110,10 @@
                              th:style="'cursor:pointer;' + ${entry.value.proved ? 'background-color: #90EE90;' : ''}"
                              th:onclick="'openBodyNode(' + ${iter.index} + ',' + ${entry.value.bodyNodeId} + ')'">
                             <span class="transition-id" th:text="${entry.value.bodyNodeId}"></span>
-                            <span th:text="'v=' + ${entry.value.value} + ' f=' + ${entry.value.factor}"></span>
-                            <span th:text="'(' + ${entry.value.activeBodies.size()} + ')'" ></span>
+                            <span th:text="'(' + ${@newCoreController.totalActiveHcnGen(entry.value)} + ')'" ></span>
                         </div>
                     </div>
-                    <div class="bodynode-btn" th:attr="onclick='openBodyList(' + ${iter.index} + ')'" th:text="'BodyNodes (' + ${node.bodyList != null ? node.bodyList.size() : 0} + ')'"></div>
+                    <div class="bodynode-btn" th:attr="onclick='openBodyList(' + ${iter.index} + ')'" th:text="'Bodies (' + ${node.bodyList != null ? node.bodyList.size() : 0} + ')'"></div>
                     <div class="matrix-box-footer" th:text="'p' + ${node.indexes.get(0).index} + ' → p' + ${node.indexes.get(node.indexes.size() - 1).index}"></div>
                 </th:block>
             </div>
@@ -142,7 +140,7 @@
                 <b>Smallest Possible Extension:</b> <span th:text="${node.getSmallestPossibleExtension() != null ? node.getSmallestPossibleExtension() : 'not set'}"></span>
             </div>
             <table class="level-table">
-                <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Proved</th><th>Deact</th><th>Offsprings</th></tr></thead>
+                <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Proved</th><th>Deact</th><th>ActiveHcnGen</th><th>Offsprings</th></tr></thead>
                 <tbody>
                     <tr th:if="${node instanceof T(com.hcn.newCore.ApiNode) and node.bodyList != null}"
                         th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}"
@@ -151,8 +149,10 @@
                         <td th:text="${@newCoreController.guiString(body)}"></td>
                         <td th:text="${body.value}"></td>
                         <td th:text="${body.factor}"></td>
+                        <td th:text="${body.value.logBase(body.factor)}"></td>
                         <td th:text="${body.proved}"></td>
                         <td th:text="${body.deactivated}"></td>
+                        <td th:text="${body.activeHcnGeneratorCount}"></td>
                         <td th:text="${@newCoreController.offspringString(body)}"></td>
                     </tr>
                     <tr th:if="${node instanceof T(com.hcn.newCore.TransitionNode) and node.bodyList != null}"
@@ -162,8 +162,10 @@
                         <td th:text="${@newCoreController.guiString(body)}"></td>
                         <td th:text="${body.value}"></td>
                         <td th:text="${body.factor}"></td>
+                        <td th:text="${body.value.logBase(body.factor)}"></td>
                         <td th:text="${body.proved}"></td>
                         <td th:text="${body.deactivated}"></td>
+                        <td th:text="${body.activeHcnGeneratorCount}"></td>
                         <td th:text="${@newCoreController.offspringString(body)}"></td>
                     </tr>
                 </tbody>
@@ -227,19 +229,22 @@
                 <div class="lapi-header" th:text="'Lapi ' + ${lapi.prime.index} + ' (' + ${lapi.prime.intValue} + ')'"></div>
                 <div class="lapi-content">
                     <table class="level-table">
-                        <thead><tr><th>#</th><th>Lapi</th><th>Value</th><th>Factor</th></tr></thead>
+                        <thead><tr><th>#</th><th>Lapi</th><th>Value</th><th>Factor</th><th>Log</th></tr></thead>
                         <tbody>
                             <tr th:if="${lapi.walker != null and lapi.walker.lastGeneratedHcn != null}" style="border-bottom: 3px solid #333;">
                                 <td><b>walker</b></td>
                                 <td th:text="${lapi.walker.lastGeneratedHcn.lapi}"></td>
                                 <td th:text="${lapi.walker.lastGeneratedHcn.value}"></td>
                                 <td th:text="${lapi.walker.lastGeneratedHcn.factor}"></td>
+                                <td th:text="${lapi.walker.lastGeneratedHcn.value.logBase(lapi.walker.lastGeneratedHcn.factor)}"></td>
                             </tr>
-                            <tr th:each="hcn, hIter : ${lapi.hcnList}">
+                            <tr th:each="hcn, hIter : ${lapi.hcnList}"
+                                th:style="${hcn.body.firstSuperiorHcn != null ? 'background-color: #90EE90;' : ''}">
                                 <td th:text="${hIter.index}"></td>
                                 <td th:text="${hcn.lapi}"></td>
                                 <td th:text="${hcn.value}"></td>
                                 <td th:text="${hcn.factor}"></td>
+                                <td th:text="${hcn.value.logBase(hcn.factor)}"></td>
                             </tr>
                         </tbody>
                     </table>
@@ -315,12 +320,14 @@
             html += '<tr><td>Factor</td><td>' + bn.factor + '</td></tr>';
             html += '<tr><td>Proved</td><td>' + bn.proved + '</td></tr>';
             html += '<tr><td>Active Bodies</td><td>' + bn.activeBodiesCount + '</td></tr>';
+            html += '<tr><td>Total ActiveHcnGen</td><td>' + bn.totalActiveHcnGen + '</td></tr>';
             html += '</tbody></table>';
             if (bn.activeBodies.length > 0) {
                 html += '<h4 style="margin: 10px 0 4px;">Active Bodies</h4>';
-                html += '<table class="level-table"><thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Proved</th><th>Deact</th></tr></thead><tbody>';
+                html += '<table class="level-table"><thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Proved</th><th>ActiveHcnGen</th></tr></thead><tbody>';
                 bn.activeBodies.forEach(function(b, i) {
-                    html += '<tr><td>' + i + '</td><td>' + b.guiString + '</td><td>' + b.value + '</td><td>' + b.factor + '</td><td>' + b.proved + '</td><td>' + b.deactivated + '</td></tr>';
+                    var style = b.proved ? 'background-color: #90EE90;' : '';
+                    html += '<tr style="' + style + '"><td>' + i + '</td><td>' + b.guiString + '</td><td>' + b.value + '</td><td>' + b.factor + '</td><td>' + b.log + '</td><td>' + b.proved + '</td><td>' + b.activeHcnGeneratorCount + '</td></tr>';
                 });
                 html += '</tbody></table>';
             }

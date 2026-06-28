@@ -7,6 +7,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.List;
+
 @Controller
 public class LandingController {
 
@@ -15,7 +17,9 @@ public class LandingController {
 
     @GetMapping("/")
     public String landing(Model model) {
-        model.addAttribute("databases", databaseService.listHcnDatabases());
+        boolean running = databaseService.isPostgresRunning();
+        model.addAttribute("postgresRunning", running);
+        model.addAttribute("databases", running ? databaseService.listHcnDatabases() : List.of());
         return "landing";
     }
 

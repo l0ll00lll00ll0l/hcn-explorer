@@ -151,4 +151,10 @@ public class ScientificNumber implements Comparable<ScientificNumber> {
         return this.compareTo(other) >= 0;
     }
 
+    public double logBase(ScientificNumber base) {
+        double logThis = Math.log(this.mantissa) + this.exponent * Math.log(10);
+        double logBase = Math.log(base.mantissa) + base.exponent * Math.log(10);
+        return logThis / logBase;
+    }
+
 }
