@@ -16,8 +16,12 @@
 
     <div class="config-panel">
         <h3>New Core</h3>
-        <form method="get" action="/newcore">
+        <form method="get" action="/newcore" style="display: inline;">
             <button type="submit">Start newCore</button>
+        </form>
+        <form method="get" action="/newcore" style="display: inline;">
+            <input type="hidden" name="dbMode" value="true"/>
+            <button type="submit">Start dbMode ON</button>
         </form>
     </div>
 

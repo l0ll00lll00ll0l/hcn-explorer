@@ -30,6 +30,10 @@ public class BodyNode {
         parentNode.extensionCheck();
     }
 
+    public boolean isActive() {
+        return parentNode.bodyNodes.containsValue(this);
+    }
+
     @Override
     public String toString() {
         return "BodyNode{" +

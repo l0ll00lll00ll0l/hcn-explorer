@@ -2,7 +2,9 @@ package com.hcn.controller;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
+import com.hcn.db.event.DbEvent;
 import com.hcn.db.DatabaseService;
+import com.hcn.db.DbInsertService;
 import com.hcn.db.MatrixDeserializer;
 import com.hcn.db.MatrixSerializer;
 import com.hcn.newCore.*;
@@ -33,10 +35,22 @@ public class NewCoreController {
     @Autowired
     private DatabaseService databaseService;
 
+    @Autowired
+    private DbInsertService dbInsertService;
+
     @GetMapping("/newcore")
-    public String index(Model model) {
+    public String index(Model model, @RequestParam(defaultValue = "false") boolean dbMode) {
         if (matrix == null) {
-            matrix = Matrix.builder().build();
+            matrix = Matrix.builder().dbMode(dbMode).build();
+            if (dbMode) {
+                matrix.setDbInsertService(dbInsertService);
+                matrix.setDbName(databaseService.assignDbName());
+                if (!databaseService.databaseExists(matrix.getDbName())) {
+                    databaseService.createDatabase(matrix.getDbName());
+                }
+                databaseService.createPermanentTables(matrix.getDbName());
+                dbInsertService.setTargetDb(matrix.getDbName());
+            }
             matrix.initialize();
         }
         model.addAttribute("matrix", matrix);
@@ -78,16 +92,19 @@ public class NewCoreController {
             MatrixSerializer serializer = new MatrixSerializer();
             List<MatrixNode> nodes = serializer.buildMatrixNodeSet(matrix);
             List<Lapi> lapis = serializer.buildLapiList(matrix);
+            serializer.prepareForSave(matrix, nodes, lapis);
             JdbcTemplate dbTemplate = databaseService.createTemplateForDb(matrix.getDbName());
             dbTemplate.execute(serializer.buildMatrixNodeInsert(nodes));
             dbTemplate.execute(serializer.buildPrimeInsert(nodes, lapis));
-            dbTemplate.execute(serializer.buildBodyNodeInsert(nodes));
-            dbTemplate.execute(serializer.buildBodyInsert(nodes));
-            String orphanInsert = serializer.buildOrphanBodyNodeInsert();
-            if (orphanInsert != null) dbTemplate.execute(orphanInsert);
+            String bodyNodeInsert = serializer.buildBodyNodeInsert();
+            if (bodyNodeInsert != null) dbTemplate.execute(bodyNodeInsert);
             dbTemplate.execute(serializer.buildLapiInsert(lapis));
             String lapiHcnInsert = serializer.buildLapiHcnInsert(lapis);
             if (lapiHcnInsert != null) dbTemplate.execute(lapiHcnInsert);
+            String refIntervalHcnInsert = serializer.buildReferenceIntervalHcnInsert(matrix);
+            if (refIntervalHcnInsert != null) dbTemplate.execute(refIntervalHcnInsert);
+            String bodyInsert = serializer.buildBodyInsert();
+            if (bodyInsert != null) dbTemplate.execute(bodyInsert);
             String hcnInsert = serializer.buildHcnInsert();
             if (hcnInsert != null) dbTemplate.execute(hcnInsert);
             dbTemplate.execute(serializer.buildMatrixInsert(matrix));
@@ -98,9 +115,12 @@ public class NewCoreController {
     @GetMapping("/newcore/load")
     public String load(@RequestParam String db) {
         JdbcTemplate dbTemplate = databaseService.createTemplateForDb(db);
-        MatrixDeserializer deserializer = new MatrixDeserializer(dbTemplate);
+        MatrixDeserializer deserializer = new MatrixDeserializer(dbTemplate, dbInsertService);
         matrix = deserializer.load();
         matrix.setDbName(db);
+        if (matrix.isDbMode()) {
+            dbInsertService.setTargetDb(db);
+        }
         activeTab = "matrix";
         activeBodyList = -1;
         return "redirect:/newcore";
@@ -128,6 +148,12 @@ public class NewCoreController {
             new Thread(() -> matrix.proveLapi(count)).start();
         }
         return "{\"started\":true}";
+    }
+
+    @GetMapping("/newcore/dbevents")
+    @ResponseBody
+    public List<DbEvent> dbEvents() {
+        return dbInsertService.getEvents();
     }
 
     @GetMapping("/newcore/progress")

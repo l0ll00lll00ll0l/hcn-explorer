@@ -19,6 +19,7 @@ public class Body implements Comparable<Body>{
     private boolean proved = false;
     @Builder.Default
     private Integer tempId = null;
+    private Integer dbId = null;
     private Body smallerBody;
     private Body largerBody;
     private Body smallerActiveBody;
@@ -33,6 +34,14 @@ public class Body implements Comparable<Body>{
     private Hcn firstDominatedHcn = null;
     @Builder.Default
     private boolean deactivated = false;
+    private DbBody dbBody;
+
+    public DbBody getDbBody() {
+        if (dbBody == null) {
+            dbBody = new DbBody(this);
+        }
+        return dbBody;
+    }
 
     public Body getNextActiveBody() {
         Body candidate = largerBody;

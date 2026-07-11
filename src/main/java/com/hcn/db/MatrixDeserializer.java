@@ -11,6 +11,7 @@ import java.util.Map;
 public class MatrixDeserializer {
 
     private final JdbcTemplate dbTemplate;
+    private final DbInsertService dbInsertService;
     private PrimeCenter lapiPrimeCenter;
     private PrimeCenter matrixPrimeCenter;
 
@@ -20,8 +21,9 @@ public class MatrixDeserializer {
     private final Map<Integer, Hcn> hcnMap = new HashMap<>();
     private final Map<Integer, Lapi> lapiMap = new HashMap<>();
 
-    public MatrixDeserializer(JdbcTemplate dbTemplate) {
+    public MatrixDeserializer(JdbcTemplate dbTemplate, DbInsertService dbInsertService) {
         this.dbTemplate = dbTemplate;
+        this.dbInsertService = dbInsertService;
     }
 
     public Matrix load() {
@@ -32,6 +34,7 @@ public class MatrixDeserializer {
         loadHcns();
         loadLapis();
         loadLapiHcns();
+        loadReferenceIntervalHcns();
         wireMatrixNodeReferences();
         wireBodyNodeReferences();
         wireBodyReferences();
@@ -168,6 +171,14 @@ public class MatrixDeserializer {
         });
     }
 
+    private List<Hcn> referenceIntervalHcns = new ArrayList<>();
+
+    private void loadReferenceIntervalHcns() {
+        dbTemplate.query("SELECT * FROM tmp_reference_interval_hcn ORDER BY list_position", rs -> {
+            referenceIntervalHcns.add(hcnMap.get(rs.getInt("hcn")));
+        });
+    }
+
     private void loadLapiHcns() {
         dbTemplate.query("SELECT * FROM tmp_lapi_hcn ORDER BY lapi_prime, list_position", rs -> {
             int lapiPrime = rs.getInt("lapi_prime");
@@ -215,6 +226,8 @@ public class MatrixDeserializer {
             Integer lastGenHcnId = (Integer) rs.getObject("last_generated_hcn");
             Integer firstHcnId = (Integer) rs.getObject("first_hcn");
             Integer firstSuperiorHcnId = (Integer) rs.getObject("first_superior_hcn");
+            Integer firstDominatedHcnId = (Integer) rs.getObject("first_dominated_hcn");
+            Integer dbId = (Integer) rs.getObject("db_id");
 
             Body body = bodyMap.get(id);
             body.setParent(parentId != null ? bodyMap.get(parentId) : null);
@@ -225,6 +238,8 @@ public class MatrixDeserializer {
             body.setLastGeneratedHcn(lastGenHcnId != null ? hcnMap.get(lastGenHcnId) : null);
             body.setFirstHcn(firstHcnId != null ? hcnMap.get(firstHcnId) : null);
             body.setFirstSuperiorHcn(firstSuperiorHcnId != null ? hcnMap.get(firstSuperiorHcnId) : null);
+            body.setFirstDominatedHcn(firstDominatedHcnId != null ? hcnMap.get(firstDominatedHcnId) : null);
+            body.setDbId(dbId);
         });
     }
 
@@ -274,6 +289,9 @@ public class MatrixDeserializer {
         long totalTimeMs = (long) row.get("total_time_ms");
         long matrixMaintainTimeMs = (long) row.get("matrix_maintain_time_ms");
         long generateHcnListTimeMs = (long) row.get("generate_hcn_list_time_ms");
+        boolean dbMode = (boolean) row.get("db_mode");
+        int hcnIdCounter = (int) row.get("hcn_id_counter");
+        int bodyIdCounter = (int) row.get("body_id_counter");
 
         Matrix matrix = Matrix.builder()
                 .lastTransition((TransitionNode) matrixNodeMap.get(lastTransitionId))
@@ -286,7 +304,30 @@ public class MatrixDeserializer {
                 .totalTimeMs(totalTimeMs)
                 .matrixMaintainTimeMs(matrixMaintainTimeMs)
                 .generateHcnListTimeMs(generateHcnListTimeMs)
+                .dbMode(dbMode)
                 .build();
+
+        if (dbMode) {
+            dbInsertService.setHcnIdCounter(hcnIdCounter);
+            dbInsertService.setBodyIdCounter(bodyIdCounter);
+            matrix.setDbInsertService(dbInsertService);
+        }
+
+        Integer refLapi = (Integer) row.get("reference_interval_lapi");
+        if (refLapi != null) {
+            Double riValueMantissa = (Double) row.get("reference_interval_value_mantissa");
+            Long riValueExponent = (Long) row.get("reference_interval_value_exponent");
+            Double riFactorMantissa = (Double) row.get("reference_interval_factor_mantissa");
+            Long riFactorExponent = (Long) row.get("reference_interval_factor_exponent");
+            Interval ri = Interval.builder()
+                    .lapi(refLapi)
+                    .value(new ScientificNumber(riValueMantissa, riValueExponent))
+                    .factor(new ScientificNumber(riFactorMantissa, riFactorExponent))
+                    .hcnList(referenceIntervalHcns)
+                    .build();
+            ri.setReferenceInterval(ri);
+            matrix.setReferenceInterval(ri);
+        }
 
         return matrix;
     }

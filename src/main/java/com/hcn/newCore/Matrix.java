@@ -1,5 +1,6 @@
 package com.hcn.newCore;
 
+import com.hcn.db.DbInsertService;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,6 +26,9 @@ public class Matrix {
     private ScientificNumber provedLimit;
     @Builder.Default
     private String dbName = null;
+    private boolean dbMode;
+    private Interval referenceInterval;
+    private DbInsertService dbInsertService;
 
     // Timing
     @Builder.Default
@@ -177,6 +181,13 @@ public class Matrix {
         lowestProvedLapiWithinInterval = 1;
         provedCount = 2;
         provedLimit = new ScientificNumber(6, 0);
+
+        referenceInterval = Interval.builder().lapi(0).value(hcn1.getValue()).factor(hcn1.getFactor()).hcnList(List.of(hcn1, hcn2)).build();
+        referenceInterval.setReferenceInterval(referenceInterval);
+
+        if (dbMode) {
+            dbInsertService.submit(referenceInterval);
+        }
     }
 
     public void proveLapi(int count) {
@@ -184,6 +195,13 @@ public class Matrix {
         for (int i = 0; i < count; i++) {
             proveNextLapi();
             proveProgress = i + 1;
+        }
+        if (dbMode) {
+            try {
+                dbInsertService.finalFlush(highestLapi.getPrime().getIndex());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
         totalTimeMs += System.currentTimeMillis() - start;
         proving = false;
@@ -265,7 +283,6 @@ public class Matrix {
             if (!hcn.getBody().isDeactivated()) {
                 hcn.matrixMaintainCheck();
             }
-            provedHcns.add(hcn);
         });
 
         Prime currentLastMatrixIndex = lastTransition.getLastPrime();
@@ -283,7 +300,15 @@ public class Matrix {
             if (hcn.getLapi() < lowestProvedLapiWithinInterval) {
                 lowestProvedLapiWithinInterval = hcn.getLapi();
             }
+            provedHcns.add(hcn);
             provedCount++;
         });
+
+        if (dbMode) {
+            Interval currentInterval = Interval.builder().lapi(highestLapi.getPrime().getIndex()).value(provedHcns.get(0).getValue())
+                    .factor(provedHcns.get(0).getFactor()).hcnList(new ArrayList<>(provedHcns)).build();
+            referenceInterval = currentInterval.referenceCheck(referenceInterval);
+            dbInsertService.submit(currentInterval);
+        }
     }
 }

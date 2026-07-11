@@ -3,6 +3,7 @@ package com.hcn.db;
 import com.hcn.newCore.Body;
 import com.hcn.newCore.BodyNode;
 import com.hcn.newCore.Hcn;
+import com.hcn.newCore.Interval;
 import com.hcn.newCore.Lapi;
 import com.hcn.newCore.Matrix;
 import com.hcn.newCore.MatrixNode;
@@ -18,9 +19,10 @@ public class MatrixSerializer {
     private int bodyTempId = 0;
     private int bodyNodeTempId = 0;
     private int hcnTempId = 0;
-    private final List<BodyNode> orphanBodyNodes = new ArrayList<>();
     private final List<Hcn> collectedHcns = new ArrayList<>();
-    private final List<Body> orphanBodies = new ArrayList<>();
+    private final List<Body> collectedBodies = new ArrayList<>();
+    private final StringBuilder bodyNodeSb = new StringBuilder("INSERT INTO tmp_body_node (id, parent_node, body_node_id, proved, value_mantissa, value_exponent, factor_mantissa, factor_exponent, active) VALUES ");
+    private boolean bodyNodeSbHasRows = false;
 
     public List<MatrixNode> buildMatrixNodeSet(Matrix matrix) {
         List<MatrixNode> nodes = new ArrayList<>();
@@ -30,34 +32,69 @@ public class MatrixSerializer {
         }
         while (current != null) {
             current.setTempId(null);
-            resetBodyTempIds(current);
             nodes.add(current);
             current = current.getNextMatrixNode();
-        }
-        for (MatrixNode node : nodes) {
-            assignMatrixNodeTempId(node);
-            assignBodyTempIds(node);
         }
         return nodes;
     }
 
-    private void resetBodyTempIds(MatrixNode node) {
-        if (node.getBodyList() == null) return;
-        Body current = node.getBodyList().getSmallestBody();
-        while (current != null) {
-            current.setTempId(null);
-            current.getBodyNode().setTempId(null);
-            if (current.getLastGeneratedHcn() != null) current.getLastGeneratedHcn().setTempId(null);
-            if (current.getFirstHcn() != null) current.getFirstHcn().setTempId(null);
-            if (current.getFirstSuperiorHcn() != null) current.getFirstSuperiorHcn().setTempId(null);
-            // reset parent chain
-            Body parent = current.getParent();
-            while (parent != null && parent.getTempId() != null) {
+    public void prepareForSave(Matrix matrix, List<MatrixNode> nodes, List<Lapi> lapis) {
+        resetAllBodyTempIds(matrix, nodes, lapis);
+        for (MatrixNode node : nodes) {
+            assignMatrixNodeTempId(node);
+            assignBodyTempIds(node);
+        }
+        for (Lapi lapi : lapis) {
+            for (Hcn hcn : lapi.getHcnList()) assignBodyTempIdsWithParents(hcn.getBody());
+        }
+        if (matrix.getReferenceInterval() != null) {
+            for (Hcn hcn : matrix.getReferenceInterval().getHcnList()) assignBodyTempIdsWithParents(hcn.getBody());
+        }
+    }
+
+    private void assignBodyTempIdsWithParents(Body body) {
+        if (body.getTempId() != null) return;
+        assignBodyTempId(body);
+        assignBodyNodeTempId(body.getBodyNode());
+        Body parent = body.getParent();
+        while (parent != null && parent.getTempId() == null) {
+            assignBodyTempId(parent);
+            assignBodyNodeTempId(parent.getBodyNode());
+            parent = parent.getParent();
+        }
+    }
+
+    private void resetBodyTempIds(Body body) {
+        body.setTempId(null);
+        body.getBodyNode().setTempId(null);
+        if (body.getLastGeneratedHcn() != null) body.getLastGeneratedHcn().setTempId(null);
+        if (body.getFirstHcn() != null) body.getFirstHcn().setTempId(null);
+        if (body.getFirstSuperiorHcn() != null) body.getFirstSuperiorHcn().setTempId(null);
+        if (body.getFirstDominatedHcn() != null) body.getFirstDominatedHcn().setTempId(null);
+        if (body.isDeactivated()) {
+            Body parent = body.getParent();
+            while (parent != null) {
                 parent.setTempId(null);
                 parent.getBodyNode().setTempId(null);
                 parent = parent.getParent();
             }
-            current = current.getLargerBody();
+        }
+    }
+
+    private void resetAllBodyTempIds(Matrix matrix, List<MatrixNode> nodes, List<Lapi> lapis) {
+        for (MatrixNode node : nodes) {
+            if (node.getBodyList() == null) continue;
+            Body current = node.getBodyList().getSmallestBody();
+            while (current != null) {
+                resetBodyTempIds(current);
+                current = current.getLargerBody();
+            }
+        }
+        for (Lapi lapi : lapis) {
+            for (Hcn hcn : lapi.getHcnList()) resetBodyTempIds(hcn.getBody());
+        }
+        if (matrix.getReferenceInterval() != null) {
+            for (Hcn hcn : matrix.getReferenceInterval().getHcnList()) resetBodyTempIds(hcn.getBody());
         }
     }
 
@@ -71,6 +108,7 @@ public class MatrixSerializer {
     private int assignBodyTempId(Body body) {
         if (body.getTempId() == null) {
             body.setTempId(++bodyTempId);
+            collectedBodies.add(body);
         }
         return body.getTempId();
     }
@@ -88,6 +126,15 @@ public class MatrixSerializer {
         Body current = node.getBodyList().getSmallestBody();
         while (current != null) {
             assignBodyTempId(current);
+            assignBodyNodeTempId(current.getBodyNode());
+            if (current.isDeactivated()) {
+                Body parent = current.getParent();
+                while (parent != null && parent.getTempId() == null) {
+                    assignBodyTempId(parent);
+                    assignBodyNodeTempId(parent.getBodyNode());
+                    parent = parent.getParent();
+                }
+            }
             current = current.getLargerBody();
         }
     }
@@ -178,12 +225,13 @@ public class MatrixSerializer {
         boolean first = true;
         for (Lapi lapi : lapis) {
             for (int i = 0; i < lapi.getHcnList().size(); i++) {
+                Hcn hcn = lapi.getHcnList().get(i);
                 if (!first) sb.append(", ");
                 first = false;
                 sb.append(String.format("(%d, %d, %d)",
                         lapi.getPrime().getIndex(),
                         i,
-                        assignHcnTempId(lapi.getHcnList().get(i))));
+                        assignHcnTempId(hcn)));
             }
         }
         return first ? null : sb.toString();
@@ -192,70 +240,38 @@ public class MatrixSerializer {
     private int assignBodyNodeTempId(BodyNode bodyNode) {
         if (bodyNode.getTempId() == null) {
             bodyNode.setTempId(++bodyNodeTempId);
+            if (bodyNodeSbHasRows) bodyNodeSb.append(", ");
+            bodyNodeSb.append(String.format("(%d, %s, %d, %b, %s, %d, %s, %d, %b)",
+                    bodyNode.getTempId(),
+                    bodyNode.getParentNode() != null ? bodyNode.getParentNode().getTempId() : "NULL",
+                    bodyNode.getBodyNodeId(),
+                    bodyNode.isProved(),
+                    bodyNode.getValue().getMantissa(),
+                    bodyNode.getValue().getExponent(),
+                    bodyNode.getFactor().getMantissa(),
+                    bodyNode.getFactor().getExponent(),
+                    bodyNode.isActive()));
+            bodyNodeSbHasRows = true;
         }
         return bodyNode.getTempId();
     }
 
-    public String buildBodyNodeInsert(List<MatrixNode> nodes) {
-        List<BodyNode> allBodyNodes = new ArrayList<>();
-        for (MatrixNode node : nodes) {
-            for (BodyNode bodyNode : node.getBodyNodes().values()) {
-                assignBodyNodeTempId(bodyNode);
-                allBodyNodes.add(bodyNode);
-            }
-        }
-        return buildBodyNodeInsertFromList(allBodyNodes, true);
+    public String buildBodyNodeInsert() {
+        return bodyNodeSbHasRows ? bodyNodeSb.toString() : null;
     }
-    public String buildBodyInsert(List<MatrixNode> nodes) {
-        StringBuilder sb = new StringBuilder("INSERT INTO tmp_body (id, body_node, value_mantissa, value_exponent, factor_mantissa, factor_exponent, parent, proved, smaller_body, larger_body, smaller_active_body, larger_active_body, last_generated_hcn, first_hcn, first_superior_hcn, deactivated) VALUES ");
-        boolean first = true;
-        List<Body> insertedBodies = new ArrayList<>();
-        for (MatrixNode node : nodes) {
-            if (node.getBodyList() == null) continue;
-            Body current = node.getBodyList().getSmallestBody();
-            while (current != null) {
-                if (!first) sb.append(", ");
-                first = false;
-                appendBodyValues(sb, current);
-                insertedBodies.add(current);
-                current = current.getLargerBody();
-            }
-        }
-        // collect orphan bodies reachable via parent chains
-        collectOrphanBodies(insertedBodies);
-        for (Body orphan : orphanBodies) {
-            sb.append(", ");
-            appendBodyValues(sb, orphan);
+
+    public String buildBodyInsert() {
+        if (collectedBodies.isEmpty()) return null;
+        StringBuilder sb = new StringBuilder("INSERT INTO tmp_body (id, body_node, value_mantissa, value_exponent, factor_mantissa, factor_exponent, parent, proved, smaller_body, larger_body, smaller_active_body, larger_active_body, last_generated_hcn, first_hcn, first_superior_hcn, first_dominated_hcn, deactivated, db_id) VALUES ");
+        for (int i = 0; i < collectedBodies.size(); i++) {
+            if (i > 0) sb.append(", ");
+            appendBodyValues(sb, collectedBodies.get(i));
         }
         return sb.toString();
     }
 
-    private void collectOrphanBodies(List<Body> insertedBodies) {
-        java.util.Set<Body> inserted = new java.util.HashSet<>(insertedBodies);
-        java.util.Set<Body> checked = new java.util.HashSet<>(inserted);
-        for (Body body : insertedBodies) {
-            Body parent = body.getParent();
-            while (parent != null && !checked.contains(parent)) {
-                checked.add(parent);
-                if (!inserted.contains(parent)) {
-                    assignBodyTempId(parent);
-                    orphanBodies.add(parent);
-                    if (parent.getBodyNode().getTempId() == null) {
-                        assignBodyNodeTempId(parent.getBodyNode());
-                        orphanBodyNodes.add(parent.getBodyNode());
-                    }
-                }
-                parent = parent.getParent();
-            }
-        }
-    }
-
     private void appendBodyValues(StringBuilder sb, Body current) {
-        if (current.getBodyNode().getTempId() == null) {
-            assignBodyNodeTempId(current.getBodyNode());
-            orphanBodyNodes.add(current.getBodyNode());
-        }
-        sb.append(String.format("(%d, %d, %s, %d, %s, %d, %s, %b, %s, %s, %s, %s, %s, %s, %s, %b)",
+        sb.append(String.format("(%d, %d, %s, %d, %s, %d, %s, %b, %s, %s, %s, %s, %s, %s, %s, %s, %b, %s)",
                 assignBodyTempId(current),
                 current.getBodyNode().getTempId(),
                 current.getValue().getMantissa(),
@@ -271,31 +287,9 @@ public class MatrixSerializer {
                 current.getLastGeneratedHcn() != null ? assignHcnTempId(current.getLastGeneratedHcn()) : "NULL",
                 current.getFirstHcn() != null ? assignHcnTempId(current.getFirstHcn()) : "NULL",
                 current.getFirstSuperiorHcn() != null ? assignHcnTempId(current.getFirstSuperiorHcn()) : "NULL",
-                current.isDeactivated()));
-    }
-
-    public String buildOrphanBodyNodeInsert() {
-        if (orphanBodyNodes.isEmpty()) return null;
-        return buildBodyNodeInsertFromList(orphanBodyNodes, false);
-    }
-
-    private String buildBodyNodeInsertFromList(List<BodyNode> bodyNodes, boolean active) {
-        StringBuilder sb = new StringBuilder("INSERT INTO tmp_body_node (id, parent_node, body_node_id, proved, value_mantissa, value_exponent, factor_mantissa, factor_exponent, active) VALUES ");
-        for (int i = 0; i < bodyNodes.size(); i++) {
-            BodyNode bodyNode = bodyNodes.get(i);
-            if (i > 0) sb.append(", ");
-            sb.append(String.format("(%d, %s, %d, %b, %s, %d, %s, %d, %b)",
-                    bodyNode.getTempId(),
-                    bodyNode.getParentNode() != null ? bodyNode.getParentNode().getTempId() : "NULL",
-                    bodyNode.getBodyNodeId(),
-                    bodyNode.isProved(),
-                    bodyNode.getValue().getMantissa(),
-                    bodyNode.getValue().getExponent(),
-                    bodyNode.getFactor().getMantissa(),
-                    bodyNode.getFactor().getExponent(),
-                    active));
-        }
-        return sb.toString();
+                current.getFirstDominatedHcn() != null ? assignHcnTempId(current.getFirstDominatedHcn()) : "NULL",
+                current.isDeactivated(),
+                current.getDbId() != null ? current.getDbId() : "NULL"));
     }
 
     public String buildHcnInsert() {
@@ -316,8 +310,21 @@ public class MatrixSerializer {
         return sb.toString();
     }
 
+    public String buildReferenceIntervalHcnInsert(Matrix matrix) {
+        Interval ri = matrix.getReferenceInterval();
+        if (ri == null || ri.getHcnList().isEmpty()) return null;
+        StringBuilder sb = new StringBuilder("INSERT INTO tmp_reference_interval_hcn (list_position, hcn) VALUES ");
+        List<Hcn> hcnList = ri.getHcnList();
+        for (int i = 0; i < hcnList.size(); i++) {
+            Hcn hcn = hcnList.get(i);
+            if (i > 0) sb.append(", ");
+            sb.append(String.format("(%d, %d)", i, assignHcnTempId(hcn)));
+        }
+        return sb.toString();
+    }
+
     public String buildMatrixInsert(Matrix matrix) {
-        return String.format("INSERT INTO tmp_matrix (last_transition, next_lapi, lowest_lapi, highest_lapi, lowest_proved_lapi_within_interval, proved_count, proved_limit_mantissa, proved_limit_exponent, total_time_ms, matrix_maintain_time_ms, generate_hcn_list_time_ms) VALUES (%d, %s, %s, %s, %d, %d, %s, %d, %d, %d, %d)",
+        return String.format("INSERT INTO tmp_matrix (last_transition, next_lapi, lowest_lapi, highest_lapi, lowest_proved_lapi_within_interval, proved_count, proved_limit_mantissa, proved_limit_exponent, total_time_ms, matrix_maintain_time_ms, generate_hcn_list_time_ms, db_mode, hcn_id_counter, body_id_counter, reference_interval_lapi, reference_interval_value_mantissa, reference_interval_value_exponent, reference_interval_factor_mantissa, reference_interval_factor_exponent) VALUES (%d, %s, %s, %s, %d, %d, %s, %d, %d, %d, %d, %b, %d, %d, %s, %s, %s, %s, %s)",
                 assignMatrixNodeTempId(matrix.getLastTransition()),
                 matrix.getNextLapi() != null ? matrix.getNextLapi().getPrime().getIndex() : "NULL",
                 matrix.getLowestLapi() != null ? matrix.getLowestLapi().getPrime().getIndex() : "NULL",
@@ -328,6 +335,14 @@ public class MatrixSerializer {
                 matrix.getProvedLimit().getExponent(),
                 matrix.getTotalTimeMs(),
                 matrix.getMatrixMaintainTimeMs(),
-                matrix.getGenerateHcnListTimeMs());
+                matrix.getGenerateHcnListTimeMs(),
+                matrix.isDbMode(),
+                matrix.isDbMode() ? matrix.getDbInsertService().getHcnIdCounter() : 0,
+                matrix.isDbMode() ? matrix.getDbInsertService().getBodyIdCounter() : 0,
+                matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getLapi() : "NULL",
+                matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getValue().getMantissa() : "NULL",
+                matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getValue().getExponent() : "NULL",
+                matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getFactor().getMantissa() : "NULL",
+                matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getFactor().getExponent() : "NULL");
     }
 }

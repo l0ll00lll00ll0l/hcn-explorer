@@ -56,6 +56,7 @@
                 | total: <b th:text="${matrix.totalTimeMs} + 'ms'"></b>
                 | hcnList: <b th:text="${matrix.generateHcnListTimeMs} + 'ms'"></b>
                 | maintain: <b th:text="${matrix.matrixMaintainTimeMs} + 'ms'"></b>
+                <span th:if="${matrix.dbMode}" style="color: #c00;"> | dbMode: <b>ON</b></span>
             </span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -83,6 +84,9 @@
         <button class="tab-btn" th:classappend="${activeTab == 'bodynode' ? ' active' : ''}" data-tab="bodynode" onclick="switchTab('bodynode')">BodyNode</button>
         <button class="tab-btn" th:classappend="${activeTab == 'hcngen' ? ' active' : ''}" data-tab="hcngen" onclick="switchTab('hcngen')">Hcn Generation</button>
         <button class="tab-btn" th:classappend="${activeTab == 'lapi' ? ' active' : ''}" data-tab="lapi" onclick="switchTab('lapi')">Lapi</button>
+        <button class="tab-btn" th:classappend="${activeTab == 'dbbody' ? ' active' : ''}" data-tab="dbbody" onclick="switchTab('dbbody')">DbBody</button>
+        <button class="tab-btn" th:classappend="${activeTab == 'refinterval' ? ' active' : ''}" data-tab="refinterval" onclick="switchTab('refinterval')">ReferenceInterval</button>
+        <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'dbevents' ? ' active' : ''}" data-tab="dbevents" onclick="switchTab('dbevents')">DbEvents</button>
     </div>
 
     <div id="tab-matrix" class="tab-content" th:classappend="${activeTab == 'matrix' ? ' active' : ''}">
@@ -196,27 +200,31 @@
         </label>
         <table class="level-table">
             <thead>
-                <tr><th>#</th><th>Body</th><th>firstHcn</th><th>firstSuperiorHcn</th><th>lastGeneratedHcn</th></tr>
+                <tr><th>#</th><th th:if="${matrix.dbMode}">dbId</th><th>Body</th><th>firstHcn</th><th>firstSuperiorHcn</th><th>lastGeneratedHcn</th><th>firstDominatedHcn</th></tr>
             </thead>
             <tbody id="hcngen-bodylist">
                 <tr th:if="${matrix.lastTransition.bodyList != null}"
                     th:each="body, bIter : ${@newCoreController.getBodies(matrix.lastTransition.bodyList)}"
                     th:data-deactivated="${body.deactivated}">
                     <td th:text="${bIter.index}"></td>
+                    <td th:if="${matrix.dbMode}" th:text="${body.dbId}"></td>
                     <td th:text="${@newCoreController.guiString(body)}"></td>
                     <td th:text="${body.firstHcn != null ? body.firstHcn.lapi + ' v=' + body.firstHcn.value + ' f=' + body.firstHcn.factor : ''}"></td>
                     <td th:text="${body.firstSuperiorHcn != null ? body.firstSuperiorHcn.lapi + ' v=' + body.firstSuperiorHcn.value + ' f=' + body.firstSuperiorHcn.factor : ''}"></td>
                     <td th:text="${body.lastGeneratedHcn != null ? body.lastGeneratedHcn.lapi + ' v=' + body.lastGeneratedHcn.value + ' f=' + body.lastGeneratedHcn.factor : ''}"></td>
+                    <td th:text="${body.firstDominatedHcn != null ? body.firstDominatedHcn.lapi + ' v=' + body.firstDominatedHcn.value + ' f=' + body.firstDominatedHcn.factor : ''}"></td>
                 </tr>
             </tbody>
             <tbody id="hcngen-activelist" style="display:none;">
                 <tr th:if="${matrix.lastTransition.bodyList != null}"
                     th:each="body, bIter : ${@newCoreController.getActiveBodiesChain(matrix.lastTransition.bodyList)}">
                     <td th:text="${bIter.index}"></td>
+                    <td th:if="${matrix.dbMode}" th:text="${body.dbId}"></td>
                     <td th:text="${@newCoreController.guiString(body)}"></td>
                     <td th:text="${body.firstHcn != null ? body.firstHcn.lapi + ' v=' + body.firstHcn.value + ' f=' + body.firstHcn.factor : ''}"></td>
                     <td th:text="${body.firstSuperiorHcn != null ? body.firstSuperiorHcn.lapi + ' v=' + body.firstSuperiorHcn.value + ' f=' + body.firstSuperiorHcn.factor : ''}"></td>
                     <td th:text="${body.lastGeneratedHcn != null ? body.lastGeneratedHcn.lapi + ' v=' + body.lastGeneratedHcn.value + ' f=' + body.lastGeneratedHcn.factor : ''}"></td>
+                    <td th:text="${body.firstDominatedHcn != null ? body.firstDominatedHcn.lapi + ' v=' + body.firstDominatedHcn.value + ' f=' + body.firstDominatedHcn.factor : ''}"></td>
                 </tr>
             </tbody>
         </table>
@@ -229,18 +237,20 @@
                 <div class="lapi-header" th:text="'Lapi ' + ${lapi.prime.index} + ' (' + ${lapi.prime.intValue} + ')'"></div>
                 <div class="lapi-content">
                     <table class="level-table">
-                        <thead><tr><th>#</th><th>Lapi</th><th>Value</th><th>Factor</th><th>Log</th></tr></thead>
+                        <thead><tr><th>#</th><th th:if="${matrix.dbMode}">dbId</th><th>Lapi</th><th>Value</th><th>Factor</th><th>Log</th></tr></thead>
                         <tbody>
                             <tr th:if="${lapi.walker != null and lapi.walker.lastGeneratedHcn != null}" style="border-bottom: 3px solid #333;">
                                 <td><b>walker</b></td>
+                                <td th:if="${matrix.dbMode}" th:text="${lapi.walker.dbId}"></td>
                                 <td th:text="${lapi.walker.lastGeneratedHcn.lapi}"></td>
                                 <td th:text="${lapi.walker.lastGeneratedHcn.value}"></td>
                                 <td th:text="${lapi.walker.lastGeneratedHcn.factor}"></td>
                                 <td th:text="${lapi.walker.lastGeneratedHcn.value.logBase(lapi.walker.lastGeneratedHcn.factor)}"></td>
                             </tr>
                             <tr th:each="hcn, hIter : ${lapi.hcnList}"
-                                th:style="${hcn.body.firstSuperiorHcn != null ? 'background-color: #90EE90;' : ''}">
+                                th:style="${hcn.body != null and hcn.body.firstSuperiorHcn != null ? 'background-color: #90EE90;' : ''}">
                                 <td th:text="${hIter.index}"></td>
+                                <td th:if="${matrix.dbMode}" th:text="${hcn.body?.dbId}"></td>
                                 <td th:text="${hcn.lapi}"></td>
                                 <td th:text="${hcn.value}"></td>
                                 <td th:text="${hcn.factor}"></td>
@@ -252,6 +262,63 @@
             </div>
         </div>
     </div>
+
+    <div id="tab-refinterval" class="tab-content" th:classappend="${activeTab == 'refinterval' ? ' active' : ''}">
+        <div th:if="${matrix.referenceInterval != null}">
+            <table class="level-table" style="width: auto; margin-bottom: 12px;">
+                <thead><tr><th>lapi</th><th>value</th><th>factor</th><th>referenced</th><th>referenceInterval</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td th:text="${matrix.referenceInterval.lapi}"></td>
+                        <td th:text="${matrix.referenceInterval.value}"></td>
+                        <td th:text="${matrix.referenceInterval.factor}"></td>
+                        <td th:text="${matrix.referenceInterval.referenced}"></td>
+                        <td th:text="${matrix.referenceInterval.referenceInterval != null ? matrix.referenceInterval.referenceInterval.lapi : ''}"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <table class="level-table">
+                <thead><tr><th>#</th><th th:if="${matrix.dbMode}">dbId</th><th>lapi</th><th>value</th><th>factor</th><th>body</th></tr></thead>
+                <tbody>
+                    <tr th:each="hcn, hIter : ${matrix.referenceInterval.hcnList}">
+                        <td th:text="${hIter.index}"></td>
+                        <td th:if="${matrix.dbMode}" th:text="${hcn.body?.dbId}"></td>
+                        <td th:text="${hcn.lapi}"></td>
+                        <td th:text="${hcn.value}"></td>
+                        <td th:text="${hcn.factor}"></td>
+                        <td th:text="${@newCoreController.guiString(hcn.body)}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="tab-dbbody" class="tab-content" th:classappend="${activeTab == 'dbbody' ? ' active' : ''}">
+        <table class="level-table">
+            <thead>
+                <tr><th>#</th><th>Body</th><th>Head</th><th>Tail</th><th>DbBody</th></tr>
+            </thead>
+            <tbody>
+                <tr th:if="${matrix.lastTransition.bodyList != null}"
+                    th:each="body, bIter : ${@newCoreController.getBodies(matrix.lastTransition.bodyList)}">
+                    <td th:text="${bIter.index}"></td>
+                    <td th:text="${@newCoreController.guiString(body)}"></td>
+                    <td th:text="${body.dbBody.head != null ? T(java.util.Arrays).toString(body.dbBody.head) : ''}"></td>
+                    <td th:text="${body.dbBody.tail != null ? T(java.util.Arrays).toString(body.dbBody.tail) : ''}"></td>
+                    <td th:text="${body.dbBody.toString()}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="tab-dbevents" class="tab-content" th:classappend="${activeTab == 'dbevents' ? ' active' : ''}">
+        <table class="level-table">
+            <thead><tr><th>#</th><th>Timestamp</th><th>Thread</th><th>Type</th><th>Count</th></tr></thead>
+            <tbody id="dbevents-body"></tbody>
+        </table>
+        <button onclick="loadDbEvents()" style="font-family: monospace; margin-top: 8px; padding: 4px 12px;">Refresh</button>
+    </div>
+
     </div>
     <script th:inline="javascript">
         function switchTab(tabId) {
@@ -375,6 +442,22 @@
         }
         // Auto-start polling if proving (page was refreshed mid-prove)
         if (/*[[${matrix.proving}]]*/ false) { startPolling(); }
+
+        function loadDbEvents() {
+            fetch('/newcore/dbevents').then(r => r.json()).then(data => {
+                var tbody = document.getElementById('dbevents-body');
+                if (!tbody) return;
+                tbody.innerHTML = data.map(function(e, i) {
+                    var detail = '';
+                    if (e.type === 'INTERVAL_PROCESSED')              detail = 'lapi=' + e.lapi;
+                    else if (e.type === 'INSERT_BATCH_CREATED')        detail = e.table + ' size=' + e.batchSize;
+                    else if (e.type === 'INSERT_BATCH_EXECUTION_STARTED')  detail = e.table + ' size=' + e.batchSize;
+                    else if (e.type === 'INSERT_BATCH_EXECUTION_FINISHED') detail = e.table + ' size=' + e.batchSize;
+                    else if (e.type === 'FINAL_FLUSH')                 detail = e.started ? 'started' : 'finished';
+                    return '<tr><td>' + i + '</td><td>' + e.timestamp + '</td><td>' + e.threadName + '</td><td>' + e.type + '</td><td>' + detail + '</td></tr>';
+                }).join('');
+            });
+        }
     </script>
 </body>
 </html>

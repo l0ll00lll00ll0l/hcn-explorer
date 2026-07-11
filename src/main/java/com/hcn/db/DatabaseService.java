@@ -64,7 +64,7 @@ public class DatabaseService {
 
     public void truncateTmpTables(String dbName) {
         JdbcTemplate dbTemplate = createTemplateForDb(dbName);
-        dbTemplate.execute("DROP TABLE IF EXISTS tmp_matrix, tmp_matrix_node, tmp_prime, tmp_body_node, tmp_body, tmp_hcn, tmp_lapi, tmp_lapi_hcn");
+        dbTemplate.execute("DROP TABLE IF EXISTS tmp_matrix, tmp_matrix_node, tmp_prime, tmp_body_node, tmp_body, tmp_hcn, tmp_lapi, tmp_lapi_hcn, tmp_reference_interval_hcn");
         createTables(dbName);
     }
 
@@ -119,7 +119,9 @@ public class DatabaseService {
                     last_generated_hcn INT,
                     first_hcn INT,
                     first_superior_hcn INT,
-                    deactivated BOOLEAN
+                    first_dominated_hcn INT,
+                    deactivated BOOLEAN,
+                    db_id INT
                 )
                 """);
         dbTemplate.execute("""
@@ -153,6 +155,12 @@ public class DatabaseService {
                 )
                 """);
         dbTemplate.execute("""
+                CREATE TABLE tmp_reference_interval_hcn (
+                    list_position INT,
+                    hcn INT
+                )
+                """);
+        dbTemplate.execute("""
                 CREATE TABLE tmp_matrix (
                     last_transition INT,
                     next_lapi INT,
@@ -164,7 +172,15 @@ public class DatabaseService {
                     proved_limit_exponent BIGINT,
                     total_time_ms BIGINT,
                     matrix_maintain_time_ms BIGINT,
-                    generate_hcn_list_time_ms BIGINT
+                    generate_hcn_list_time_ms BIGINT,
+                    db_mode BOOLEAN,
+                    hcn_id_counter INT,
+                    body_id_counter INT,
+                    reference_interval_lapi INT,
+                    reference_interval_value_mantissa DOUBLE PRECISION,
+                    reference_interval_value_exponent BIGINT,
+                    reference_interval_factor_mantissa DOUBLE PRECISION,
+                    reference_interval_factor_exponent BIGINT
                 )
                 """);
     }
@@ -176,5 +192,35 @@ public class DatabaseService {
         ds.setUsername(username);
         ds.setPassword(password);
         return new JdbcTemplate(ds);
+    }
+
+    public void createPermanentTables(String dbName) {
+        JdbcTemplate dbTemplate = createTemplateForDb(dbName);
+        dbTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS body (
+                    id INT PRIMARY KEY,
+                    head INT[],
+                    tail INT[]
+                )
+                """);
+        dbTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS interval (
+                    lapi INT PRIMARY KEY,
+                    value_mantissa DOUBLE PRECISION,
+                    value_exponent BIGINT,
+                    factor_mantissa DOUBLE PRECISION,
+                    factor_exponent BIGINT,
+                    first_hcn INT,
+                    size INT,
+                    reference_interval INT
+                )
+                """);
+        dbTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS hcn (
+                    id BIGINT PRIMARY KEY,
+                    body INT,
+                    lapi INT
+                )
+                """);
     }
 }
