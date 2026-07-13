@@ -19,7 +19,7 @@ public class ActivityCenter {
     private static final List<SqlInsertActivity> sqlInsertActivities = new CopyOnWriteArrayList<>();
     private static final List<InsertBatchCreatedEvent> insertBatchCreatedEvents = new CopyOnWriteArrayList<>();
 
-    private static volatile int currentLapi = 0;
+    private static volatile int currentLapi = 1;
 
     // Progress tracking
     private static volatile boolean proving = false;

@@ -351,48 +351,48 @@
             };
 
             var sqlTables = ['BODY', 'HCN', 'INTERVAL'];
-            var laneW    = 20;
-            var innerW   = 160;
-            var sqlLaneW = 60;
-            var axisW    = 60;
-            var matrixW  = laneW + innerW;
-            var totalW   = axisW + matrixW + sqlTables.length * sqlLaneW + 20;
-            var H        = 600;
-            var margin   = { top: 20, bottom: 10 };
+            var axisH    = 30;
+            var laneH    = 20;
+            var innerH   = 160;
+            var sqlLaneH = 60;
+            var matrixH  = laneH + innerH;
+            var totalH   = axisH + matrixH + sqlTables.length * sqlLaneH + 20;
+            var W        = 1200;
+            var margin   = { left: 10, right: 10 };
 
             var allT = activities.reduce(function(acc, a) { acc.push(a.start, a.end); return acc; }, []);
             var minT = d3.min(allT);
             var maxT = d3.max(allT);
 
             var container = document.getElementById('activity-timeline');
-            container.style.height = H + 'px';
+            container.style.height = totalH + 'px';
 
             var svg = d3.select('#activity-timeline').append('svg')
-                .attr('width', totalW)
-                .attr('height', H);
+                .attr('width', W)
+                .attr('height', totalH);
 
             svg.append('defs').append('clipPath').attr('id', 'lane-clip')
-                .append('rect').attr('x', 0).attr('y', 0).attr('width', totalW).attr('height', H);
+                .append('rect').attr('x', 0).attr('y', 0).attr('width', W).attr('height', totalH);
 
-            var yScale = d3.scaleLinear()
+            var xScale = d3.scaleLinear()
                 .domain([minT, maxT])
-                .range([margin.top, H - margin.bottom]);
+                .range([margin.left, W - margin.right]);
 
             var gMain = svg.append('g').attr('clip-path', 'url(#lane-clip)');
-            var yAxis = d3.axisLeft(yScale).ticks(8);
+            var xAxis = d3.axisTop(xScale).ticks(8);
             var gAxis = svg.append('g')
-                .attr('transform', 'translate(' + axisW + ',0)')
-                .call(yAxis);
-            var laneX = axisW;
+                .attr('transform', 'translate(0,' + axisH + ')')
+                .call(xAxis);
+            var laneY = axisH;
 
             // Lane header labels (static, outside clip)
             var headerG = svg.append('g');
-            headerG.append('text').attr('x', laneX + laneW / 2).attr('y', 13)
-                .attr('text-anchor', 'middle').attr('font-size', '9px').attr('font-family', 'monospace').attr('fill', '#555').text('Matrix');
+            headerG.append('text').attr('x', -4).attr('y', laneY + laneH / 2 + 4)
+                .attr('text-anchor', 'end').attr('font-size', '9px').attr('font-family', 'monospace').attr('fill', '#555').text('Matrix');
             sqlTables.forEach(function(t, i) {
-                var sx = laneX + matrixW + i * sqlLaneW + sqlLaneW / 2;
-                headerG.append('text').attr('x', sx).attr('y', 13)
-                    .attr('text-anchor', 'middle').attr('font-size', '9px').attr('font-family', 'monospace').attr('fill', '#555').text(t);
+                var sy = laneY + matrixH + i * sqlLaneH + sqlLaneH / 2 + 4;
+                headerG.append('text').attr('x', -4).attr('y', sy)
+                    .attr('text-anchor', 'end').attr('font-size', '9px').attr('font-family', 'monospace').attr('fill', '#555').text(t);
             });
 
             var gRects = gMain.append('g');
@@ -403,23 +403,24 @@
                 gRects.selectAll('rect').remove();
                 gRects.selectAll('text').remove();
                 activities.forEach(function(a) {
-                    var y1 = scale(a.start);
-                    var y2 = scale(a.end);
-                    var h  = Math.max(y2 - y1, 1);
-                    var x, w, color;
+                    var x1 = scale(a.start);
+                    var x2 = scale(a.end);
+                    var w  = Math.max(x2 - x1, 1);
+                    var y, h, color;
                     if (a.type === 'MatrixMain') {
-                        x = laneX; w = matrixW; color = colors.MatrixMain;
+                        y = laneY; h = matrixH; color = colors.MatrixMain;
                     } else if (a.type === 'SqlInsert') {
                         var si = sqlTables.indexOf(a.lane);
-                        x = laneX + matrixW + si * sqlLaneW; w = sqlLaneW;
+                        y = laneY + matrixH + si * sqlLaneH; h = sqlLaneH;
                         color = colors['SqlInsert_' + a.lane];
                     } else {
-                        x = laneX + laneW; w = innerW; color = colors[a.type];
+                        y = laneY + laneH; h = innerH; color = colors[a.type];
                     }
                     var isMain = a.type === 'MatrixMain';
                     gRects.append('rect')
-                        .attr('x', x).attr('y', y1)
+                        .attr('x', x1).attr('y', y)
                         .attr('width', w).attr('height', h)
+                        .attr('rx', 3).attr('ry', 3)
                         .attr('fill', color)
                         .attr('stroke', isMain ? '#555' : 'none')
                         .attr('stroke-width', isMain ? 0.5 : 0)
@@ -431,26 +432,28 @@
                             tooltip.textContent = a.tooltip;
                         })
                         .on('mouseleave', function() { tooltip.style.display = 'none'; });
-                    if (h > 10) {
+                    if (w > 10) {
                         gRects.append('text')
-                            .attr('x', x + 4)
-                            .attr('y', y1 + Math.min(h / 2 + 4, h - 2))
+                            .attr('x', x1 + 4)
+                            .attr('y', y + 4)
                             .attr('font-size', '9px')
                             .attr('font-family', 'monospace')
                             .attr('fill', isMain ? '#555' : '#fff')
+                            .style('writing-mode', 'vertical-rl')
+                            .style('text-orientation', 'mixed')
                             .style('pointer-events', 'none')
                             .text(a.label);
                     }
                 });
             }
 
-            draw(yScale);
+            draw(xScale);
 
             var zoom = d3.zoom()
                 .scaleExtent([1, 500])
                 .on('zoom', function(event) {
-                    var newScale = event.transform.rescaleY(yScale);
-                    gAxis.call(yAxis.scale(newScale));
+                    var newScale = event.transform.rescaleX(xScale);
+                    gAxis.call(xAxis.scale(newScale));
                     draw(newScale);
                 });
             svg.call(zoom);
