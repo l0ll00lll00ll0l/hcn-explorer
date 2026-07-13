@@ -6,6 +6,7 @@ import java.util.List;
 public class TXTcheckTest {
 
     //@Test
+    /*
     public void findFirstMismatchAgainstReference() {
 
         TXTcheck txt = new TXTcheck();
@@ -43,4 +44,6 @@ public class TXTcheckTest {
 
 
     }
+
+     */
 }

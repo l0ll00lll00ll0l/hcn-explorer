@@ -1,5 +1,7 @@
 package com.hcn.newCore;
 
+import com.hcn.event.ActivityCenter;
+import com.hcn.event.MatrixExtensionActivity;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
@@ -38,7 +40,6 @@ public abstract class MatrixNode {
     }
 
     public void generateNewBodies(List<Body> incomingParents) {
-        //log.debug(" generateNewBodies");
         Set<Body> createdBodies = incomingParents.stream()
                 .flatMap(previousBody -> bodyNodes.values().stream()
                         .map(bodyNode -> Body.builder().bodyNode(bodyNode).parent(previousBody)
@@ -46,11 +47,7 @@ public abstract class MatrixNode {
                                 .factor(bodyNode.getFactor().multiply(previousBody.getFactor())).build()))
                 .collect(Collectors.toSet());
 
-        //log.debug("  createdBodies {}", createdBodies);
-
         bodyList.mergeBodies(createdBodies);
-        //log.debug("  bodyList {}", bodyList);
-
         parentDeactivationCheck(incomingParents);
         if (nextMatrixNode != null) {nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());} else {
             bodyList.resetActiveBodyChain();
@@ -58,44 +55,32 @@ public abstract class MatrixNode {
     }
 
     public void createNextBodyNode() {
-        //log.debug("createNextBodyNode for indexes: {}", indexes);
-
         int nextBodyNodeId = bodyNodes.lastKey() + 1;
-        BodyNode nwxtBodyNode = provideNextBodyNode();
-        //log.debug("nwxtBodyNode: {}", nwxtBodyNode);
-        bodyNodes.put(nextBodyNodeId, nwxtBodyNode);
+        BodyNode nextBodyNode = provideNextBodyNode();
+        new MatrixExtensionActivity(nextBodyNode);
+        bodyNodes.put(nextBodyNodeId, nextBodyNode);
 
         Set<Body> createdBodies;
-        // at p0, we initiate new body chain
         if (prevMatrixNode == null) {
-
-            createdBodies = Set.of(Body.builder().bodyNode(nwxtBodyNode).parent(null).value(nwxtBodyNode.getValue()).factor(nwxtBodyNode.getFactor()).build());
-            //log.debug(" original createdBodies {}", createdBodies);
+            createdBodies = Set.of(Body.builder().bodyNode(nextBodyNode).parent(null).value(nextBodyNode.getValue()).factor(nextBodyNode.getFactor()).build());
             bodyList.mergeBodies(createdBodies);
-            //log.debug("  successfullyAddedLocalBodies {}", successfullyAddedLocalBodies);
         } else {
-
             int bodyNodeIdLowLimit = determineBodyNodeIdLowLimit();
             List<Body> parents = prevMatrixNode.bodyNodes.values().stream()
                     .filter(pip -> pip.getBodyNodeId() >= bodyNodeIdLowLimit)
                     .flatMap(pip -> pip.getActiveBodies().stream()).collect(Collectors.toList());
-
-            //log.debug(" parent bodies with bod {}: {}", bodyNodeIdLowLimit, parents);
-
-            createdBodies = parents.stream().map(parentBody ->  Body.builder().bodyNode(nwxtBodyNode).parent(parentBody)
-                            .value(nwxtBodyNode.getValue().multiply(parentBody.getValue()))
-                            .factor(nwxtBodyNode.getFactor().multiply(parentBody.getFactor())).build())
+            createdBodies = parents.stream().map(parentBody -> Body.builder().bodyNode(nextBodyNode).parent(parentBody)
+                            .value(nextBodyNode.getValue().multiply(parentBody.getValue()))
+                            .factor(nextBodyNode.getFactor().multiply(parentBody.getFactor())).build())
                     .collect(Collectors.toSet());
-            //log.debug(" original createdBodies {}", createdBodies);
             bodyList.mergeBodies(createdBodies);
-            //log.debug("  bodyList {}", bodyList);
-
             parentDeactivationCheck(parents);
         }
 
         if (nextMatrixNode != null) {nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());} else {
             bodyList.resetActiveBodyChain();
         }
+        ActivityCenter.finishMatrixExtensionActivity();
     }
 
     private void parentDeactivationCheck(List<Body> parents) {

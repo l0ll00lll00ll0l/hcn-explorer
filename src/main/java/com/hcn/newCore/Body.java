@@ -90,18 +90,6 @@ public class Body implements Comparable<Body>{
         }
     }
 
-    private Hcn findReferenceHcnForHcnGeneration(Lapi lapi) {
-        Body referenceCandidate = smallerBody;
-        while (!isReferenceCandidateSuitable(lapi, referenceCandidate)) {
-            referenceCandidate = referenceCandidate.smallerBody;
-        }
-        return referenceCandidate.lastGeneratedHcn;
-    }
-
-    private boolean isReferenceCandidateSuitable(Lapi lapi, Body referenceCandidate) {
-        return referenceCandidate != null && referenceCandidate.lastGeneratedHcn != null && referenceCandidate.lastGeneratedHcn.getLapi() == lapi.getPrime().getIndex();
-    }
-
     public void gotDominated() {
 
         deactivated = true;
@@ -123,10 +111,10 @@ public class Body implements Comparable<Body>{
     }
 
     public void matrixMaintainCheck() {
-        if (proved) {return;}
+        if (proved) { return; }
         proved = true;
         bodyNode.extensionCheck();
-        if (parent != null) {parent.matrixMaintainCheck();}
+        if (parent != null) { parent.matrixMaintainCheck(); }
     }
 
     @Override

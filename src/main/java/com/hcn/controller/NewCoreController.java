@@ -2,11 +2,11 @@ package com.hcn.controller;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
-import com.hcn.db.event.DbEvent;
 import com.hcn.db.DatabaseService;
 import com.hcn.db.DbInsertService;
 import com.hcn.db.MatrixDeserializer;
 import com.hcn.db.MatrixSerializer;
+import com.hcn.event.ActivityCenter;
 import com.hcn.newCore.*;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +55,7 @@ public class NewCoreController {
         }
         model.addAttribute("matrix", matrix);
         model.addAttribute("logLevel", currentLogLevel);
-        if (!matrix.isProving()) {
+        if (!ActivityCenter.isProving()) {
             List<MatrixNode> chain = getMatrixChain();
             model.addAttribute("matrixChain", chain);
             model.addAttribute("activeBodyList", activeBodyList == -1 ? chain.size() - 1 : activeBodyList);
@@ -63,6 +63,13 @@ public class NewCoreController {
             model.addAttribute("activeBodyNodeId", activeBodyNodeId);
         }
         model.addAttribute("activeTab", activeTab);
+        model.addAttribute("matrixMainActivities", ActivityCenter.getMatrixMainActivities());
+        model.addAttribute("matrixExtensionActivities", ActivityCenter.getMatrixExtensionActivities());
+        model.addAttribute("hcnGenerationActivities", ActivityCenter.getHcnGenerationActivities());
+        model.addAttribute("apiNodeCreationActivities", ActivityCenter.getApiNodeCreationActivities());
+        model.addAttribute("transitionNodeCreationActivities", ActivityCenter.getTransitionNodeCreationActivities());
+        model.addAttribute("sqlInsertActivities", ActivityCenter.getSqlInsertActivities());
+        model.addAttribute("insertBatchCreatedEvents", ActivityCenter.getInsertBatchCreatedEvents());
         return "newcore";
     }
 
@@ -80,7 +87,7 @@ public class NewCoreController {
 
     @PostMapping("/newcore/save")
     public String save() {
-        if (matrix != null && !matrix.isProving()) {
+        if (matrix != null && !ActivityCenter.isProving()) {
             if (matrix.getDbName() == null) {
                 matrix.setDbName(databaseService.assignDbName());
             }
@@ -141,26 +148,20 @@ public class NewCoreController {
                         @RequestParam(defaultValue = "-1") int bodyListIdx) {
         activeTab = tab;
         activeBodyList = bodyListIdx;
-        if (!matrix.isProving()) {
-            matrix.setProving(true);
-            matrix.setProveTarget(count);
-            matrix.setProveProgress(0);
+        if (!ActivityCenter.isProving()) {
+            ActivityCenter.setProving(true);
+            ActivityCenter.setProveTarget(count);
+            ActivityCenter.setProveProgress(0);
             new Thread(() -> matrix.proveLapi(count)).start();
         }
         return "{\"started\":true}";
-    }
-
-    @GetMapping("/newcore/dbevents")
-    @ResponseBody
-    public List<DbEvent> dbEvents() {
-        return dbInsertService.getEvents();
     }
 
     @GetMapping("/newcore/progress")
     @ResponseBody
     public String progress() {
         if (matrix == null) return "{\"proving\":false,\"progress\":0,\"target\":0}";
-        return "{\"proving\":" + matrix.isProving() + ",\"progress\":" + matrix.getProveProgress() + ",\"target\":" + matrix.getProveTarget() + "}";
+        return "{\"proving\":" + ActivityCenter.isProving() + ",\"progress\":" + ActivityCenter.getProveProgress() + ",\"target\":" + ActivityCenter.getProveTarget() + "}";
     }
 
     public List<MatrixNode> getMatrixChain() {

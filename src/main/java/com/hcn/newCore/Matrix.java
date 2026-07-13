@@ -1,6 +1,7 @@
 package com.hcn.newCore;
 
 import com.hcn.db.DbInsertService;
+import com.hcn.event.ActivityCenter;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -39,12 +40,6 @@ public class Matrix {
     private long generateHcnListTimeMs = 0;
 
     // Progress tracking
-    @Builder.Default
-    private volatile boolean proving = false;
-    @Builder.Default
-    private volatile int proveTarget = 0;
-    @Builder.Default
-    private volatile int proveProgress = 0;
 
     public void initialize() {
 
@@ -192,10 +187,20 @@ public class Matrix {
 
     public void proveLapi(int count) {
         long start = System.currentTimeMillis();
+        ActivityCenter.initialize(nextLapi.getPrime().getIndex());
         for (int i = 0; i < count; i++) {
             proveNextLapi();
-            proveProgress = i + 1;
+            ActivityCenter.setProveProgress(i + 1);
+            ActivityCenter.setCurrentLapi(highestLapi.getPrime().getIndex());
+            if (dbMode && dbInsertService.isQueueAbovePauseLimit()) {
+                ActivityCenter.finishMatrixMainActivity(highestLapi.getPrime().getIndex());
+                while (!dbInsertService.isQueueBelowResumeLimit()) {
+                    try { Thread.sleep(10); } catch (InterruptedException e) { Thread.currentThread().interrupt(); return; }
+                }
+                ActivityCenter.resume(highestLapi.getPrime().getIndex());
+            }
         }
+        ActivityCenter.finishMatrixMainActivity(highestLapi.getPrime().getIndex());
         if (dbMode) {
             try {
                 dbInsertService.finalFlush(highestLapi.getPrime().getIndex());
@@ -204,7 +209,7 @@ public class Matrix {
             }
         }
         totalTimeMs += System.currentTimeMillis() - start;
-        proving = false;
+        ActivityCenter.setProving(false);
     }
 
     private void proveNextLapi() {
@@ -276,7 +281,6 @@ public class Matrix {
     }
 
     private void matrixMaintainCheck() {
-
         Prime prevLastMatrixIndex = lastTransition.getLastPrime();
 
         highestLapi.getHcnList().forEach(hcn -> {

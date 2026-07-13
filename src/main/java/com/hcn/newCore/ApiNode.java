@@ -64,15 +64,13 @@ public class ApiNode extends MatrixNode {
 
     @Override
     public void extensionCheck() {
-        //log.debug("LocalExtension trigger at {}", indexes.get(0));
         if (transitionReleaseRequired()) {
             ApiNodeCreator.createNewApi(this, (TransitionNode) nextMatrixNode);
         }
         if (isLocalExtensionRequired()) {
-            //log.debug("  LocalExtension required at {}", indexes.get(0));
-            createNextBodyNode();}
+            createNextBodyNode();
+        }
         if (nextMatrixNodeExtensionRequired()) {
-            //log.debug("  NextMatrixNodeExtension required at {}", indexes.get(0));
             nextMatrixNode.createNextBodyNode();
         }
     }
@@ -80,7 +78,6 @@ public class ApiNode extends MatrixNode {
     private boolean nextMatrixNodeExtensionRequired() {
         if (nextMatrixNode instanceof ApiNode apinode) {
             BodyNode lastNode = apinode.getBodyNodes().get(apinode.bodyNodes.lastKey());
-            //log.debug("  NextMatrixNodeExtension required at {}, this: {}, last: {}", indexes.get(0), getLargestProvedBodyNode(), nextMatrixNode.getLargestProvedBodyNode());
             if (lastNode.isProved() && lastNode.getBodyNodeId() < getLargestProvedBodyNode().getBodyNodeId()) {
                 return true;
             }
@@ -96,7 +93,6 @@ public class ApiNode extends MatrixNode {
         } else {
             int pipToCreate = bodyNodes.lastKey() + 1;
             int largestPreviousProvedPip = prevMatrixNode.getLargestProvedBodyNode().getBodyNodeId();
-            //log.debug("isLocalExtensionRequired, pipToCreate: {}, largestPreviousProvedPip: {}", pipToCreate, largestPreviousProvedPip);
             if (largestPreviousProvedPip < pipToCreate) {return false;} else {return true;}
         }
     }

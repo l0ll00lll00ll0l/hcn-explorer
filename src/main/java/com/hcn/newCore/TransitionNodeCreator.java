@@ -1,5 +1,6 @@
 package com.hcn.newCore;
 
+import com.hcn.event.TransitionNodeCreationActivity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
@@ -7,6 +8,7 @@ import java.util.TreeMap;
 public class TransitionNodeCreator {
 
     public static void createNewTransitionNode(ApiNode fixNode) {
+        TransitionNodeCreationActivity activity = new TransitionNodeCreationActivity(fixNode.bodyNodes.firstEntry().getValue().getBodyNodeId() - 1);
 
         List<ApiNode> apiNodesToMove = new ArrayList<>();
         BodyNode fixPip = fixNode.bodyNodes.firstEntry().getValue();
@@ -14,8 +16,6 @@ public class TransitionNodeCreator {
         ScientificNumber baseValue = fixPip.getValue();
         ScientificNumber baseFactor = fixPip.getFactor();
         List<Prime> primeList = new ArrayList<>(fixNode.indexes);
-        //System.out.println("baseValue " + baseValue);
-        //System.out.println("baseFactor " + baseFactor);
 
         while (apiNodeToTurnIntoTransition.nextMatrixNode instanceof ApiNode) {
             apiNodeToTurnIntoTransition = (ApiNode) apiNodeToTurnIntoTransition.nextMatrixNode;
@@ -23,8 +23,6 @@ public class TransitionNodeCreator {
             baseFactor = baseFactor.multiply(apiNodeToTurnIntoTransition.bodyNodes.firstEntry().getValue().getFactor());
             apiNodesToMove.add(apiNodeToTurnIntoTransition);
             primeList.addAll(apiNodeToTurnIntoTransition.indexes);
-            //System.out.println("baseValue " + baseValue);
-            //System.out.println("baseFactor " + baseFactor);
         }
 
         TransitionNode newTransitionNode = TransitionNode.builder().transitionFrom(fixPip.getBodyNodeId())
@@ -45,40 +43,30 @@ public class TransitionNodeCreator {
                     .proved(apiNode.getBodyNodes().get(apiNode.getBodyNodes().lastKey()).isProved()).build());
         }
 
-        //System.out.println("newTransitionNode.bodyNodes " + newTransitionNode.bodyNodes);
-
         BodyNode deactivatedTRansition = BodyNode.builder().parentNode(newTransitionNode)
                 .bodyNodeId(newSmallestTransition.getBodyNodeId() - 1).value(newSmallestTransition.getValue().divide(fixNode.indexes.get(0).getValue()))
                 .factor(newSmallestTransition.getFactor().divide(new ScientificNumber((double) (newTransitionNode.getTransitionFrom() + 1) / (newTransitionNode.getTransitionTo() + 1), 0)))
                 .proved(true).build();
 
-        //System.out.println("deactivatedTRansition " + deactivatedTRansition);
         newTransitionNode.bodyNodes.put(deactivatedTRansition.getBodyNodeId(), deactivatedTRansition);
 
         Body bodyToRebuild = apiNodeToTurnIntoTransition.bodyList.getSmallestBody();
         List<Body> bodiesForBodylist = new ArrayList<>();
         while (bodyToRebuild != null) {
 
-            //System.out.println("bodyToRebuild " + bodyToRebuild);
             Body parentBody = getSuitableParentBody(bodyToRebuild, newTransitionNode.bodyNodes.size() - 1);
-            //System.out.println("parentBody " + parentBody);
             int transitionId = getTransitioIdForBody(bodyToRebuild, newTransitionNode.getTransitionTo());
-            //System.out.println("transitionId " + transitionId);
             BodyNode transitionToUse = newTransitionNode.bodyNodes.get(transitionId);
 
             Body newBody = Body.builder().bodyNode(transitionToUse).proved(bodyToRebuild.isProved()).deactivated(bodyToRebuild.isDeactivated())
                     .parent(parentBody).value(parentBody.getValue().multiply(transitionToUse.getValue()))
                     .factor(parentBody.getFactor().multiply(transitionToUse.getFactor())).build();
 
-            //System.out.println("newBody " + newBody);
-
-
             if (!bodyToRebuild.isDeactivated()) {
                 Body parentBodysOffspring = getSuitableParentBody(bodyToRebuild, newTransitionNode.bodyNodes.size() - 2);
                 parentBody.getOffsprings().remove(parentBodysOffspring);
                 parentBody.getOffsprings().add(newBody);
                 newBody.getOffsprings().addAll(bodyToRebuild.getOffsprings());
-                //newBody.getOffsprings().forEach(offspring -> offspring.setParent(newBody));
                 transitionToUse.getActiveBodies().add(newBody);
             }
 
@@ -102,6 +90,7 @@ public class TransitionNodeCreator {
             apiNode.setPrevMatrixNode(null);
             apiNode.getBodyNodes().clear();
         });
+        activity.finish();
     }
 
     private static int getTransitioIdForBody(Body bodyToRebuild, int transitionTo) {

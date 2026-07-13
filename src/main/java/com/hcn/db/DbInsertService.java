@@ -1,6 +1,8 @@
 package com.hcn.db;
 
-import com.hcn.db.event.*;
+import com.hcn.event.*;
+import com.hcn.event.SqlInsertActivity;
+import com.hcn.event.SqlTable;
 import com.hcn.newCore.Body;
 import com.hcn.newCore.Hcn;
 import com.hcn.newCore.Interval;
@@ -10,7 +12,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -31,12 +32,6 @@ public class DbInsertService {
     private volatile boolean hcnRunning      = false;
     private volatile boolean intervalRunning = false;
     private volatile int lastProcessedLapi = -1;
-
-    private final List<DbEvent> events = new ArrayList<>();
-
-    private void record(DbEvent event) { events.add(event); }
-
-    public List<DbEvent> getEvents() { return events; }
 
     private StringBuilder bodyBuffer;
     private StringBuilder intervalBuffer;
@@ -70,9 +65,9 @@ public class DbInsertService {
     public void start() {
         resetBuffers();
         new Thread(this::consumeIntervals, "db-interval-consumer").start();
-        new Thread(() -> consumeInserts(bodyQueue,     () -> bodyRunning     = true, () -> bodyRunning     = false, DbEvent.TableType.BODY),     "db-body-insert").start();
-        new Thread(() -> consumeInserts(hcnQueue,      () -> hcnRunning      = true, () -> hcnRunning      = false, DbEvent.TableType.HCN),      "db-hcn-insert").start();
-        new Thread(() -> consumeInserts(intervalQueue, () -> intervalRunning = true, () -> intervalRunning = false, DbEvent.TableType.INTERVAL), "db-interval-insert").start();
+        new Thread(() -> consumeInserts(bodyQueue,     () -> bodyRunning     = true, () -> bodyRunning     = false, SqlTable.BODY),     "db-body-insert").start();
+        new Thread(() -> consumeInserts(hcnQueue,      () -> hcnRunning      = true, () -> hcnRunning      = false, SqlTable.HCN),      "db-hcn-insert").start();
+        new Thread(() -> consumeInserts(intervalQueue, () -> intervalRunning = true, () -> intervalRunning = false, SqlTable.INTERVAL), "db-interval-insert").start();
     }
 
     private void resetBuffers() {
@@ -108,7 +103,6 @@ public class DbInsertService {
             try {
                 Interval interval = queue.take();
                 process(interval);
-                record(new IntervalProcessedEvent(interval.getLapi()));
                 if (bodyCount >= THRESHOLD)     flushBody();
                 if (hcnCount >= THRESHOLD)      flushHcn();
                 if (intervalCount >= THRESHOLD) flushInterval();
@@ -123,15 +117,15 @@ public class DbInsertService {
         }
     }
 
-    private void consumeInserts(LinkedBlockingQueue<InsertBatch> q, Runnable onStart, Runnable onEnd, DbEvent.TableType table) {
+    private void consumeInserts(LinkedBlockingQueue<InsertBatch> q, Runnable onStart, Runnable onEnd, SqlTable table) {
         while (true) {
             try {
                 InsertBatch batch = q.take();
                 onStart.run();
-                record(new InsertBatchExecutionStartedEvent(table, batch.count()));
+                SqlInsertActivity activity = new SqlInsertActivity(table, batch.count());
                 dbTemplate.execute(batch.sql());
+                activity.finish();
                 onEnd.run();
-                record(new InsertBatchExecutionFinishedEvent(table, batch.count()));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return;
@@ -195,22 +189,32 @@ public class DbInsertService {
     }
 
     private void flushBody() {
-        if (bodyCount > 0) { record(new InsertBatchCreatedEvent(DbEvent.TableType.BODY, bodyCount)); bodyQueue.add(new InsertBatch(bodyBuffer.toString(), bodyCount)); resetBodyBuffer(); }
+        if (bodyCount > 0) { bodyQueue.add(new InsertBatch(bodyBuffer.toString(), bodyCount)); new InsertBatchCreatedEvent(SqlTable.BODY, bodyCount); resetBodyBuffer(); }
     }
 
     private void flushHcn() {
-        if (hcnCount > 0) { record(new InsertBatchCreatedEvent(DbEvent.TableType.HCN, hcnCount)); hcnQueue.add(new InsertBatch(hcnBuffer.toString(), hcnCount)); resetHcnBuffer(); }
+        if (hcnCount > 0) { hcnQueue.add(new InsertBatch(hcnBuffer.toString(), hcnCount)); new InsertBatchCreatedEvent(SqlTable.HCN, hcnCount); resetHcnBuffer(); }
     }
 
     private void flushInterval() {
-        if (intervalCount > 0) { record(new InsertBatchCreatedEvent(DbEvent.TableType.INTERVAL, intervalCount)); intervalQueue.add(new InsertBatch(intervalBuffer.toString(), intervalCount)); resetIntervalBuffer(); }
+        if (intervalCount > 0) { intervalQueue.add(new InsertBatch(intervalBuffer.toString(), intervalCount)); new InsertBatchCreatedEvent(SqlTable.INTERVAL, intervalCount); resetIntervalBuffer(); }
+    }
+
+    private static final int PAUSE_BATCHES  = 10;
+    private static final int RESUME_BATCHES = 3;
+
+    public boolean isQueueAbovePauseLimit() {
+        return bodyQueue.size() + hcnQueue.size() + intervalQueue.size() > PAUSE_BATCHES;
+    }
+
+    public boolean isQueueBelowResumeLimit() {
+        return bodyQueue.size() + hcnQueue.size() + intervalQueue.size() <= RESUME_BATCHES;
     }
 
     public void finalFlush(int lapiId) throws InterruptedException {
         synchronized (this) {
             while (lastProcessedLapi < lapiId) wait();
         }
-        record(new FinalFlushEvent(true));
         flushBody();
         flushHcn();
         flushInterval();
@@ -219,6 +223,5 @@ public class DbInsertService {
                !intervalQueue.isEmpty() || intervalRunning) {
             Thread.sleep(10);
         }
-        record(new FinalFlushEvent(false));
     }
 }

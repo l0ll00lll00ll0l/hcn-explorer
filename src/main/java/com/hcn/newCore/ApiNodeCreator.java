@@ -1,5 +1,6 @@
 package com.hcn.newCore;
 
+import com.hcn.event.ApiNodeCreationActivity;
 import lombok.extern.slf4j.Slf4j;
 import java.util.TreeMap;
 
@@ -8,8 +9,8 @@ public class ApiNodeCreator {
 
     public static void createNewApi(ApiNode parentApiNode, TransitionNode transitionNode) {
 
-        //log.debug("TransitionRelease between API-{} and transition {}", parentApiNode.indexes.get(0).getIndex(), transitionNode.indexes.get(0).getIndex());
         Prime newIndex = transitionNode.indexes.get(0);
+        ApiNodeCreationActivity activity = new ApiNodeCreationActivity(newIndex.getIndex());
         ApiNode newApiNode = ApiNode.builder().prevMatrixNode(parentApiNode).nextMatrixNode(transitionNode).build();
         newApiNode.indexes.add(newIndex);
 
@@ -38,47 +39,41 @@ public class ApiNodeCreator {
         }
 
         recalculateTransitions(transitionNode, transitionToRemove);
-        newApiNode.setBodyList(rebuildBodyNodesDualPip(pipLower, pip, transitionNode, transitionToRemove, nextLowerTransition));
+        newApiNode.setBodyList(rebuildBodyNodesDualPip(pipLower, pip, transitionNode, nextLowerTransition));
 
         transitionNode.indexes.remove(0);
         parentApiNode.setNextMatrixNode(newApiNode);
         transitionNode.setPrevMatrixNode(newApiNode);
+        activity.finish();
     }
 
     private static void recalculateTransitions(TransitionNode transitionNode, BodyNode transitionToRemove) {
         ScientificNumber valueExcluded = new ScientificNumber(Math.pow(transitionNode.indexes.get(0).getIntValue(), transitionNode.getTransitionFrom()), 0);
         ScientificNumber factorExcluded = new ScientificNumber(transitionNode.getTransitionFrom() + 1, 0);
-        //log.debug("valueExcluded: {}", valueExcluded);
-        //log.debug("factorExcluded: {}", factorExcluded);
         if (transitionToRemove != null) {
             transitionNode.getBodyNodes().remove(transitionNode.getBodyNodes().firstKey());
         }
         transitionNode.getBodyNodes().forEach((key, transition) -> {
                     transition.setValue(transition.getValue().divide(valueExcluded));
                     transition.setFactor(transition.getFactor().divide(factorExcluded));
-            //log.debug("transition after update: {}", transition);
         });
 
     }
 
-    private static BodyList rebuildBodyNodesDualPip(BodyNode newLowerPip, BodyNode newLargerPip, TransitionNode transitionNode, BodyNode transitionToRemove, BodyNode nextLowerTransition) {
+    private static BodyList rebuildBodyNodesDualPip(BodyNode newLowerPip, BodyNode newLargerPip, TransitionNode transitionNode, BodyNode nextLowerTransition) {
 
-        //log.debug(" TransitionRelease rebuildBodyNodesDualPip");
         Body bodyToRebuild = transitionNode.getBodyList().getSmallestBody();
         TreeMap<ScientificNumber, Body> distinctParents = new TreeMap<>();
 
         do {
             Body newBodyNode = Body.builder().parent(bodyToRebuild.getParent()).proved(bodyToRebuild.isProved()).deactivated(bodyToRebuild.isDeactivated()).build();
             BodyNode suitableNewPipForBody = getSuitableNewPipForBody(bodyToRebuild, transitionNode, newLowerPip, newLargerPip);
-
             newBodyNode.setValue(newBodyNode.getParent().getValue().multiply(suitableNewPipForBody.getValue()));
-            //log.debug("   bodyToRebuild {}", bodyToRebuild);
 
             if (distinctParents.containsKey(newBodyNode.getValue())) {
                 newBodyNode = distinctParents.get(newBodyNode.getValue());
                 // in case stored body is not proved but new offspring is
                 if (bodyToRebuild.isProved()) {newBodyNode.setProved(true);}
-                //log.debug("   newBodyNode found in distinctParents {}", newBodyNode);
             } else {
                 if (suitableNewPipForBody.equals(newLowerPip)) {
                     newBodyNode.setBodyNode(newLowerPip);
@@ -88,7 +83,6 @@ public class ApiNodeCreator {
                 }
                 distinctParents.put(newBodyNode.getValue(), newBodyNode);
                 newBodyNode.setFactor(newBodyNode.getParent().getFactor().multiply(suitableNewPipForBody.getFactor()));
-                //log.debug("   newBodyNode updated {}", newBodyNode);
             }
 
             if (!bodyToRebuild.isDeactivated()) {
@@ -99,7 +93,6 @@ public class ApiNodeCreator {
                 if (!newBodyNode.getParent().getOffsprings().contains(newBodyNode)) {
                     newBodyNode.getParent().getOffsprings().add(newBodyNode);
                 }
-                //log.debug("   newBodyNode activity update {}", newBodyNode);
             }
             bodyToRebuild.setParent(newBodyNode);
             bodyToRebuild = bodyToRebuild.getLargerBody();

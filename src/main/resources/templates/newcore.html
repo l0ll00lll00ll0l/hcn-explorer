@@ -41,7 +41,7 @@
                 <input type="hidden" name="tab" id="hiddenTab" th:value="${activeTab}"/>
                 <input type="hidden" name="bodyListIdx" id="hiddenBodyList" th:value="${activeBodyList}"/>
                 <input type="number" name="count" id="proveCount" value="1" min="1" style="width: 50px; font-family: monospace; padding: 2px 4px;"/>
-                <button type="submit" id="proveBtn" style="font-family: monospace; padding: 4px 12px;" th:disabled="${matrix.proving}">Prove</button>
+                <button type="submit" id="proveBtn" style="font-family: monospace; padding: 4px 12px;" th:disabled="${@activityCenter.isProving()}">Prove</button>
             </form>
             <div id="progressBar" style="display: none; align-items: center; gap: 6px;">
                 <div style="width: 150px; height: 16px; border: 1px solid #333; background: #eee;">
@@ -49,7 +49,7 @@
                 </div>
                 <span id="progressText" style="font-size: 11px;"></span>
             </div>
-            <span th:if="${!matrix.proving}" style="font-size: 11px; color: #555;">
+            <span th:if="${!@activityCenter.isProving()}" style="font-size: 11px; color: #555;">
                 | proved: <b th:text="${matrix.provedCount}"></b>
                 | nextLapi: <b th:text="${matrix.nextLapi.prime.index} + ' (' + ${matrix.nextLapi.prime.intValue} + ')'"></b>
                 | limit: <b th:text="${matrix.provedLimit}"></b>
@@ -71,13 +71,13 @@
                 <button type="submit" style="font-family: monospace; padding: 4px 8px;">Set Log</button>
             </form>
             <form method="post" action="/newcore/save" style="display: inline;">
-                <button type="submit" style="font-family: monospace; padding: 4px 12px;" th:disabled="${matrix.proving}">Save</button>
+                <button type="submit" style="font-family: monospace; padding: 4px 12px;" th:disabled="${@activityCenter.isProving()}">Save</button>
             </form>
             <a href="/newcore/quit" style="font-family: monospace; padding: 4px 12px; border: 1px solid #ccc; text-decoration: none; color: black;">Quit</a>
         </div>
     </div>
 
-    <div th:if="${!matrix.proving}">
+    <div th:if="${!@activityCenter.isProving()}">
     <div class="tab-bar">
         <button class="tab-btn" th:classappend="${activeTab == 'matrix' ? ' active' : ''}" data-tab="matrix" onclick="switchTab('matrix')">Matrix</button>
         <button class="tab-btn" th:classappend="${activeTab == 'bodynodes' ? ' active' : ''}" data-tab="bodynodes" onclick="switchTab('bodynodes')">BodyList</button>
@@ -86,7 +86,7 @@
         <button class="tab-btn" th:classappend="${activeTab == 'lapi' ? ' active' : ''}" data-tab="lapi" onclick="switchTab('lapi')">Lapi</button>
         <button class="tab-btn" th:classappend="${activeTab == 'dbbody' ? ' active' : ''}" data-tab="dbbody" onclick="switchTab('dbbody')">DbBody</button>
         <button class="tab-btn" th:classappend="${activeTab == 'refinterval' ? ' active' : ''}" data-tab="refinterval" onclick="switchTab('refinterval')">ReferenceInterval</button>
-        <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'dbevents' ? ' active' : ''}" data-tab="dbevents" onclick="switchTab('dbevents')">DbEvents</button>
+        <button class="tab-btn" th:classappend="${activeTab == 'processactivity' ? ' active' : ''}" data-tab="processactivity" onclick="switchTab('processactivity')">Process Activity</button>
     </div>
 
     <div id="tab-matrix" class="tab-content" th:classappend="${activeTab == 'matrix' ? ' active' : ''}">
@@ -311,12 +311,152 @@
         </table>
     </div>
 
-    <div id="tab-dbevents" class="tab-content" th:classappend="${activeTab == 'dbevents' ? ' active' : ''}">
-        <table class="level-table">
-            <thead><tr><th>#</th><th>Timestamp</th><th>Thread</th><th>Type</th><th>Count</th></tr></thead>
-            <tbody id="dbevents-body"></tbody>
-        </table>
-        <button onclick="loadDbEvents()" style="font-family: monospace; margin-top: 8px; padding: 4px 12px;">Refresh</button>
+    <div id="tab-processactivity" class="tab-content" th:classappend="${activeTab == 'processactivity' ? ' active' : ''}">
+        <!-- Legend -->
+        <div style="display: flex; gap: 16px; margin-bottom: 8px; font-size: 11px; font-family: monospace; flex-wrap: wrap;">
+            <span><span style="display:inline-block; width:14px; height:14px; background:#212121; opacity:0.3; border:1px solid #333; vertical-align:middle; margin-right:4px;"></span>MatrixMain</span>
+            <span><span style="display:inline-block; width:14px; height:14px; background:#9c27b0; vertical-align:middle; margin-right:4px;"></span>HcnGeneration</span>
+            <span><span style="display:inline-block; width:14px; height:14px; background:#4caf50; vertical-align:middle; margin-right:4px;"></span>Extension</span>
+            <span><span style="display:inline-block; width:14px; height:14px; background:#2196f3; vertical-align:middle; margin-right:4px;"></span>ApiNodeCreation</span>
+            <span><span style="display:inline-block; width:14px; height:14px; background:#ff9800; vertical-align:middle; margin-right:4px;"></span>TransitionNodeCreation</span>
+            <span><span style="display:inline-block; width:14px; height:14px; background:#e53935; vertical-align:middle; margin-right:4px;"></span>SqlInsert BODY</span>
+            <span><span style="display:inline-block; width:14px; height:14px; background:#00897b; vertical-align:middle; margin-right:4px;"></span>SqlInsert HCN</span>
+            <span><span style="display:inline-block; width:14px; height:14px; background:#f9a825; vertical-align:middle; margin-right:4px;"></span>SqlInsert INTERVAL</span>
+        </div>
+        <!-- D3 timeline -->
+        <div id="activity-tooltip" style="position:fixed; background:#333; color:#fff; padding:4px 8px; font-size:10px; font-family:monospace; border-radius:3px; pointer-events:none; display:none; white-space:pre;"></div>
+        <div id="activity-timeline" style="border: 1px solid #ccc; overflow: hidden;"></div>
+        <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+        <script th:inline="javascript">
+        (function() {
+            var activities = [];
+            /*[# th:each="a : ${matrixMainActivities}"]*/ activities.push({ type: 'MatrixMain',     start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+            /*[# th:each="a : ${hcnGenerationActivities}"]*/ activities.push({ type: 'HcnGeneration',  start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+            /*[# th:each="a : ${matrixExtensionActivities}"]*/ activities.push({ type: 'Extension',      start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+            /*[# th:each="a : ${apiNodeCreationActivities}"]*/ activities.push({ type: 'ApiNode',        start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+            /*[# th:each="a : ${transitionNodeCreationActivities}"]*/ activities.push({ type: 'TransitionNode', start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+            /*[# th:each="a : ${sqlInsertActivities}"]*/ activities.push({ type: 'SqlInsert', lane: /*[[${a.table}]]*/ '', start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+
+            if (activities.length === 0) return;
+
+            var colors = {
+                MatrixMain:     'rgba(33,33,33,0.25)',
+                HcnGeneration:  '#9c27b0',
+                Extension:      '#4caf50',
+                ApiNode:        '#2196f3',
+                TransitionNode: '#ff9800',
+                SqlInsert_BODY:     '#e53935',
+                SqlInsert_HCN:      '#00897b',
+                SqlInsert_INTERVAL: '#f9a825'
+            };
+
+            var sqlTables = ['BODY', 'HCN', 'INTERVAL'];
+            var laneW    = 20;
+            var innerW   = 160;
+            var sqlLaneW = 60;
+            var axisW    = 60;
+            var matrixW  = laneW + innerW;
+            var totalW   = axisW + matrixW + sqlTables.length * sqlLaneW + 20;
+            var H        = 600;
+            var margin   = { top: 20, bottom: 10 };
+
+            var allT = activities.reduce(function(acc, a) { acc.push(a.start, a.end); return acc; }, []);
+            var minT = d3.min(allT);
+            var maxT = d3.max(allT);
+
+            var container = document.getElementById('activity-timeline');
+            container.style.height = H + 'px';
+
+            var svg = d3.select('#activity-timeline').append('svg')
+                .attr('width', totalW)
+                .attr('height', H);
+
+            svg.append('defs').append('clipPath').attr('id', 'lane-clip')
+                .append('rect').attr('x', 0).attr('y', 0).attr('width', totalW).attr('height', H);
+
+            var yScale = d3.scaleLinear()
+                .domain([minT, maxT])
+                .range([margin.top, H - margin.bottom]);
+
+            var gMain = svg.append('g').attr('clip-path', 'url(#lane-clip)');
+            var yAxis = d3.axisLeft(yScale).ticks(8);
+            var gAxis = svg.append('g')
+                .attr('transform', 'translate(' + axisW + ',0)')
+                .call(yAxis);
+            var laneX = axisW;
+
+            // Lane header labels (static, outside clip)
+            var headerG = svg.append('g');
+            headerG.append('text').attr('x', laneX + laneW / 2).attr('y', 13)
+                .attr('text-anchor', 'middle').attr('font-size', '9px').attr('font-family', 'monospace').attr('fill', '#555').text('Matrix');
+            sqlTables.forEach(function(t, i) {
+                var sx = laneX + matrixW + i * sqlLaneW + sqlLaneW / 2;
+                headerG.append('text').attr('x', sx).attr('y', 13)
+                    .attr('text-anchor', 'middle').attr('font-size', '9px').attr('font-family', 'monospace').attr('fill', '#555').text(t);
+            });
+
+            var gRects = gMain.append('g');
+
+            var tooltip = document.getElementById('activity-tooltip');
+
+            function draw(scale) {
+                gRects.selectAll('rect').remove();
+                gRects.selectAll('text').remove();
+                activities.forEach(function(a) {
+                    var y1 = scale(a.start);
+                    var y2 = scale(a.end);
+                    var h  = Math.max(y2 - y1, 1);
+                    var x, w, color;
+                    if (a.type === 'MatrixMain') {
+                        x = laneX; w = matrixW; color = colors.MatrixMain;
+                    } else if (a.type === 'SqlInsert') {
+                        var si = sqlTables.indexOf(a.lane);
+                        x = laneX + matrixW + si * sqlLaneW; w = sqlLaneW;
+                        color = colors['SqlInsert_' + a.lane];
+                    } else {
+                        x = laneX + laneW; w = innerW; color = colors[a.type];
+                    }
+                    var isMain = a.type === 'MatrixMain';
+                    gRects.append('rect')
+                        .attr('x', x).attr('y', y1)
+                        .attr('width', w).attr('height', h)
+                        .attr('fill', color)
+                        .attr('stroke', isMain ? '#555' : 'none')
+                        .attr('stroke-width', isMain ? 0.5 : 0)
+                        .style('cursor', 'pointer')
+                        .on('mousemove', function(event) {
+                            tooltip.style.display = 'block';
+                            tooltip.style.left = (event.clientX + 12) + 'px';
+                            tooltip.style.top  = (event.clientY + 12) + 'px';
+                            tooltip.textContent = a.tooltip;
+                        })
+                        .on('mouseleave', function() { tooltip.style.display = 'none'; });
+                    if (h > 10) {
+                        gRects.append('text')
+                            .attr('x', x + 4)
+                            .attr('y', y1 + Math.min(h / 2 + 4, h - 2))
+                            .attr('font-size', '9px')
+                            .attr('font-family', 'monospace')
+                            .attr('fill', isMain ? '#555' : '#fff')
+                            .style('pointer-events', 'none')
+                            .text(a.label);
+                    }
+                });
+            }
+
+            draw(yScale);
+
+            var zoom = d3.zoom()
+                .scaleExtent([1, 500])
+                .on('zoom', function(event) {
+                    var newScale = event.transform.rescaleY(yScale);
+                    gAxis.call(yAxis.scale(newScale));
+                    draw(newScale);
+                });
+            svg.call(zoom);
+        })();
+        </script>
+
     </div>
 
     </div>
@@ -441,23 +581,9 @@
             }, 500);
         }
         // Auto-start polling if proving (page was refreshed mid-prove)
-        if (/*[[${matrix.proving}]]*/ false) { startPolling(); }
+        if (/*[[${@activityCenter.isProving()}]]*/ false) { startPolling(); }
 
-        function loadDbEvents() {
-            fetch('/newcore/dbevents').then(r => r.json()).then(data => {
-                var tbody = document.getElementById('dbevents-body');
-                if (!tbody) return;
-                tbody.innerHTML = data.map(function(e, i) {
-                    var detail = '';
-                    if (e.type === 'INTERVAL_PROCESSED')              detail = 'lapi=' + e.lapi;
-                    else if (e.type === 'INSERT_BATCH_CREATED')        detail = e.table + ' size=' + e.batchSize;
-                    else if (e.type === 'INSERT_BATCH_EXECUTION_STARTED')  detail = e.table + ' size=' + e.batchSize;
-                    else if (e.type === 'INSERT_BATCH_EXECUTION_FINISHED') detail = e.table + ' size=' + e.batchSize;
-                    else if (e.type === 'FINAL_FLUSH')                 detail = e.started ? 'started' : 'finished';
-                    return '<tr><td>' + i + '</td><td>' + e.timestamp + '</td><td>' + e.threadName + '</td><td>' + e.type + '</td><td>' + detail + '</td></tr>';
-                }).join('');
-            });
-        }
+
     </script>
 </body>
 </html>

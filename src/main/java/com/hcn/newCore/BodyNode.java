@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -25,7 +24,7 @@ public class BodyNode {
 
 
     public void extensionCheck() {
-        if (proved) {return;}
+        if (proved) { return; }
         proved = true;
         parentNode.extensionCheck();
     }

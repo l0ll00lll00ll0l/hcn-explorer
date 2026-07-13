@@ -5,6 +5,8 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+
 @Getter
 @Setter
 @SuperBuilder
@@ -68,7 +70,6 @@ public class TransitionNode extends MatrixNode{
 
     @Override
     public void extensionCheck() {
-        //log.debug("LocalExtension required at TransitionNode {}-{}", transitionFrom, transitionTo);
         Prime newPrime;
         if (nextMatrixNode == null) {
             newPrime = primeCenter.getPrime(getLastPrime().getIndex() + 1);
@@ -85,25 +86,20 @@ public class TransitionNode extends MatrixNode{
         bodyNodes.forEach((key, transition) -> {
             transition.setValue(transition.getValue().divide(valueExcluded));
             transition.setFactor(transition.getFactor().divide(factorExcluded));
-            //log.debug("transition after update: {}", transition);
         });
         return indexes.remove(0);
     }
 
     private void prepareNodeForBodyNodeCreation(Prime newPrime) {
-        //log.debug(" prepareNodeForBodyNodeCreation");
         indexes.add(newPrime);
         ScientificNumber valueMultiplier = new ScientificNumber(Math.pow(indexes.get(indexes.size() - 1).getIntValue(), transitionTo), 0);
-        //log.debug("  prepareNodeForBodyNodeCreation: {}", valueMultiplier);
         bodyNodes.values().forEach(bodyNode -> {
             bodyNode.setValue(bodyNode.getValue().multiply(valueMultiplier));
             bodyNode.setFactor(bodyNode.getFactor().multiply(new ScientificNumber(transitionTo + 1, 0)));
-            //log.debug("  prepareNodeForBodyNodeCreation bodyNode {}: ", bodyNode);
         });
         bodyList.forEach(body -> {
             body.setValue(body.getValue().multiply(valueMultiplier));
             body.setFactor(body.getFactor().multiply(new ScientificNumber(transitionTo + 1, 0)));
-            //log.debug("  prepareNodeForBodyNodeCreation body {}: ", body);
         });
     }
 

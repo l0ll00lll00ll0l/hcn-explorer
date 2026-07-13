@@ -1,5 +1,7 @@
 package com.hcn.newCore;
 
+import com.hcn.event.ActivityCenter;
+import com.hcn.event.MatrixExtensionActivity;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -65,7 +67,6 @@ public class BodyList implements Iterable<Body> {
 
             // check if newBody's factor is superior to floor's factor
             if (!newBody.getFactor().isBiggerThan(current.getFactor())) {
-                //log.debug("  current {} prevents newbody {}", current, newBody);
                 continue;
             }
 
@@ -73,7 +74,6 @@ public class BodyList implements Iterable<Body> {
             Body ceiling = current.getLargerBody();
             while (ceiling != null && ceiling.getFactor().isNotBiggerThan(newBody.getFactor())) {
                 Body next = ceiling.getLargerBody();
-                //log.debug("  newBody {} dominates {}", newBody, ceiling);
                 dominatedBodies.add(ceiling);
                 ceiling = next;
             }
@@ -84,18 +84,14 @@ public class BodyList implements Iterable<Body> {
             newBody.setLargerBody(ceiling);
             if (ceiling != null) ceiling.setSmallerBody(newBody);
             newBody.getBodyNode().getActiveBodies().add(newBody);
-            //log.debug("  newBody {} is added as active", newBody);
             if (newBody.getParent() != null) {
                 newBody.getParent().getOffsprings().add(newBody);
-                //log.debug("  parentOffspring added {}", newBody.getParent());
             }
             successfullyAddedNewBodies.add(newBody);
             current = newBody;
         }
 
-        //log.debug("Bodylist create, domination calls to begin:");
         dominatedBodies.forEach(body -> body.gotDominated());
-        return;
     }
 
     @Override
@@ -130,17 +126,10 @@ public class BodyList implements Iterable<Body> {
     }
 
     public void resetActiveBodyChain() {
-        dominatedBodies.forEach(dominatedBody -> {
-            if (dominatedBody.getSmallerBody() == null && dominatedBody.getLargerBody() == null) {
-                //log.debug("dominated body: {} sm: {} lb: {} sab: {} lab: {}", dominatedBody, dominatedBody.getSmallerBody(), dominatedBody.getLargerBody(), dominatedBody.getSmallerActiveBody(), dominatedBody.getLargerActiveBody());
-            }
-            dominatedBody.removeFromActiveList();
-        });
-        successfullyAddedNewBodies.forEach(newBody -> {
-            if (newBody.getSmallerBody() == null && newBody.getLargerBody() == null) {
-                //log.debug("fishy new active body: {} sm: {} lb: {} sab: {} lab: {}", newBody, newBody.getSmallerBody(), newBody.getLargerBody(), newBody.getSmallerActiveBody(), newBody.getLargerActiveBody());
-            }
-            newBody.addToActiveBodyList();
-        });
+        dominatedBodies.forEach(Body::removeFromActiveList);
+        successfullyAddedNewBodies.forEach(Body::addToActiveBodyList);
+        MatrixExtensionActivity mea = ActivityCenter.getMatrixExtensionActivities().get(ActivityCenter.getMatrixExtensionActivities().size() - 1);
+        mea.setCreatedActiveBodyCount(successfullyAddedNewBodies.size());
+        mea.setDeactivatedBodyCount(dominatedBodies.size());
     }
 }
