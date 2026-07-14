@@ -1,88 +1,73 @@
 package com.hcn.event;
 
+import com.hcn.db.DbInsertService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 @Component
 public class ActivityCenter {
 
     private static long nanoReference;
-    private static final List<MatrixMainActivity> matrixMainActivities = new ArrayList<>();
-    private static final List<MatrixExtensionActivity> matrixExtensionActivities = new ArrayList<>();
-    private static final List<ApiNodeCreationActivity> apiNodeCreationActivities = new ArrayList<>();
-    private static final List<TransitionNodeCreationActivity> transitionNodeCreationActivities = new ArrayList<>();
-    private static final List<HcnGenerationActivity> hcnGenerationActivities = new ArrayList<>();
 
-    private static final List<SqlInsertActivity> sqlInsertActivities = new CopyOnWriteArrayList<>();
-    private static final List<InsertBatchCreatedEvent> insertBatchCreatedEvents = new CopyOnWriteArrayList<>();
+    private static MatrixMainActivity lastMatrixMainActivity;
+    private static MatrixExtensionActivity lastMatrixExtensionActivity;
+    private static HcnGenerationActivity lastHcnGenerationActivity;
 
     private static volatile int currentLapi = 1;
+    private static boolean dbMode = false;
+    private static DbInsertService dbInsertService;
+
+    @Autowired
+    public void setDbInsertService(DbInsertService s) { dbInsertService = s; }
+
+    public static DbInsertService getDbInsertService() { return dbInsertService; }
+    public static boolean isDbMode() { return dbMode; }
 
     // Progress tracking
     private static volatile boolean proving = false;
     private static volatile int proveTarget = 0;
     private static volatile int proveProgress = 0;
 
-    public static void initialize(int firstLapiParam) {
+    public static void initialize(int firstLapiParam, boolean dbModeParam) {
+        dbMode = dbModeParam;
+        if (!dbMode) return;
         nanoReference = System.nanoTime();
-        matrixMainActivities.clear();
-        matrixExtensionActivities.clear();
-        apiNodeCreationActivities.clear();
-        transitionNodeCreationActivities.clear();
-        hcnGenerationActivities.clear();
-        sqlInsertActivities.clear();
-        insertBatchCreatedEvents.clear();
         new MatrixMainActivity(firstLapiParam);
         new HcnGenerationActivity(firstLapiParam);
     }
 
     public static void resume(int fromLapi) {
+        if (!dbMode) return;
         new MatrixMainActivity(fromLapi);
         new HcnGenerationActivity(fromLapi);
     }
 
-    public static List<HcnGenerationActivity> getHcnGenerationActivities() {
-        return hcnGenerationActivities;
-    }
+    public static void setLastMatrixMainActivity(MatrixMainActivity a)           { lastMatrixMainActivity = a; }
+    public static void setLastMatrixExtensionActivity(MatrixExtensionActivity a) { lastMatrixExtensionActivity = a; }
+    public static void setLastHcnGenerationActivity(HcnGenerationActivity a)     { lastHcnGenerationActivity = a; }
+    public static MatrixExtensionActivity getLastMatrixExtensionActivity()       { return lastMatrixExtensionActivity; }
 
     public static void interruptHcnGeneration(int lapi) {
-        HcnGenerationActivity last = hcnGenerationActivities.get(hcnGenerationActivities.size() - 1);
-        last.setEndLapi(lapi);
-        last.finish();
-        if (last.getStartLapi() == last.getEndLapi()) {
-            hcnGenerationActivities.remove(hcnGenerationActivities.size() - 1);
+        if (!dbMode) return;
+        lastHcnGenerationActivity.setEndLapi(lapi);
+        lastHcnGenerationActivity.finish();
+        if (lastHcnGenerationActivity.getStartLapi() != lastHcnGenerationActivity.getEndLapi()) {
+            dbInsertService.submitHcnGeneration(lastHcnGenerationActivity);
         }
     }
 
     public static void interruptHcnGeneration() { interruptHcnGeneration(currentLapi); }
 
     public static void resumeHcnGeneration(int lapi) {
+        if (!dbMode) return;
         new HcnGenerationActivity(lapi);
     }
 
     public static void resumeHcnGeneration() { resumeHcnGeneration(currentLapi); }
 
-    public static List<TransitionNodeCreationActivity> getTransitionNodeCreationActivities() {
-        return transitionNodeCreationActivities;
-    }
-
-    public static List<ApiNodeCreationActivity> getApiNodeCreationActivities() {
-        return apiNodeCreationActivities;
-    }
-
-    public static void addExtensionActivity(MatrixExtensionActivity activity) {
-        matrixExtensionActivities.add(activity);
-    }
-
-    public static List<InsertBatchCreatedEvent> getInsertBatchCreatedEvents() {
-        return insertBatchCreatedEvents;
-    }
-
-    public static List<SqlInsertActivity> getSqlInsertActivities() {
-        return sqlInsertActivities;
+    public static void addExtensionActivity(MatrixExtensionActivity a) {
+        if (!dbMode) return;
+        setLastMatrixExtensionActivity(a);
     }
 
     public static boolean isProving() { return proving; }
@@ -93,25 +78,28 @@ public class ActivityCenter {
     public static void setProveTarget(int v) { proveTarget = v; }
     public static void setProveProgress(int v) { proveProgress = v; }
 
-    public static List<MatrixMainActivity> getMatrixMainActivities() {
-        return matrixMainActivities;
-    }
-
-    public static List<MatrixExtensionActivity> getMatrixExtensionActivities() {
-        return matrixExtensionActivities;
-    }
+    private static long totalNanos = 0;
+    public static long getTotalNanos() { return totalNanos; }
+    public static void setTotalNanos(long v) { totalNanos = v; }
 
     public static long getNanos() {
-        return System.nanoTime() - nanoReference;
+        return totalNanos + System.nanoTime() - nanoReference;
+    }
+
+    public static void completeRun() {
+        totalNanos += System.nanoTime() - nanoReference;
     }
 
     public static void finishMatrixMainActivity(int lastLapi) {
+        if (!dbMode) return;
         interruptHcnGeneration(lastLapi);
-        matrixMainActivities.get(matrixMainActivities.size() - 1).finish();
-        matrixMainActivities.get(matrixMainActivities.size() - 1).setLastLapi(lastLapi);
+        lastMatrixMainActivity.finish();
+        lastMatrixMainActivity.setLastLapi(lastLapi);
+        dbInsertService.submitStructural(lastMatrixMainActivity);
     }
 
     public static void finishMatrixExtensionActivity() {
-        matrixExtensionActivities.get(matrixExtensionActivities.size() - 1).finish();
+        if (!dbMode) return;
+        lastMatrixExtensionActivity.finish();
     }
 }

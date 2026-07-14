@@ -128,8 +128,10 @@ public class BodyList implements Iterable<Body> {
     public void resetActiveBodyChain() {
         dominatedBodies.forEach(Body::removeFromActiveList);
         successfullyAddedNewBodies.forEach(Body::addToActiveBodyList);
-        MatrixExtensionActivity mea = ActivityCenter.getMatrixExtensionActivities().get(ActivityCenter.getMatrixExtensionActivities().size() - 1);
-        mea.setCreatedActiveBodyCount(successfullyAddedNewBodies.size());
-        mea.setDeactivatedBodyCount(dominatedBodies.size());
+        if (ActivityCenter.isDbMode()) {
+            MatrixExtensionActivity mea = ActivityCenter.getLastMatrixExtensionActivity();
+            mea.setCreatedActiveBodyCount(successfullyAddedNewBodies.size());
+            mea.setDeactivatedBodyCount(dominatedBodies.size());
+        }
     }
 }

@@ -2,6 +2,7 @@ package com.hcn.controller;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
+import com.hcn.db.ActivityReadService;
 import com.hcn.db.DatabaseService;
 import com.hcn.db.DbInsertService;
 import com.hcn.db.MatrixDeserializer;
@@ -36,6 +37,9 @@ public class NewCoreController {
     private DatabaseService databaseService;
 
     @Autowired
+    private ActivityReadService activityReadService;
+
+    @Autowired
     private DbInsertService dbInsertService;
 
     @GetMapping("/newcore")
@@ -63,13 +67,15 @@ public class NewCoreController {
             model.addAttribute("activeBodyNodeId", activeBodyNodeId);
         }
         model.addAttribute("activeTab", activeTab);
-        model.addAttribute("matrixMainActivities", ActivityCenter.getMatrixMainActivities());
-        model.addAttribute("matrixExtensionActivities", ActivityCenter.getMatrixExtensionActivities());
-        model.addAttribute("hcnGenerationActivities", ActivityCenter.getHcnGenerationActivities());
-        model.addAttribute("apiNodeCreationActivities", ActivityCenter.getApiNodeCreationActivities());
-        model.addAttribute("transitionNodeCreationActivities", ActivityCenter.getTransitionNodeCreationActivities());
-        model.addAttribute("sqlInsertActivities", ActivityCenter.getSqlInsertActivities());
-        model.addAttribute("insertBatchCreatedEvents", ActivityCenter.getInsertBatchCreatedEvents());
+        if (matrix.isDbMode()) {
+            String db = matrix.getDbName();
+            model.addAttribute("dbMatrixMainActivities",      activityReadService.getMatrixMainActivities(db));
+            model.addAttribute("dbMatrixExtensionActivities", activityReadService.getMatrixExtensionActivities(db));
+            model.addAttribute("dbHcnGenerationActivities",   activityReadService.getHcnGenerationActivities(db));
+            model.addAttribute("dbApiNodeCreationActivities", activityReadService.getApiNodeCreationActivities(db));
+            model.addAttribute("dbTransitionNodeActivities",  activityReadService.getTransitionNodeCreationActivities(db));
+            model.addAttribute("dbSqlInsertActivities",       activityReadService.getSqlInsertActivities(db));
+        }
         return "newcore";
     }
 
@@ -103,8 +109,6 @@ public class NewCoreController {
             JdbcTemplate dbTemplate = databaseService.createTemplateForDb(matrix.getDbName());
             dbTemplate.execute(serializer.buildMatrixNodeInsert(nodes));
             dbTemplate.execute(serializer.buildPrimeInsert(nodes, lapis));
-            String bodyNodeInsert = serializer.buildBodyNodeInsert();
-            if (bodyNodeInsert != null) dbTemplate.execute(bodyNodeInsert);
             dbTemplate.execute(serializer.buildLapiInsert(lapis));
             String lapiHcnInsert = serializer.buildLapiHcnInsert(lapis);
             if (lapiHcnInsert != null) dbTemplate.execute(lapiHcnInsert);
@@ -112,6 +116,8 @@ public class NewCoreController {
             if (refIntervalHcnInsert != null) dbTemplate.execute(refIntervalHcnInsert);
             String bodyInsert = serializer.buildBodyInsert();
             if (bodyInsert != null) dbTemplate.execute(bodyInsert);
+            String bodyNodeInsert = serializer.buildBodyNodeInsert();
+            if (bodyNodeInsert != null) dbTemplate.execute(bodyNodeInsert);
             String hcnInsert = serializer.buildHcnInsert();
             if (hcnInsert != null) dbTemplate.execute(hcnInsert);
             dbTemplate.execute(serializer.buildMatrixInsert(matrix));

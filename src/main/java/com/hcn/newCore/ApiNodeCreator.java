@@ -1,5 +1,6 @@
 package com.hcn.newCore;
 
+import com.hcn.event.ActivityCenter;
 import com.hcn.event.ApiNodeCreationActivity;
 import lombok.extern.slf4j.Slf4j;
 import java.util.TreeMap;
@@ -10,7 +11,7 @@ public class ApiNodeCreator {
     public static void createNewApi(ApiNode parentApiNode, TransitionNode transitionNode) {
 
         Prime newIndex = transitionNode.indexes.get(0);
-        ApiNodeCreationActivity activity = new ApiNodeCreationActivity(newIndex.getIndex());
+        ApiNodeCreationActivity activity = ActivityCenter.isDbMode() ? new ApiNodeCreationActivity(newIndex.getIndex()) : null;
         ApiNode newApiNode = ApiNode.builder().prevMatrixNode(parentApiNode).nextMatrixNode(transitionNode).build();
         newApiNode.indexes.add(newIndex);
 
@@ -44,7 +45,7 @@ public class ApiNodeCreator {
         transitionNode.indexes.remove(0);
         parentApiNode.setNextMatrixNode(newApiNode);
         transitionNode.setPrevMatrixNode(newApiNode);
-        activity.finish();
+        if (activity != null) activity.finish();
     }
 
     private static void recalculateTransitions(TransitionNode transitionNode, BodyNode transitionToRemove) {

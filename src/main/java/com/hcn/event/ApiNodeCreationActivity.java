@@ -12,7 +12,11 @@ public class ApiNodeCreationActivity extends Activity {
         super();
         ActivityCenter.interruptHcnGeneration();
         this.index = index;
-        ActivityCenter.getApiNodeCreationActivities().add(this);
+    }
+
+    public ApiNodeCreationActivity(int index, long startNanos, long finishNanos) {
+        super(startNanos, finishNanos);
+        this.index = index;
     }
 
     @Override
@@ -25,6 +29,7 @@ public class ApiNodeCreationActivity extends Activity {
 
     public void finish() {
         super.finish();
+        ActivityCenter.getDbInsertService().submitStructural(this);
         ActivityCenter.resumeHcnGeneration();
     }
 }

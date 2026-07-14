@@ -12,7 +12,17 @@ public class SqlInsertActivity extends Activity {
         super();
         this.table = table;
         this.rowCount = rowCount;
-        ActivityCenter.getSqlInsertActivities().add(this);
+    }
+
+    public SqlInsertActivity(SqlTable table, int rowCount, long startNanos, long finishNanos) {
+        super(startNanos, finishNanos);
+        this.table = table;
+        this.rowCount = rowCount;
+    }
+
+    public void finish() {
+        super.finish();
+        ActivityCenter.getDbInsertService().submitSqlInsertActivity(this);
     }
 
     @Override

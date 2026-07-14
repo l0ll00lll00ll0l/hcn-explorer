@@ -1,5 +1,6 @@
 package com.hcn.db;
 
+import com.hcn.event.ActivityCenter;
 import com.hcn.newCore.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -275,6 +276,11 @@ public class MatrixDeserializer {
         }
     }
 
+    private int queryMaxId(String table) {
+        Integer max = dbTemplate.queryForObject("SELECT MAX(id) FROM " + table, Integer.class);
+        return max != null ? max : -1;
+    }
+
     private Matrix buildMatrix() {
         Map<String, Object> row = dbTemplate.queryForMap("SELECT * FROM tmp_matrix");
 
@@ -290,8 +296,7 @@ public class MatrixDeserializer {
         long matrixMaintainTimeMs = (long) row.get("matrix_maintain_time_ms");
         long generateHcnListTimeMs = (long) row.get("generate_hcn_list_time_ms");
         boolean dbMode = (boolean) row.get("db_mode");
-        int hcnIdCounter = (int) row.get("hcn_id_counter");
-        int bodyIdCounter = (int) row.get("body_id_counter");
+        long totalNanos = (long) row.get("total_nanos");
 
         Matrix matrix = Matrix.builder()
                 .lastTransition((TransitionNode) matrixNodeMap.get(lastTransitionId))
@@ -308,10 +313,18 @@ public class MatrixDeserializer {
                 .build();
 
         if (dbMode) {
-            dbInsertService.setHcnIdCounter(hcnIdCounter);
-            dbInsertService.setBodyIdCounter(bodyIdCounter);
+            Integer lastFirstHcn = dbTemplate.queryForObject("SELECT first_hcn FROM interval ORDER BY lapi DESC LIMIT 1", Integer.class);
+            Integer lastSize = dbTemplate.queryForObject("SELECT size FROM interval ORDER BY lapi DESC LIMIT 1", Integer.class);
+            dbInsertService.setHcnIdCounter(lastFirstHcn != null ? lastFirstHcn + lastSize - 1 : 0);
+            dbInsertService.setBodyIdCounter(queryMaxId("body") + 1);
+            dbInsertService.setStructuralIdCounter(queryMaxId("structural_activity") + 1);
+            dbInsertService.setExtensionIdCounter(queryMaxId("extension_activity") + 1);
+            dbInsertService.setHcnGenerationIdCounter(queryMaxId("hcn_generation_activity") + 1);
+            dbInsertService.setSqlInsertActIdCounter(queryMaxId("sql_insert_activity") + 1);
             matrix.setDbInsertService(dbInsertService);
         }
+
+        ActivityCenter.setTotalNanos(totalNanos);
 
         Integer refLapi = (Integer) row.get("reference_interval_lapi");
         if (refLapi != null) {

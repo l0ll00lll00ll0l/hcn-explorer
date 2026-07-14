@@ -14,6 +14,11 @@ public abstract class Activity {
         this.startNanos = ActivityCenter.getNanos();
     }
 
+    protected Activity(long startNanos, long finishNanos) {
+        this.startNanos = startNanos;
+        this.finishNanos = finishNanos;
+    }
+
     public void finish() {
         this.finishNanos = ActivityCenter.getNanos();
     }

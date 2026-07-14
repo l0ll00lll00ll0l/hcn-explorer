@@ -86,7 +86,7 @@
         <button class="tab-btn" th:classappend="${activeTab == 'lapi' ? ' active' : ''}" data-tab="lapi" onclick="switchTab('lapi')">Lapi</button>
         <button class="tab-btn" th:classappend="${activeTab == 'dbbody' ? ' active' : ''}" data-tab="dbbody" onclick="switchTab('dbbody')">DbBody</button>
         <button class="tab-btn" th:classappend="${activeTab == 'refinterval' ? ' active' : ''}" data-tab="refinterval" onclick="switchTab('refinterval')">ReferenceInterval</button>
-        <button class="tab-btn" th:classappend="${activeTab == 'processactivity' ? ' active' : ''}" data-tab="processactivity" onclick="switchTab('processactivity')">Process Activity</button>
+        <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'processactivity' ? ' active' : ''}" data-tab="processactivity" onclick="switchTab('processactivity')">Process Activity</button>
     </div>
 
     <div id="tab-matrix" class="tab-content" th:classappend="${activeTab == 'matrix' ? ' active' : ''}">
@@ -311,7 +311,7 @@
         </table>
     </div>
 
-    <div id="tab-processactivity" class="tab-content" th:classappend="${activeTab == 'processactivity' ? ' active' : ''}">
+    <div th:if="${matrix.dbMode}" id="tab-processactivity" class="tab-content" th:classappend="${activeTab == 'processactivity' ? ' active' : ''}">
         <!-- Legend -->
         <div style="display: flex; gap: 16px; margin-bottom: 8px; font-size: 11px; font-family: monospace; flex-wrap: wrap;">
             <span><span style="display:inline-block; width:14px; height:14px; background:#212121; opacity:0.3; border:1px solid #333; vertical-align:middle; margin-right:4px;"></span>MatrixMain</span>
@@ -330,12 +330,12 @@
         <script th:inline="javascript">
         (function() {
             var activities = [];
-            /*[# th:each="a : ${matrixMainActivities}"]*/ activities.push({ type: 'MatrixMain',     start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
-            /*[# th:each="a : ${hcnGenerationActivities}"]*/ activities.push({ type: 'HcnGeneration',  start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
-            /*[# th:each="a : ${matrixExtensionActivities}"]*/ activities.push({ type: 'Extension',      start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
-            /*[# th:each="a : ${apiNodeCreationActivities}"]*/ activities.push({ type: 'ApiNode',        start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
-            /*[# th:each="a : ${transitionNodeCreationActivities}"]*/ activities.push({ type: 'TransitionNode', start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
-            /*[# th:each="a : ${sqlInsertActivities}"]*/ activities.push({ type: 'SqlInsert', lane: /*[[${a.table}]]*/ '', start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+            /*[# th:each="a : ${dbMatrixMainActivities}"]*/ activities.push({ type: 'MatrixMain',     start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+            /*[# th:each="a : ${dbHcnGenerationActivities}"]*/ activities.push({ type: 'HcnGeneration',  start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+            /*[# th:each="a : ${dbMatrixExtensionActivities}"]*/ activities.push({ type: 'Extension',      start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+            /*[# th:each="a : ${dbApiNodeCreationActivities}"]*/ activities.push({ type: 'ApiNode',        start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+            /*[# th:each="a : ${dbTransitionNodeActivities}"]*/ activities.push({ type: 'TransitionNode', start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+            /*[# th:each="a : ${dbSqlInsertActivities}"]*/ activities.push({ type: 'SqlInsert', lane: /*[[${a.table}]]*/ '', start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
 
             if (activities.length === 0) return;
 
@@ -385,7 +385,6 @@
                 .call(xAxis);
             var laneY = axisH;
 
-            // Lane header labels (static, outside clip)
             var headerG = svg.append('g');
             headerG.append('text').attr('x', -4).attr('y', laneY + laneH / 2 + 4)
                 .attr('text-anchor', 'end').attr('font-size', '9px').attr('font-family', 'monospace').attr('fill', '#555').text('Matrix');
@@ -396,7 +395,6 @@
             });
 
             var gRects = gMain.append('g');
-
             var tooltip = document.getElementById('activity-tooltip');
 
             function draw(scale) {

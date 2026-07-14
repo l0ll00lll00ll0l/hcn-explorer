@@ -57,7 +57,7 @@ public abstract class MatrixNode {
     public void createNextBodyNode() {
         int nextBodyNodeId = bodyNodes.lastKey() + 1;
         BodyNode nextBodyNode = provideNextBodyNode();
-        new MatrixExtensionActivity(nextBodyNode);
+        if (ActivityCenter.isDbMode()) new MatrixExtensionActivity(nextBodyNode);
         bodyNodes.put(nextBodyNodeId, nextBodyNode);
 
         Set<Body> createdBodies;

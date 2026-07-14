@@ -12,7 +12,13 @@ public class HcnGenerationActivity extends Activity {
     public HcnGenerationActivity(int startLapi) {
         super();
         this.startLapi = startLapi;
-        ActivityCenter.getHcnGenerationActivities().add(this);
+        ActivityCenter.setLastHcnGenerationActivity(this);
+    }
+
+    public HcnGenerationActivity(int startLapi, int endLapi, long startNanos, long finishNanos) {
+        super(startNanos, finishNanos);
+        this.startLapi = startLapi;
+        this.endLapi = endLapi;
     }
 
     @Override

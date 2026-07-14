@@ -12,7 +12,17 @@ public class MatrixMainActivity extends Activity {
     public MatrixMainActivity(int firstLapi) {
         super();
         this.firstLapi = firstLapi;
-        ActivityCenter.getMatrixMainActivities().add(this);
+        ActivityCenter.setLastMatrixMainActivity(this);
+    }
+
+    public MatrixMainActivity(int firstLapi, long startNanos, long finishNanos) {
+        super(startNanos, finishNanos);
+        this.firstLapi = firstLapi;
+    }
+
+    public void finish() {
+        super.finish();
+        ActivityCenter.getDbInsertService().submitStructural(this);
     }
 
     @Override

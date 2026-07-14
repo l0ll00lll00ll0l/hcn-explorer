@@ -174,8 +174,7 @@ public class DatabaseService {
                     matrix_maintain_time_ms BIGINT,
                     generate_hcn_list_time_ms BIGINT,
                     db_mode BOOLEAN,
-                    hcn_id_counter INT,
-                    body_id_counter INT,
+                    total_nanos BIGINT,
                     reference_interval_lapi INT,
                     reference_interval_value_mantissa DOUBLE PRECISION,
                     reference_interval_value_exponent BIGINT,
@@ -220,6 +219,45 @@ public class DatabaseService {
                     id BIGINT PRIMARY KEY,
                     body INT,
                     lapi INT
+                )
+                """);
+        dbTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS structural_activity (
+                    id INT PRIMARY KEY,
+                    type VARCHAR(32),
+                    start_nanos BIGINT,
+                    finish_nanos BIGINT,
+                    int_1 INT,
+                    int_2 INT
+                )
+                """);
+        dbTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS extension_activity (
+                    id INT PRIMARY KEY,
+                    start_nanos BIGINT,
+                    finish_nanos BIGINT,
+                    index INT,
+                    power INT,
+                    created_active_body_count INT,
+                    deactivated_body_count INT
+                )
+                """);
+        dbTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS hcn_generation_activity (
+                    id INT PRIMARY KEY,
+                    start_nanos BIGINT,
+                    finish_nanos BIGINT,
+                    start_lapi INT,
+                    end_lapi INT
+                )
+                """);
+        dbTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS sql_insert_activity (
+                    id INT PRIMARY KEY,
+                    start_nanos BIGINT,
+                    finish_nanos BIGINT,
+                    row_count INT,
+                    table_name VARCHAR(16)
                 )
                 """);
     }

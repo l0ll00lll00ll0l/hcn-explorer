@@ -187,7 +187,7 @@ public class Matrix {
 
     public void proveLapi(int count) {
         long start = System.currentTimeMillis();
-        ActivityCenter.initialize(nextLapi.getPrime().getIndex());
+        ActivityCenter.initialize(nextLapi.getPrime().getIndex(), dbMode);
         for (int i = 0; i < count; i++) {
             proveNextLapi();
             ActivityCenter.setProveProgress(i + 1);
@@ -204,6 +204,7 @@ public class Matrix {
         if (dbMode) {
             try {
                 dbInsertService.finalFlush(highestLapi.getPrime().getIndex());
+                ActivityCenter.completeRun();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }

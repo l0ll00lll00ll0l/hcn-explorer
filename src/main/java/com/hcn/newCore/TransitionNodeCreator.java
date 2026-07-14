@@ -1,14 +1,14 @@
 package com.hcn.newCore;
 
+import com.hcn.event.ActivityCenter;
 import com.hcn.event.TransitionNodeCreationActivity;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TreeMap;
 
 public class TransitionNodeCreator {
 
     public static void createNewTransitionNode(ApiNode fixNode) {
-        TransitionNodeCreationActivity activity = new TransitionNodeCreationActivity(fixNode.bodyNodes.firstEntry().getValue().getBodyNodeId() - 1);
+        TransitionNodeCreationActivity activity = ActivityCenter.isDbMode() ? new TransitionNodeCreationActivity(fixNode.bodyNodes.firstEntry().getValue().getBodyNodeId() - 1) : null;
 
         List<ApiNode> apiNodesToMove = new ArrayList<>();
         BodyNode fixPip = fixNode.bodyNodes.firstEntry().getValue();
@@ -90,7 +90,7 @@ public class TransitionNodeCreator {
             apiNode.setPrevMatrixNode(null);
             apiNode.getBodyNodes().clear();
         });
-        activity.finish();
+        if (activity != null) activity.finish();
     }
 
     private static int getTransitioIdForBody(Body bodyToRebuild, int transitionTo) {

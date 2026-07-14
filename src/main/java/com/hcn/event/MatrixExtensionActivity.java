@@ -28,6 +28,14 @@ public class MatrixExtensionActivity extends Activity {
         ActivityCenter.addExtensionActivity(this);
     }
 
+    public MatrixExtensionActivity(int index, int power, int createdActiveBodyCount, int deactivatedBodyCount, long startNanos, long finishNanos) {
+        super(startNanos, finishNanos);
+        this.index = index;
+        this.power = power;
+        this.createdActiveBodyCount = createdActiveBodyCount;
+        this.deactivatedBodyCount = deactivatedBodyCount;
+    }
+
     @Override
     public String getLabelName() { return "Extension"; }
 
@@ -38,6 +46,7 @@ public class MatrixExtensionActivity extends Activity {
 
     public void finish() {
         super.finish();
+        ActivityCenter.getDbInsertService().submitExtension(this);
         ActivityCenter.resumeHcnGeneration();
     }
 }

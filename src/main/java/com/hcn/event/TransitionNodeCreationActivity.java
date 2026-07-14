@@ -12,7 +12,11 @@ public class TransitionNodeCreationActivity extends Activity {
         super();
         ActivityCenter.interruptHcnGeneration();
         this.transitionTo = transitionTo;
-        ActivityCenter.getTransitionNodeCreationActivities().add(this);
+    }
+
+    public TransitionNodeCreationActivity(int transitionTo, long startNanos, long finishNanos) {
+        super(startNanos, finishNanos);
+        this.transitionTo = transitionTo;
     }
 
     @Override
@@ -25,6 +29,7 @@ public class TransitionNodeCreationActivity extends Activity {
 
     public void finish() {
         super.finish();
+        ActivityCenter.getDbInsertService().submitStructural(this);
         ActivityCenter.resumeHcnGeneration();
     }
 }

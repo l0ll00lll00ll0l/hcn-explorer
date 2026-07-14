@@ -1,5 +1,6 @@
 package com.hcn.db;
 
+import com.hcn.event.ActivityCenter;
 import com.hcn.newCore.Body;
 import com.hcn.newCore.BodyNode;
 import com.hcn.newCore.Hcn;
@@ -55,11 +56,9 @@ public class MatrixSerializer {
     private void assignBodyTempIdsWithParents(Body body) {
         if (body.getTempId() != null) return;
         assignBodyTempId(body);
-        assignBodyNodeTempId(body.getBodyNode());
         Body parent = body.getParent();
         while (parent != null && parent.getTempId() == null) {
             assignBodyTempId(parent);
-            assignBodyNodeTempId(parent.getBodyNode());
             parent = parent.getParent();
         }
     }
@@ -109,6 +108,7 @@ public class MatrixSerializer {
         if (body.getTempId() == null) {
             body.setTempId(++bodyTempId);
             collectedBodies.add(body);
+            assignBodyNodeTempId(body.getBodyNode());
         }
         return body.getTempId();
     }
@@ -126,12 +126,10 @@ public class MatrixSerializer {
         Body current = node.getBodyList().getSmallestBody();
         while (current != null) {
             assignBodyTempId(current);
-            assignBodyNodeTempId(current.getBodyNode());
             if (current.isDeactivated()) {
                 Body parent = current.getParent();
-                while (parent != null && parent.getTempId() == null) {
+                while (parent != null) {
                     assignBodyTempId(parent);
-                    assignBodyNodeTempId(parent.getBodyNode());
                     parent = parent.getParent();
                 }
             }
@@ -324,7 +322,7 @@ public class MatrixSerializer {
     }
 
     public String buildMatrixInsert(Matrix matrix) {
-        return String.format("INSERT INTO tmp_matrix (last_transition, next_lapi, lowest_lapi, highest_lapi, lowest_proved_lapi_within_interval, proved_count, proved_limit_mantissa, proved_limit_exponent, total_time_ms, matrix_maintain_time_ms, generate_hcn_list_time_ms, db_mode, hcn_id_counter, body_id_counter, reference_interval_lapi, reference_interval_value_mantissa, reference_interval_value_exponent, reference_interval_factor_mantissa, reference_interval_factor_exponent) VALUES (%d, %s, %s, %s, %d, %d, %s, %d, %d, %d, %d, %b, %d, %d, %s, %s, %s, %s, %s)",
+        return String.format("INSERT INTO tmp_matrix (last_transition, next_lapi, lowest_lapi, highest_lapi, lowest_proved_lapi_within_interval, proved_count, proved_limit_mantissa, proved_limit_exponent, total_time_ms, matrix_maintain_time_ms, generate_hcn_list_time_ms, db_mode, total_nanos, reference_interval_lapi, reference_interval_value_mantissa, reference_interval_value_exponent, reference_interval_factor_mantissa, reference_interval_factor_exponent) VALUES (%d, %s, %s, %s, %d, %d, %s, %d, %d, %d, %d, %b, %d, %s, %s, %s, %s, %s)",
                 assignMatrixNodeTempId(matrix.getLastTransition()),
                 matrix.getNextLapi() != null ? matrix.getNextLapi().getPrime().getIndex() : "NULL",
                 matrix.getLowestLapi() != null ? matrix.getLowestLapi().getPrime().getIndex() : "NULL",
@@ -337,8 +335,7 @@ public class MatrixSerializer {
                 matrix.getMatrixMaintainTimeMs(),
                 matrix.getGenerateHcnListTimeMs(),
                 matrix.isDbMode(),
-                matrix.isDbMode() ? matrix.getDbInsertService().getHcnIdCounter() : 0,
-                matrix.isDbMode() ? matrix.getDbInsertService().getBodyIdCounter() : 0,
+                ActivityCenter.getTotalNanos(),
                 matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getLapi() : "NULL",
                 matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getValue().getMantissa() : "NULL",
                 matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getValue().getExponent() : "NULL",
