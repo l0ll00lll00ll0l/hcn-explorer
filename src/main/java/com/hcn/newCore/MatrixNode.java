@@ -24,6 +24,7 @@ public abstract class MatrixNode {
     protected Integer tempId = null;
     protected BodyList bodyList;
     protected final TreeMap<Integer, BodyNode> bodyNodes = new TreeMap<>();
+    protected final TreeMap<Integer, BodyNode> deactivatedBodyNodes = new TreeMap<>();
     protected final List<Prime> indexes = new ArrayList<>();
 
     public void deactivatedMaintain() {
@@ -49,9 +50,13 @@ public abstract class MatrixNode {
 
         bodyList.mergeBodies(createdBodies);
         parentDeactivationCheck(incomingParents);
-        if (nextMatrixNode != null) {nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());} else {
-            bodyList.resetActiveBodyChain();
+
+        if (nextMatrixNode != null) {
+            nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());
+        } else {
+            bodyList.maintainHcnGeneratorList();
         }
+
     }
 
     public void createNextBodyNode() {
@@ -77,14 +82,16 @@ public abstract class MatrixNode {
             parentDeactivationCheck(parents);
         }
 
-        if (nextMatrixNode != null) {nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());} else {
-            bodyList.resetActiveBodyChain();
+        if (nextMatrixNode != null) {
+            nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());
+        } else {
+            bodyList.maintainHcnGeneratorList();
         }
         ActivityCenter.finishMatrixExtensionActivity();
     }
 
     private void parentDeactivationCheck(List<Body> parents) {
-        parents.stream().filter(body -> body.getOffsprings().isEmpty()).forEach(Body::gotDominated);
+        parents.stream().filter(body -> body.getOffsprings().isEmpty() && body.getDeactivatedOffsprings().isEmpty()).forEach(Body::deactivate);
     }
 
     protected abstract BodyNode provideNextBodyNode();

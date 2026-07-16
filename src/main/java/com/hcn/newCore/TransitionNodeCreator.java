@@ -68,6 +68,11 @@ public class TransitionNodeCreator {
                 parentBody.getOffsprings().add(newBody);
                 newBody.getOffsprings().addAll(bodyToRebuild.getOffsprings());
                 transitionToUse.getActiveBodies().add(newBody);
+            } else {
+                bodyToRebuild.getBodyNode().getDeactivatedBodies().remove(bodyToRebuild);
+                transitionToUse.getDeactivatedBodies().add(newBody);
+                parentBody.getDeactivatedOffsprings().remove(bodyToRebuild);
+                parentBody.getDeactivatedOffsprings().add(newBody);
             }
 
             bodyToRebuild.getOffsprings().forEach(offspring -> offspring.setParent(newBody));

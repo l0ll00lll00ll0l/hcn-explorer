@@ -234,8 +234,8 @@ public class MatrixDeserializer {
             body.setParent(parentId != null ? bodyMap.get(parentId) : null);
             body.setSmallerBody(smallerId != null ? bodyMap.get(smallerId) : null);
             body.setLargerBody(largerId != null ? bodyMap.get(largerId) : null);
-            body.setSmallerActiveBody(smallerActiveId != null ? bodyMap.get(smallerActiveId) : null);
-            body.setLargerActiveBody(largerActiveId != null ? bodyMap.get(largerActiveId) : null);
+            body.setSmallerHcnGenerator(smallerActiveId != null ? bodyMap.get(smallerActiveId) : null);
+            body.setLargerHcnGenerator(largerActiveId != null ? bodyMap.get(largerActiveId) : null);
             body.setLastGeneratedHcn(lastGenHcnId != null ? hcnMap.get(lastGenHcnId) : null);
             body.setFirstHcn(firstHcnId != null ? hcnMap.get(firstHcnId) : null);
             body.setFirstSuperiorHcn(firstSuperiorHcnId != null ? hcnMap.get(firstSuperiorHcnId) : null);

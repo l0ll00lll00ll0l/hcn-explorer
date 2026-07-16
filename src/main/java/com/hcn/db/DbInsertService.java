@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @Slf4j
@@ -53,6 +54,9 @@ public class DbInsertService {
     private int hcnGenerationCount = 0;
     private int sqlInsertActCount  = 0;
 
+    private static final java.util.Set<SqlTable> ACTIVITY_TABLES = java.util.Set.of(
+            SqlTable.STRUCTURAL_ACTIVITY, SqlTable.EXTENSION_ACTIVITY, SqlTable.HCN_GENERATION_ACTIVITY, SqlTable.SQL_INSERT_ACTIVITY);
+
     private static final String BODY_INSERT           = "INSERT INTO body (id, head, tail) VALUES ";
     private static final String INTERVAL_INSERT       = "INSERT INTO interval (lapi, value_mantissa, value_exponent, factor_mantissa, factor_exponent, first_hcn, size, reference_interval) VALUES ";
     private static final String HCN_INSERT            = "INSERT INTO hcn (id, body, lapi) VALUES ";
@@ -66,14 +70,14 @@ public class DbInsertService {
     private int structuralIdCounter    = 0;
     private int extensionIdCounter     = 0;
     private int hcnGenerationIdCounter = 0;
-    private int sqlInsertActIdCounter  = 0;
+    private final AtomicInteger sqlInsertActIdCounter = new AtomicInteger(0);
 
     public void setHcnIdCounter(int v) { hcnIdCounter = v; }
     public void setBodyIdCounter(int v) { bodyIdCounter = v; }
     public void setStructuralIdCounter(int v) { structuralIdCounter = v; }
     public void setExtensionIdCounter(int v) { extensionIdCounter = v; }
     public void setHcnGenerationIdCounter(int v) { hcnGenerationIdCounter = v; }
-    public void setSqlInsertActIdCounter(int v) { sqlInsertActIdCounter = v; }
+    public void setSqlInsertActIdCounter(int v) { sqlInsertActIdCounter.set(v); }
 
     private JdbcTemplate dbTemplate;
 
@@ -91,10 +95,10 @@ public class DbInsertService {
         new Thread(() -> consumeInserts(bodyQueue,          () -> bodyRunning          = true, () -> bodyRunning          = false, SqlTable.BODY),     "db-body-insert").start();
         new Thread(() -> consumeInserts(hcnQueue,           () -> hcnRunning           = true, () -> hcnRunning           = false, SqlTable.HCN),      "db-hcn-insert").start();
         new Thread(() -> consumeInserts(intervalQueue,      () -> intervalRunning      = true, () -> intervalRunning      = false, SqlTable.INTERVAL), "db-interval-insert").start();
-        new Thread(() -> consumeInserts(structuralQueue,    () -> structuralRunning    = true, () -> structuralRunning    = false, null),              "db-structural-insert").start();
-        new Thread(() -> consumeInserts(extensionQueue,     () -> extensionRunning     = true, () -> extensionRunning     = false, null),              "db-extension-insert").start();
-        new Thread(() -> consumeInserts(hcnGenerationQueue, () -> hcnGenerationRunning = true, () -> hcnGenerationRunning = false, null),              "db-hcngen-insert").start();
-        new Thread(() -> consumeInserts(sqlInsertActQueue,  () -> sqlInsertActRunning  = true, () -> sqlInsertActRunning  = false, null),              "db-sqlact-insert").start();
+        new Thread(() -> consumeInserts(structuralQueue,    () -> structuralRunning    = true, () -> structuralRunning    = false, SqlTable.STRUCTURAL_ACTIVITY),    "db-structural-insert").start();
+        new Thread(() -> consumeInserts(extensionQueue,     () -> extensionRunning     = true, () -> extensionRunning     = false, SqlTable.EXTENSION_ACTIVITY),     "db-extension-insert").start();
+        new Thread(() -> consumeInserts(hcnGenerationQueue, () -> hcnGenerationRunning = true, () -> hcnGenerationRunning = false, SqlTable.HCN_GENERATION_ACTIVITY), "db-hcngen-insert").start();
+        new Thread(() -> consumeInserts(sqlInsertActQueue,  () -> sqlInsertActRunning  = true, () -> sqlInsertActRunning  = false, SqlTable.SQL_INSERT_ACTIVITY), "db-sqlact-insert").start();
     }
 
     private void resetBuffers() {
@@ -153,9 +157,17 @@ public class DbInsertService {
                 InsertBatch batch = q.take();
                 onStart.run();
                 if (table != null) {
-                    SqlInsertActivity activity = new SqlInsertActivity(table, batch.count());
-                    dbTemplate.execute(batch.sql());
-                    activity.finish();
+                    if (ACTIVITY_TABLES.contains(table)) {
+                        long startNanos = ActivityCenter.getNanos();
+                        int stubId = sqlInsertActIdCounter.getAndIncrement();
+                        dbTemplate.execute("INSERT INTO sql_insert_activity (id, start_nanos, row_count, table_name) VALUES (" + stubId + "," + startNanos + "," + batch.count() + ",'" + table + "')");
+                        dbTemplate.execute(batch.sql());
+                        dbTemplate.execute("UPDATE sql_insert_activity SET finish_nanos = " + ActivityCenter.getNanos() + " WHERE id = " + stubId);
+                    } else {
+                        SqlInsertActivity activity = new SqlInsertActivity(table, batch.count());
+                        dbTemplate.execute(batch.sql());
+                        activity.finish();
+                    }
                 } else {
                     dbTemplate.execute(batch.sql());
                 }
@@ -254,7 +266,7 @@ public class DbInsertService {
 
     public synchronized void submitSqlInsertActivity(SqlInsertActivity a) {
         if (sqlInsertActCount > 0) sqlInsertActBuffer.append(",");
-        sqlInsertActBuffer.append("(").append(sqlInsertActIdCounter++).append(",").append(a.getStartNanos()).append(",").append(a.getFinishNanos()).append(",").append(a.getRowCount()).append(",'").append(a.getTable()).append("')");
+        sqlInsertActBuffer.append("(").append(sqlInsertActIdCounter.getAndIncrement()).append(",").append(a.getStartNanos()).append(",").append(a.getFinishNanos()).append(",").append(a.getRowCount()).append(",'").append(a.getTable()).append("')");
         if (++sqlInsertActCount >= THRESHOLD) flushSqlInsertActivity();
     }
 

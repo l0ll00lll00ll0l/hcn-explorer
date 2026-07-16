@@ -9,10 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.TreeMap;
 
 @Getter
 @Setter
@@ -74,6 +72,8 @@ public class BodyList implements Iterable<Body> {
             Body ceiling = current.getLargerBody();
             while (ceiling != null && ceiling.getFactor().isNotBiggerThan(newBody.getFactor())) {
                 Body next = ceiling.getLargerBody();
+                ceiling.setSmallerBody(null);
+                ceiling.setLargerBody(null);
                 dominatedBodies.add(ceiling);
                 ceiling = next;
             }
@@ -91,7 +91,11 @@ public class BodyList implements Iterable<Body> {
             current = newBody;
         }
 
-        dominatedBodies.forEach(body -> body.gotDominated());
+        dominatedBodies.forEach(body -> {
+            body.setSmallerBody(null);
+            body.setLargerBody(null);
+            body.deletedDuringExtension();
+        });
     }
 
     @Override
@@ -109,10 +113,14 @@ public class BodyList implements Iterable<Body> {
     }
 
     public void deactivatedMaintain(ScientificNumber smallestPossibleExtension) {
-        while (smallestBody.isDeactivated() && smallestBody.getLargerBody().getValue().isSmallerThan(smallestPossibleExtension)) {
+        while (smallestBody.isDeactivated() &&
+                smallestBody.getLargerBody().getValue().isSmallerThan(smallestPossibleExtension) &&
+                smallestBody.getDeactivatedOffsprings().isEmpty()) {
+            Body pruned = smallestBody;
             smallestBody = smallestBody.getLargerBody();
-            smallestBody.getSmallerBody().setLargerBody(null);
             smallestBody.setSmallerBody(null);
+            pruned.setLargerBody(null);
+            pruned.deleteDuringBodyListMaintain();
         }
     }
 
@@ -125,9 +133,9 @@ public class BodyList implements Iterable<Body> {
         };
     }
 
-    public void resetActiveBodyChain() {
-        dominatedBodies.forEach(Body::removeFromActiveList);
-        successfullyAddedNewBodies.forEach(Body::addToActiveBodyList);
+    public void maintainHcnGeneratorList() {
+        dominatedBodies.forEach(Body::removeFromHcnGeneratorList);
+        successfullyAddedNewBodies.forEach(Body::addToHcnGeneratorList);
         if (ActivityCenter.isDbMode()) {
             MatrixExtensionActivity mea = ActivityCenter.getLastMatrixExtensionActivity();
             mea.setCreatedActiveBodyCount(successfullyAddedNewBodies.size());

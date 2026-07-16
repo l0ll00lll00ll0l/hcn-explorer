@@ -257,7 +257,7 @@ public class DatabaseService {
                     start_nanos BIGINT,
                     finish_nanos BIGINT,
                     row_count INT,
-                    table_name VARCHAR(16)
+                    table_name VARCHAR(32)
                 )
                 """);
     }

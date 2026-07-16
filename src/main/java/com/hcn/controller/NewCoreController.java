@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 @Controller
@@ -103,12 +104,13 @@ public class NewCoreController {
                 databaseService.truncateTmpTables(matrix.getDbName());
             }
             MatrixSerializer serializer = new MatrixSerializer();
-            List<MatrixNode> nodes = serializer.buildMatrixNodeSet(matrix);
+            serializer.resetAllBodyTempIds(matrix);
+            List<MatrixNode> activeNodes = serializer.buildActiveMatrixNodeSet(matrix);
             List<Lapi> lapis = serializer.buildLapiList(matrix);
-            serializer.prepareForSave(matrix, nodes, lapis);
+            serializer.prepareForSave(matrix, activeNodes, lapis);
             JdbcTemplate dbTemplate = databaseService.createTemplateForDb(matrix.getDbName());
-            dbTemplate.execute(serializer.buildMatrixNodeInsert(nodes));
-            dbTemplate.execute(serializer.buildPrimeInsert(nodes, lapis));
+            dbTemplate.execute(serializer.buildMatrixNodeInsert());
+            dbTemplate.execute(serializer.buildPrimeInsert(activeNodes, lapis));
             dbTemplate.execute(serializer.buildLapiInsert(lapis));
             String lapiHcnInsert = serializer.buildLapiHcnInsert(lapis);
             if (lapiHcnInsert != null) dbTemplate.execute(lapiHcnInsert);
@@ -199,7 +201,7 @@ public class NewCoreController {
         }
         while (current != null) {
             bodies.add(current);
-            current = current.getLargerActiveBody();
+            current = current.getLargerHcnGenerator();
         }
         return bodies;
     }
@@ -251,6 +253,24 @@ public class NewCoreController {
         return sb.toString();
     }
 
+    public String deactivatedOffspringString(Body body) {
+        if (body.getDeactivatedOffsprings().isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        List<Body> sorted = body.getDeactivatedOffsprings().stream()
+                .sorted(Comparator.comparingInt(b -> b.getBodyNode().getBodyNodeId()))
+                .toList();
+        for (int i = 0; i < sorted.size(); i++) {
+            if (i > 0) sb.append(", ");
+            BodyNode node = sorted.get(i).getBodyNode();
+            if (node.getParentNode() instanceof ApiNode) {
+                sb.append(node.getBodyNodeId());
+            } else {
+                sb.append("t").append(node.getBodyNodeId());
+            }
+        }
+        return sb.toString();
+    }
+
     public String matrixNodeLabel(MatrixNode node) {
         if (node instanceof ApiNode a) return "p" + a.getIndexes().get(0).getIndex();
         if (node instanceof TransitionNode t) return "p" + t.getIndexes().get(0).getIndex() + "→p" + t.getIndexes().get(t.getIndexes().size() - 1).getIndex();
@@ -259,6 +279,16 @@ public class NewCoreController {
 
     public int totalActiveHcnGen(BodyNode bn) {
         return bn.getActiveBodies().stream().mapToInt(Body::getActiveHcnGeneratorCount).sum();
+    }
+
+    private void appendBodyJson(StringBuilder sb, Body body) {
+        sb.append("{\"guiString\":\"").append(guiString(body).replace("\"", "\\\"")).append("\"")
+          .append(",\"value\":\"").append(body.getValue()).append("\"")
+          .append(",\"factor\":\"").append(body.getFactor()).append("\"")
+          .append(",\"proved\":").append(body.isProved())
+          .append(",\"activeHcnGeneratorCount\":").append(body.getActiveHcnGeneratorCount())
+          .append(",\"log\":\"").append(body.getValue().logBase(body.getFactor())).append("\"");
+        sb.append("}");
     }
 
     public String getBodyNodesJson(List<MatrixNode> chain) {
@@ -272,31 +302,42 @@ public class NewCoreController {
                 BodyNode bn = entry.getValue();
                 if (!first) sb.append(",");
                 first = false;
-                sb.append("{\"id\":").append(bn.getBodyNodeId())
-                  .append(",\"value\":\"").append(bn.getValue()).append("\"")
-                  .append(",\"factor\":\"").append(bn.getFactor()).append("\"")
-                  .append(",\"proved\":").append(bn.isProved())
-                  .append(",\"activeBodiesCount\":").append(bn.getActiveBodies().size())
-                  .append(",\"totalActiveHcnGen\":").append(bn.getActiveBodies().stream().mapToInt(Body::getActiveHcnGeneratorCount).sum())
-                  .append(",\"activeBodies\":[");
-                boolean firstBody = true;
-                for (Body body : bn.getActiveBodies().stream().sorted().toList()) {
-                    if (!firstBody) sb.append(",");
-                    firstBody = false;
-                    sb.append("{\"guiString\":\"").append(guiString(body).replace("\"", "\\\"")).append("\"")
-                      .append(",\"value\":\"").append(body.getValue()).append("\"")
-                      .append(",\"factor\":\"").append(body.getFactor()).append("\"")
-                      .append(",\"proved\":").append(body.isProved())
-                      .append(",\"deactivated\":").append(body.isDeactivated())
-                      .append(",\"activeHcnGeneratorCount\":").append(body.getActiveHcnGeneratorCount())
-                      .append(",\"log\":\"").append(body.getValue().logBase(body.getFactor())).append("\"")
-                      .append("}");
-                }
-                sb.append("]}");
+                appendBodyNodeJson(sb, bn, false);
+            }
+            for (var entry : node.getDeactivatedBodyNodes().descendingMap().entrySet()) {
+                BodyNode bn = entry.getValue();
+                if (!first) sb.append(",");
+                first = false;
+                appendBodyNodeJson(sb, bn, true);
             }
             sb.append("]");
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    private void appendBodyNodeJson(StringBuilder sb, BodyNode bn, boolean deactivated) {
+        sb.append("{\"id\":").append(bn.getBodyNodeId())
+          .append(",\"deactivated\":").append(deactivated)
+          .append(",\"value\":\"").append(bn.getValue()).append("\"")
+          .append(",\"factor\":\"").append(bn.getFactor()).append("\"")
+          .append(",\"proved\":").append(bn.isProved())
+          .append(",\"activeBodiesCount\":").append(bn.getActiveBodies().size())
+          .append(",\"totalActiveHcnGen\":").append(bn.getActiveBodies().stream().mapToInt(Body::getActiveHcnGeneratorCount).sum())
+          .append(",\"activeBodies\":[");
+        boolean firstBody = true;
+        for (Body body : bn.getActiveBodies().stream().sorted().toList()) {
+            if (!firstBody) sb.append(",");
+            firstBody = false;
+            appendBodyJson(sb, body);
+        }
+        sb.append("],\"deactivatedBodies\":[");
+        firstBody = true;
+        for (Body body : bn.getDeactivatedBodies().stream().sorted().toList()) {
+            if (!firstBody) sb.append(",");
+            firstBody = false;
+            appendBodyJson(sb, body);
+        }
+        sb.append("]}");
     }
 }

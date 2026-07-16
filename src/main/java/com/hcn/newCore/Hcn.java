@@ -22,10 +22,10 @@ public class Hcn {
         }
     }
 
-    public void gotDominated() {
+    public void deactivateParent() {
         body.setLastGeneratedHcn(this);
-        body.removeFromActiveList();
-        body.gotDominated();
+        body.removeFromHcnGeneratorList();
+        body.deactivate();
     }
 
     @Override

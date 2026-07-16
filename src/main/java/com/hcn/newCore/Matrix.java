@@ -122,16 +122,16 @@ public class Matrix {
         b32.setSmallerBody(b22);
         b32.setLargerBody(null);
 
-        b11.setSmallerActiveBody(null);
-        b11.setLargerActiveBody(b21);
-        b21.setSmallerActiveBody(b11);
-        b21.setLargerActiveBody(b31);
-        b31.setSmallerActiveBody(b21);
-        b31.setLargerActiveBody(b22);
-        b22.setSmallerActiveBody(b31);
-        b22.setLargerActiveBody(b32);
-        b32.setSmallerActiveBody(b22);
-        b32.setLargerActiveBody(null);
+        b11.setSmallerHcnGenerator(null);
+        b11.setLargerHcnGenerator(b21);
+        b21.setSmallerHcnGenerator(b11);
+        b21.setLargerHcnGenerator(b31);
+        b31.setSmallerHcnGenerator(b21);
+        b31.setLargerHcnGenerator(b22);
+        b22.setSmallerHcnGenerator(b31);
+        b22.setLargerHcnGenerator(b32);
+        b32.setSmallerHcnGenerator(b22);
+        b32.setLargerHcnGenerator(null);
 
         lastTransition.setBodyList(BodyList.builder().smallestBody(b11).build());
 
@@ -253,12 +253,10 @@ public class Matrix {
             candidateIsSuperior = true;
             Hcn targetHcn = nextLapi.generateHcn(nextLapi.getWalker());
 
-            //log.debug("targetHcn: {} for targetValue: {}", targetHcn, targetValue);
-
             if (largestGeneratedSuperiorHcn.getFactor().isNotSmallerThan(targetHcn.getFactor())) {
                 candidateIsSuperior = false;
-                nextLapi.setWalker(nextLapi.getWalker().getLargerActiveBody());
-                targetHcn.gotDominated();
+                nextLapi.setWalker(nextLapi.getWalker().getLargerHcnGenerator());
+                targetHcn.deactivateParent();
                 lastTransition.deactivatedMaintain();
                 targetValue = determineTargetValue();
             }
@@ -295,6 +293,7 @@ public class Matrix {
             lowestLapi.recalculateMultipliers(currentLastMatrixIndex);
             nextLapi.recalculateMultipliers(currentLastMatrixIndex);
         }
+        lastTransition.deactivatedMaintain();
     }
 
     private void maintainProvedHcns() {

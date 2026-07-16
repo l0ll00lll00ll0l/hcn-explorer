@@ -40,7 +40,7 @@ public class Lapi {
     }
 
     public void generateHcnList(ScientificNumber provedLimit, ScientificNumber targetValue, Body smallestBody) {
-        if (walker == null || walker.isDeactivated() || walker.getLargerActiveBody() == null) {
+        if (walker == null || walker.isDeactivated() || walker.getLargerHcnGenerator() == null) {
             walker = restoreWalker(smallestBody, provedLimit);
         }
         if (walker != null) {
@@ -75,7 +75,7 @@ public class Lapi {
     private void createBaseHcnList(ScientificNumber targetValue) {
         while (walker.getLastGeneratedHcn().getValue().isSmallerThan(targetValue)) {
             hcnList.add(walker.getLastGeneratedHcn());
-            Body walkercandidate = walker.getLargerActiveBody();
+            Body walkercandidate = walker.getLargerHcnGenerator();
             if (walkercandidate == null) {
                 break;
             }
@@ -88,7 +88,7 @@ public class Lapi {
         if (lowerLapi != null) {
             if (hcnList.get(hcnList.size() - 1).getLapi() < prime.getIndex()) {
                 while (walker.getLastGeneratedHcn().getFactor().isNotBiggerThan(hcnList.get(hcnList.size() - 1).getFactor())) {
-                    walker.getLastGeneratedHcn().gotDominated();
+                    walker.getLastGeneratedHcn().deactivateParent();
                     walker = walker.getNextActiveBody();
                     generateHcn(walker);
                 }
@@ -112,7 +112,7 @@ public class Lapi {
                 hcnList.add(localSuperiorIndex + 1, lowerLapiNextHcn);
                 int indexToFactorCheck = localSuperiorIndex + 2;
                 while (indexToFactorCheck < hcnList.size() && hcnList.get(indexToFactorCheck).getFactor().isNotBiggerThan(lowerLapiNextHcn.getFactor())) {
-                    hcnList.get(indexToFactorCheck).gotDominated();
+                    hcnList.get(indexToFactorCheck).deactivateParent();
                     hcnList.remove(indexToFactorCheck);
                 }
             }

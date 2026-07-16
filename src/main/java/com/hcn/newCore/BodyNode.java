@@ -19,6 +19,7 @@ public class BodyNode {
     private ScientificNumber value;
     private ScientificNumber factor;
     private final Set<Body> activeBodies = new HashSet<>();
+    private final Set<Body> deactivatedBodies = new HashSet<>();
     @Builder.Default
     private Integer tempId = null;
 
@@ -31,6 +32,10 @@ public class BodyNode {
 
     public boolean isActive() {
         return parentNode.bodyNodes.containsValue(this);
+    }
+
+    public boolean isDeactivated() {
+        return parentNode.deactivatedBodyNodes.containsValue(this);
     }
 
     @Override

@@ -65,7 +65,7 @@ public class ApiNode extends MatrixNode {
     @Override
     public void extensionCheck() {
         if (transitionReleaseRequired()) {
-            ApiNodeCreator.createNewApi(this, (TransitionNode) nextMatrixNode);
+            new ApiNodeCreator(this, (TransitionNode) nextMatrixNode).create();
         }
         if (isLocalExtensionRequired()) {
             createNextBodyNode();

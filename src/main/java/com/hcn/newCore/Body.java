@@ -6,7 +6,9 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Getter @Setter @Builder @Slf4j
 public class Body implements Comparable<Body>{
@@ -15,6 +17,7 @@ public class Body implements Comparable<Body>{
     private ScientificNumber factor;
     private Body parent;
     private final List<Body> offsprings = new ArrayList<>();
+    private final Set<Body> deactivatedOffsprings = new HashSet<>();
     @Builder.Default
     private boolean proved = false;
     @Builder.Default
@@ -22,8 +25,8 @@ public class Body implements Comparable<Body>{
     private Integer dbId = null;
     private Body smallerBody;
     private Body largerBody;
-    private Body smallerActiveBody;
-    private Body largerActiveBody;
+    private Body smallerHcnGenerator;
+    private Body largerHcnGenerator;
     @Builder.Default
     private Hcn lastGeneratedHcn = null;
     @Builder.Default
@@ -35,6 +38,10 @@ public class Body implements Comparable<Body>{
     @Builder.Default
     private boolean deactivated = false;
     private DbBody dbBody;
+
+    public boolean isDeleted() {
+        return smallerBody == null && largerBody == null;
+    }
 
     public DbBody getDbBody() {
         if (dbBody == null) {
@@ -55,26 +62,26 @@ public class Body implements Comparable<Body>{
         return candidate;
     }
 
-    public void removeFromActiveList() {
-        if (smallerActiveBody != null) {
-            smallerActiveBody.setLargerActiveBody(largerActiveBody);
+    public void removeFromHcnGeneratorList() {
+        if (smallerHcnGenerator != null) {
+            smallerHcnGenerator.setLargerHcnGenerator(largerHcnGenerator);
         }
-        if (largerActiveBody != null) {
-            largerActiveBody.setSmallerActiveBody(smallerActiveBody);
+        if (largerHcnGenerator != null) {
+            largerHcnGenerator.setSmallerHcnGenerator(smallerHcnGenerator);
         }
-        smallerActiveBody = null;
-        largerActiveBody = null;
+        smallerHcnGenerator = null;
+        largerHcnGenerator = null;
     }
 
-    public void addToActiveBodyList() {
-        this.smallerActiveBody = getPrevActiveBody();
-        this.largerActiveBody = getNextActiveBody();
+    public void addToHcnGeneratorList() {
+        this.smallerHcnGenerator = getPrevActiveBody();
+        this.largerHcnGenerator = getNextActiveBody();
 
-        if (smallerActiveBody != null) {
-            smallerActiveBody.setLargerActiveBody(this);
+        if (smallerHcnGenerator != null) {
+            smallerHcnGenerator.setLargerHcnGenerator(this);
         }
-        if (largerActiveBody != null) {
-            largerActiveBody.setSmallerActiveBody(this);
+        if (largerHcnGenerator != null) {
+            largerHcnGenerator.setSmallerHcnGenerator(this);
         }
     }
 
@@ -90,22 +97,78 @@ public class Body implements Comparable<Body>{
         }
     }
 
-    public void gotDominated() {
+    public void deactivate() {
 
         deactivated = true;
         bodyNode.getActiveBodies().remove(this);
+        bodyNode.getDeactivatedBodies().add(this);
 
         if (parent != null) {
+            //log.debug("deactivate parent offspring remove: {}", parent);
             parent.offsprings.remove(this);
             if (parent.offsprings.isEmpty()) {
-                parent.gotDominated();
+                parent.deactivate();
             }
+            parent.deactivatedOffsprings.add(this);
         }
 
+        bodyNodeActivityMaintain();
+    }
+
+    public void deletedDuringExtension() {
+        if (deactivated) {
+            bodyNode.getDeactivatedBodies().remove(this);
+            if (parent != null) {
+                //log.debug("deletedDuringExtension parent deactivatedOffsprings remove: {}", parent);
+                parent.deactivatedOffsprings.remove(this);
+            }
+        } else {
+            bodyNode.getActiveBodies().remove(this);
+            if (parent != null) {
+                //log.debug("deletedDuringExtension parent offspring remove: {}", parent);
+                parent.offsprings.remove(this);
+                if (!parent.isDeleted() && parent.offsprings.isEmpty()) {
+                    parent.deactivate();
+                }
+            }
+        }
+        bodyNodeActivityMaintain();
+    }
+
+    public void deleteDuringBodyListMaintain() {
+
+        if (deactivated) {
+            bodyNode.getDeactivatedBodies().remove(this);
+            if (parent != null) {
+                //log.debug("deleteDuringBodyListMaintain parent deactivatedOffsprings remove: {}", parent);
+                parent.deactivatedOffsprings.remove(this);
+            }
+        } else {
+            bodyNode.getActiveBodies().remove(this);
+            if (parent != null) {
+                //log.debug("deleteDuringBodyListMaintain parent offsprings remove: {}", parent);
+                parent.offsprings.remove(this);
+                if (!parent.isDeleted() && parent.offsprings.isEmpty()) {
+                    parent.deactivate();
+                }
+            }
+        }
+        bodyNodeActivityMaintain();
+    }
+
+    private void bodyNodeActivityMaintain() {
         if (bodyNode.getActiveBodies().isEmpty()) {
-            bodyNode.getParentNode().bodyNodes.remove(bodyNode.getBodyNodeId());
-            if (bodyNode.getParentNode().bodyNodes.size() == 1) {
-                TransitionNodeCreator.createNewTransitionNode((ApiNode) bodyNode.getParentNode());
+            MatrixNode parentNode = bodyNode.getParentNode();
+            parentNode.bodyNodes.remove(bodyNode.getBodyNodeId());
+            parentNode.deactivatedBodyNodes.put(bodyNode.getBodyNodeId(), bodyNode);
+        }
+
+        if (bodyNode.getDeactivatedBodies().isEmpty()) {
+            MatrixNode parentNode = bodyNode.getParentNode();
+            parentNode.deactivatedBodyNodes.remove(bodyNode.getBodyNodeId());
+
+            if (parentNode instanceof ApiNode apiNode && parentNode.bodyNodes.size() == 1 && parentNode.deactivatedBodyNodes.isEmpty()) {
+                TransitionNodeCreator.createNewTransitionNode(apiNode);
             }
         }
     }

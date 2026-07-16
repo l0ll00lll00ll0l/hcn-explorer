@@ -9,6 +9,8 @@
         .tab-btn.active { background: #333; color: white; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        .subtab-content { display: none; }
+        .subtab-content.active { display: block; }
         .matrix-chain { display: flex; gap: 8px; align-items: flex-end; overflow-x: auto; padding: 10px 0; }
         .matrix-box { border: 1px solid #333; min-width: 120px; background: #fafafa; }
         .matrix-box-header { padding: 4px 8px; font-size: 11px; text-align: center; font-weight: bold; }
@@ -86,7 +88,7 @@
         <button class="tab-btn" th:classappend="${activeTab == 'lapi' ? ' active' : ''}" data-tab="lapi" onclick="switchTab('lapi')">Lapi</button>
         <button class="tab-btn" th:classappend="${activeTab == 'dbbody' ? ' active' : ''}" data-tab="dbbody" onclick="switchTab('dbbody')">DbBody</button>
         <button class="tab-btn" th:classappend="${activeTab == 'refinterval' ? ' active' : ''}" data-tab="refinterval" onclick="switchTab('refinterval')">ReferenceInterval</button>
-        <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'processactivity' ? ' active' : ''}" data-tab="processactivity" onclick="switchTab('processactivity')">Process Activity</button>
+        <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'processactivity' ? ' active' : ''}" data-tab="processactivity" onclick="switchTab('processactivity')">Activities</button>
     </div>
 
     <div id="tab-matrix" class="tab-content" th:classappend="${activeTab == 'matrix' ? ' active' : ''}">
@@ -102,6 +104,12 @@
                             <span class="transition-id" th:text="${entry.value.bodyNodeId}"></span>
                             <span th:text="'(' + ${@newCoreController.totalActiveHcnGen(entry.value)} + ')'" ></span>
                         </div>
+                        <div th:each="entry : ${node.deactivatedBodyNodes.descendingMap()}" class="transition-panel"
+                             th:style="'cursor:pointer; background-color: #e0e0e0;'"
+                             th:onclick="'openBodyNode(' + ${iter.index} + ',' + ${entry.value.bodyNodeId} + ')'">
+                            <span class="transition-id" th:text="${entry.value.bodyNodeId}"></span>
+                            <span th:text="'(' + ${entry.value.deactivatedBodies.size()} + ')'" ></span>
+                        </div>
                     </div>
                     <div class="bodynode-btn" th:attr="onclick='openBodyList(' + ${iter.index} + ')'" th:text="'Bodies (' + ${node.bodyList != null ? node.bodyList.size() : 0} + ')'"></div>
                     <div class="matrix-box-footer" th:text="'p' + ${node.indexes.get(0).index}"></div>
@@ -115,6 +123,12 @@
                              th:onclick="'openBodyNode(' + ${iter.index} + ',' + ${entry.value.bodyNodeId} + ')'">
                             <span class="transition-id" th:text="${entry.value.bodyNodeId}"></span>
                             <span th:text="'(' + ${@newCoreController.totalActiveHcnGen(entry.value)} + ')'" ></span>
+                        </div>
+                        <div th:each="entry : ${node.deactivatedBodyNodes.descendingMap()}" class="transition-panel"
+                             th:style="'cursor:pointer; background-color: #e0e0e0;'"
+                             th:onclick="'openBodyNode(' + ${iter.index} + ',' + ${entry.value.bodyNodeId} + ')'">
+                            <span class="transition-id" th:text="${entry.value.bodyNodeId}"></span>
+                            <span th:text="'(' + ${entry.value.deactivatedBodies.size()} + ')'" ></span>
                         </div>
                     </div>
                     <div class="bodynode-btn" th:attr="onclick='openBodyList(' + ${iter.index} + ')'" th:text="'Bodies (' + ${node.bodyList != null ? node.bodyList.size() : 0} + ')'"></div>
@@ -144,7 +158,7 @@
                 <b>Smallest Possible Extension:</b> <span th:text="${node.getSmallestPossibleExtension() != null ? node.getSmallestPossibleExtension() : 'not set'}"></span>
             </div>
             <table class="level-table">
-                <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Proved</th><th>Deact</th><th>ActiveHcnGen</th><th>Offsprings</th></tr></thead>
+                <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Proved</th><th>Deact</th><th>ActiveHcnGen</th><th>Offsprings</th><th>DeactOffsprings</th></tr></thead>
                 <tbody>
                     <tr th:if="${node instanceof T(com.hcn.newCore.ApiNode) and node.bodyList != null}"
                         th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}"
@@ -158,6 +172,7 @@
                         <td th:text="${body.deactivated}"></td>
                         <td th:text="${body.activeHcnGeneratorCount}"></td>
                         <td th:text="${@newCoreController.offspringString(body)}"></td>
+                        <td th:text="${@newCoreController.deactivatedOffspringString(body)}"></td>
                     </tr>
                     <tr th:if="${node instanceof T(com.hcn.newCore.TransitionNode) and node.bodyList != null}"
                         th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}"
@@ -171,6 +186,7 @@
                         <td th:text="${body.deactivated}"></td>
                         <td th:text="${body.activeHcnGeneratorCount}"></td>
                         <td th:text="${@newCoreController.offspringString(body)}"></td>
+                        <td th:text="${@newCoreController.deactivatedOffspringString(body)}"></td>
                     </tr>
                 </tbody>
             </table>
@@ -312,6 +328,10 @@
     </div>
 
     <div th:if="${matrix.dbMode}" id="tab-processactivity" class="tab-content" th:classappend="${activeTab == 'processactivity' ? ' active' : ''}">
+        <div class="tab-bar" style="margin-bottom: 8px;">
+            <button class="tab-btn active" data-subtab="sqlinsert" onclick="switchSubTab('sqlinsert')">SQL Insertion</button>
+        </div>
+        <div id="subtab-sqlinsert" class="subtab-content active">
         <!-- Legend -->
         <div style="display: flex; gap: 16px; margin-bottom: 8px; font-size: 11px; font-family: monospace; flex-wrap: wrap;">
             <span><span style="display:inline-block; width:14px; height:14px; background:#212121; opacity:0.3; border:1px solid #333; vertical-align:middle; margin-right:4px;"></span>MatrixMain</span>
@@ -322,6 +342,10 @@
             <span><span style="display:inline-block; width:14px; height:14px; background:#e53935; vertical-align:middle; margin-right:4px;"></span>SqlInsert BODY</span>
             <span><span style="display:inline-block; width:14px; height:14px; background:#00897b; vertical-align:middle; margin-right:4px;"></span>SqlInsert HCN</span>
             <span><span style="display:inline-block; width:14px; height:14px; background:#f9a825; vertical-align:middle; margin-right:4px;"></span>SqlInsert INTERVAL</span>
+            <span><span style="display:inline-block; width:14px; height:14px; background:#7b1fa2; vertical-align:middle; margin-right:4px;"></span>SqlInsert STRUCTURAL_ACTIVITY</span>
+            <span><span style="display:inline-block; width:14px; height:14px; background:#0288d1; vertical-align:middle; margin-right:4px;"></span>SqlInsert EXTENSION_ACTIVITY</span>
+            <span><span style="display:inline-block; width:14px; height:14px; background:#558b2f; vertical-align:middle; margin-right:4px;"></span>SqlInsert HCN_GENERATION_ACTIVITY</span>
+            <span><span style="display:inline-block; width:14px; height:14px; background:#e91e63; vertical-align:middle; margin-right:4px;"></span>SqlInsert SQL_INSERT_ACTIVITY</span>
         </div>
         <!-- D3 timeline -->
         <div id="activity-tooltip" style="position:fixed; background:#333; color:#fff; padding:4px 8px; font-size:10px; font-family:monospace; border-radius:3px; pointer-events:none; display:none; white-space:pre;"></div>
@@ -345,12 +369,16 @@
                 Extension:      '#4caf50',
                 ApiNode:        '#2196f3',
                 TransitionNode: '#ff9800',
-                SqlInsert_BODY:     '#e53935',
-                SqlInsert_HCN:      '#00897b',
-                SqlInsert_INTERVAL: '#f9a825'
+                SqlInsert_BODY:                  '#e53935',
+                SqlInsert_HCN:                   '#00897b',
+                SqlInsert_INTERVAL:              '#f9a825',
+                SqlInsert_STRUCTURAL_ACTIVITY:   '#7b1fa2',
+                SqlInsert_EXTENSION_ACTIVITY:    '#0288d1',
+                SqlInsert_HCN_GENERATION_ACTIVITY: '#558b2f',
+                SqlInsert_SQL_INSERT_ACTIVITY:      '#e91e63'
             };
 
-            var sqlTables = ['BODY', 'HCN', 'INTERVAL'];
+            var sqlTables = ['BODY', 'HCN', 'INTERVAL', 'STRUCTURAL_ACTIVITY', 'EXTENSION_ACTIVITY', 'HCN_GENERATION_ACTIVITY', 'SQL_INSERT_ACTIVITY'];
             var axisH    = 30;
             var laneH    = 20;
             var innerH   = 160;
@@ -457,11 +485,18 @@
             svg.call(zoom);
         })();
         </script>
-
-    </div>
+        </div><!-- end subtab-sqlinsert -->
+    </div><!-- end tab-processactivity -->
 
     </div>
     <script th:inline="javascript">
+        function switchSubTab(subTabId) {
+            document.querySelectorAll('.subtab-content').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('[data-subtab]').forEach(function(b) { b.classList.remove('active'); });
+            document.getElementById('subtab-' + subTabId).classList.add('active');
+            document.querySelector('[data-subtab="' + subTabId + '"]').classList.add('active');
+        }
+
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
             document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -508,7 +543,8 @@
                 parsedBodyNodes[idx].forEach(function(bn) {
                     var opt = document.createElement('option');
                     opt.value = bn.id;
-                    opt.textContent = bn.id + ' (v=' + bn.value + ' f=' + bn.factor + ')';
+                    opt.textContent = (bn.deactivated ? '[D] ' : '') + bn.id + ' (v=' + bn.value + ' f=' + bn.factor + ')';
+                    if (bn.deactivated) opt.style.color = '#888';
                     select.appendChild(opt);
                 });
             }
@@ -524,6 +560,7 @@
             if (!bn) { detail.innerHTML = ''; return; }
             var html = '<table class="level-table"><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody>';
             html += '<tr><td>ID</td><td>' + bn.id + '</td></tr>';
+            html += '<tr><td>Deactivated</td><td>' + bn.deactivated + '</td></tr>';
             html += '<tr><td>Value</td><td>' + bn.value + '</td></tr>';
             html += '<tr><td>Factor</td><td>' + bn.factor + '</td></tr>';
             html += '<tr><td>Proved</td><td>' + bn.proved + '</td></tr>';
@@ -536,6 +573,15 @@
                 bn.activeBodies.forEach(function(b, i) {
                     var style = b.proved ? 'background-color: #90EE90;' : '';
                     html += '<tr style="' + style + '"><td>' + i + '</td><td>' + b.guiString + '</td><td>' + b.value + '</td><td>' + b.factor + '</td><td>' + b.log + '</td><td>' + b.proved + '</td><td>' + b.activeHcnGeneratorCount + '</td></tr>';
+                });
+                html += '</tbody></table>';
+            }
+            if (bn.deactivatedBodies.length > 0) {
+                html += '<h4 style="margin: 10px 0 4px;">Deactivated Bodies</h4>';
+                html += '<table class="level-table"><thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Proved</th></tr></thead><tbody>';
+                bn.deactivatedBodies.forEach(function(b, i) {
+                    var style = b.proved ? 'background-color: #c8e6c9;' : 'background-color: #e0e0e0;';
+                    html += '<tr style="' + style + '"><td>' + i + '</td><td>' + b.guiString + '</td><td>' + b.value + '</td><td>' + b.factor + '</td><td>' + b.log + '</td><td>' + b.proved + '</td></tr>';
                 });
                 html += '</tbody></table>';
             }
