@@ -277,6 +277,16 @@ public class NewCoreController {
         return "";
     }
 
+    public int totalActiveBodyCount(MatrixNode node) {
+        return node.getBodyNodes().values().stream().mapToInt(bn -> bn.getActiveBodies().size()).sum();
+    }
+
+    public int totalDeactivatedBodyCount(MatrixNode node) {
+        int fromActive = node.getBodyNodes().values().stream().mapToInt(bn -> bn.getDeactivatedBodies().size()).sum();
+        int fromDeactivated = node.getDeactivatedBodyNodes().values().stream().mapToInt(bn -> bn.getDeactivatedBodies().size()).sum();
+        return fromActive + fromDeactivated;
+    }
+
     public int totalActiveHcnGen(BodyNode bn) {
         return bn.getActiveBodies().stream().mapToInt(Body::getActiveHcnGeneratorCount).sum();
     }

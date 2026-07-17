@@ -102,16 +102,19 @@
                              th:style="'cursor:pointer;' + ${entry.value.proved ? 'background-color: #90EE90;' : ''}"
                              th:onclick="'openBodyNode(' + ${iter.index} + ',' + ${entry.value.bodyNodeId} + ')'">
                             <span class="transition-id" th:text="${entry.value.bodyNodeId}"></span>
-                            <span th:text="'(' + ${@newCoreController.totalActiveHcnGen(entry.value)} + ')'" ></span>
+                            <span th:text="'(' + ${@newCoreController.totalActiveHcnGen(entry.value)} + '/' + ${entry.value.deactivatedBodies.size()} + ')'" ></span>
                         </div>
                         <div th:each="entry : ${node.deactivatedBodyNodes.descendingMap()}" class="transition-panel"
                              th:style="'cursor:pointer; background-color: #e0e0e0;'"
                              th:onclick="'openBodyNode(' + ${iter.index} + ',' + ${entry.value.bodyNodeId} + ')'">
                             <span class="transition-id" th:text="${entry.value.bodyNodeId}"></span>
-                            <span th:text="'(' + ${entry.value.deactivatedBodies.size()} + ')'" ></span>
+                            <span th:text="'(' + ${@newCoreController.totalActiveHcnGen(entry.value)} + '/' + ${entry.value.deactivatedBodies.size()} + ')'" ></span>
                         </div>
                     </div>
-                    <div class="bodynode-btn" th:attr="onclick='openBodyList(' + ${iter.index} + ')'" th:text="'Bodies (' + ${node.bodyList != null ? node.bodyList.size() : 0} + ')'"></div>
+                    <div class="bodynode-btn" th:attr="onclick='openBodyList(' + ${iter.index} + ')'">
+                        <div th:text="'Bodies (' + (${@newCoreController.totalActiveBodyCount(node)} + ${@newCoreController.totalDeactivatedBodyCount(node)}) + ')'"></div>
+                        <div th:text="${@newCoreController.totalActiveBodyCount(node)} + ' - ' + ${@newCoreController.totalDeactivatedBodyCount(node)}"></div>
+                    </div>
                     <div class="matrix-box-footer" th:text="'p' + ${node.indexes.get(0).index}"></div>
                 </th:block>
                 <!-- TransitionNode -->
@@ -122,16 +125,19 @@
                              th:style="'cursor:pointer;' + ${entry.value.proved ? 'background-color: #90EE90;' : ''}"
                              th:onclick="'openBodyNode(' + ${iter.index} + ',' + ${entry.value.bodyNodeId} + ')'">
                             <span class="transition-id" th:text="${entry.value.bodyNodeId}"></span>
-                            <span th:text="'(' + ${@newCoreController.totalActiveHcnGen(entry.value)} + ')'" ></span>
+                            <span th:text="'(' + ${@newCoreController.totalActiveHcnGen(entry.value)} + '/' + ${entry.value.deactivatedBodies.size()} + ')'" ></span>
                         </div>
                         <div th:each="entry : ${node.deactivatedBodyNodes.descendingMap()}" class="transition-panel"
                              th:style="'cursor:pointer; background-color: #e0e0e0;'"
                              th:onclick="'openBodyNode(' + ${iter.index} + ',' + ${entry.value.bodyNodeId} + ')'">
                             <span class="transition-id" th:text="${entry.value.bodyNodeId}"></span>
-                            <span th:text="'(' + ${entry.value.deactivatedBodies.size()} + ')'" ></span>
+                            <span th:text="'(' + ${@newCoreController.totalActiveHcnGen(entry.value)} + '/' + ${entry.value.deactivatedBodies.size()} + ')'" ></span>
                         </div>
                     </div>
-                    <div class="bodynode-btn" th:attr="onclick='openBodyList(' + ${iter.index} + ')'" th:text="'Bodies (' + ${node.bodyList != null ? node.bodyList.size() : 0} + ')'"></div>
+                    <div class="bodynode-btn" th:attr="onclick='openBodyList(' + ${iter.index} + ')'">
+                        <div th:text="'Bodies (' + (${@newCoreController.totalActiveBodyCount(node)} + ${@newCoreController.totalDeactivatedBodyCount(node)}) + ')'"></div>
+                        <div th:text="${@newCoreController.totalActiveBodyCount(node)} + ' - ' + ${@newCoreController.totalDeactivatedBodyCount(node)}"></div>
+                    </div>
                     <div class="matrix-box-footer" th:text="'p' + ${node.indexes.get(0).index} + ' → p' + ${node.indexes.get(node.indexes.size() - 1).index}"></div>
                 </th:block>
             </div>
