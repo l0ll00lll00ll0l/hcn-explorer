@@ -257,12 +257,21 @@ public class Matrix {
                 candidateIsSuperior = false;
                 nextLapi.setWalker(nextLapi.getWalker().getLargerHcnGenerator());
                 targetHcn.deactivateParent();
-                lastTransition.deactivatedMaintain();
+                deactivateMaintain();
                 targetValue = determineTargetValue();
             }
 
         } while (!candidateIsSuperior);
         return largestGeneratedSuperiorHcn;
+    }
+
+    private void deactivateMaintain() {
+        lastTransition.deactivatedMaintain();
+        MatrixNode potentialApiNode = lastTransition.prevMatrixNode;
+        while (potentialApiNode != null) {
+            potentialApiNode.transitionNodeTriggerCheck();
+            potentialApiNode = potentialApiNode.prevMatrixNode;
+        }
     }
 
     private Hcn extendLapiHcnListsUntilTarget(ScientificNumber targetValue) {
@@ -293,7 +302,7 @@ public class Matrix {
             lowestLapi.recalculateMultipliers(currentLastMatrixIndex);
             nextLapi.recalculateMultipliers(currentLastMatrixIndex);
         }
-        lastTransition.deactivatedMaintain();
+        deactivateMaintain();
     }
 
     private void maintainProvedHcns() {

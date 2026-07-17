@@ -80,6 +80,9 @@ public class TransitionNode extends MatrixNode{
         createNextBodyNode();
     }
 
+    @Override
+    public void transitionNodeTriggerCheck() {}
+
     private Prime releaseFirstIndex() {
         ScientificNumber valueExcluded = new ScientificNumber(Math.pow(indexes.get(0).getIntValue(), transitionFrom), 0);
         ScientificNumber factorExcluded = new ScientificNumber(transitionFrom + 1, 0);

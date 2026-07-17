@@ -75,6 +75,13 @@ public class ApiNode extends MatrixNode {
         }
     }
 
+    @Override
+    public void transitionNodeTriggerCheck() {
+        if (bodyNodes.size() == 1 && deactivatedBodyNodes.isEmpty()) {
+            new TransitionNodeCreator(this).create();
+        }
+    }
+
     private boolean nextMatrixNodeExtensionRequired() {
         if (nextMatrixNode instanceof ApiNode apinode) {
             BodyNode lastNode = apinode.getBodyNodes().get(apinode.bodyNodes.lastKey());

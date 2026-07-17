@@ -166,10 +166,6 @@ public class Body implements Comparable<Body>{
         if (bodyNode.getDeactivatedBodies().isEmpty()) {
             MatrixNode parentNode = bodyNode.getParentNode();
             parentNode.deactivatedBodyNodes.remove(bodyNode.getBodyNodeId());
-
-            if (parentNode instanceof ApiNode apiNode && parentNode.bodyNodes.size() == 1 && parentNode.deactivatedBodyNodes.isEmpty()) {
-                TransitionNodeCreator.createNewTransitionNode(apiNode);
-            }
         }
     }
 

@@ -100,4 +100,5 @@ public abstract class MatrixNode {
     public abstract ScientificNumber getSmallestPossibleExtension();
     protected abstract ScientificNumber getValurForNextMatrixExtension(int bodyNodeId);
     public abstract void extensionCheck();
+    public abstract void transitionNodeTriggerCheck();
 }

@@ -113,14 +113,26 @@ public class BodyList implements Iterable<Body> {
     }
 
     public void deactivatedMaintain(ScientificNumber smallestPossibleExtension) {
-        while (smallestBody.isDeactivated() &&
-                smallestBody.getLargerBody().getValue().isSmallerThan(smallestPossibleExtension) &&
-                smallestBody.getDeactivatedOffsprings().isEmpty()) {
-            Body pruned = smallestBody;
-            smallestBody = smallestBody.getLargerBody();
-            smallestBody.setSmallerBody(null);
-            pruned.setLargerBody(null);
-            pruned.deleteDuringBodyListMaintain();
+
+        Body bodyToDelete = smallestBody;
+        while (bodyToDelete.getLargerBody() != null && bodyToDelete.getLargerBody().getValue().isSmallerThan(smallestPossibleExtension)) {
+            Body nextBody = bodyToDelete.getLargerBody();
+            if (bodyToDelete.isDeactivated()) {
+                if (bodyToDelete.getDeactivatedOffsprings().isEmpty()) {
+                    if (bodyToDelete == smallestBody) {
+                        smallestBody = smallestBody.getLargerBody();
+                        smallestBody.setSmallerBody(null);
+                        bodyToDelete.setLargerBody(null);
+                    } else {
+                        bodyToDelete.getSmallerBody().setLargerBody(bodyToDelete.getLargerBody());
+                        bodyToDelete.getLargerBody().setSmallerBody(bodyToDelete.getSmallerBody());
+                        bodyToDelete.setSmallerBody(null);
+                        bodyToDelete.setLargerBody(null);
+                    }
+                    bodyToDelete.deleteDuringBodyListMaintain();
+                }
+            }
+            bodyToDelete = nextBody;
         }
     }
 

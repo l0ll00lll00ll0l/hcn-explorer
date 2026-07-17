@@ -23,7 +23,6 @@ public class ApiNodeCreator {
 
     public void create() {
         Prime newIndex = transitionNode.indexes.get(0);
-        log.debug("deactbodies1 BEFORE: {}", transitionNode.getBodyNodes().firstEntry().getValue().getDeactivatedBodies());
         ApiNodeCreationActivity activity = ActivityCenter.isDbMode() ? new ApiNodeCreationActivity(newIndex.getIndex()) : null;
 
         createNewApiNode(newIndex);
@@ -38,7 +37,6 @@ public class ApiNodeCreator {
         transitionNode.indexes.remove(0);
         parentApiNode.setNextMatrixNode(newApiNode);
         transitionNode.setPrevMatrixNode(newApiNode);
-        log.debug("deactbodies1 AFTER: {}", transitionNode.getBodyNodes().firstEntry().getValue().getDeactivatedBodies());
         if (activity != null) activity.finish();
     }
 
