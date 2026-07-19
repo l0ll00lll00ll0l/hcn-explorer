@@ -87,7 +87,7 @@
         <button class="tab-btn" th:classappend="${activeTab == 'hcngen' ? ' active' : ''}" data-tab="hcngen" onclick="switchTab('hcngen')">Hcn Generation</button>
         <button class="tab-btn" th:classappend="${activeTab == 'lapi' ? ' active' : ''}" data-tab="lapi" onclick="switchTab('lapi')">Lapi</button>
         <button class="tab-btn" th:classappend="${activeTab == 'dbbody' ? ' active' : ''}" data-tab="dbbody" onclick="switchTab('dbbody')">DbBody</button>
-        <button class="tab-btn" th:classappend="${activeTab == 'refinterval' ? ' active' : ''}" data-tab="refinterval" onclick="switchTab('refinterval')">ReferenceInterval</button>
+        <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'refinterval' ? ' active' : ''}" data-tab="refinterval" onclick="switchTab('refinterval')">ReferenceInterval</button>
         <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'processactivity' ? ' active' : ''}" data-tab="processactivity" onclick="switchTab('processactivity')">Activities</button>
     </div>
 
@@ -300,7 +300,7 @@
     </div>
 
     <div id="tab-refinterval" class="tab-content" th:classappend="${activeTab == 'refinterval' ? ' active' : ''}">
-        <div th:if="${matrix.referenceInterval != null}">
+        <div th:if="${matrix.dbMode}">
             <table class="level-table" style="width: auto; margin-bottom: 12px;">
                 <thead><tr><th>lapi</th><th>value</th><th>factor</th><th>referenced</th><th>referenceInterval</th></tr></thead>
                 <tbody>

@@ -177,10 +177,9 @@ public class Matrix {
         provedCount = 2;
         provedLimit = new ScientificNumber(6, 0);
 
-        referenceInterval = Interval.builder().lapi(0).value(hcn1.getValue()).factor(hcn1.getFactor()).hcnList(List.of(hcn1, hcn2)).build();
-        referenceInterval.setReferenceInterval(referenceInterval);
-
         if (dbMode) {
+            referenceInterval = Interval.builder().lapi(0).value(hcn1.getValue()).factor(hcn1.getFactor()).hcnList(List.of(hcn1, hcn2)).build();
+            referenceInterval.setReferenceInterval(referenceInterval);
             dbInsertService.submit(referenceInterval);
         }
     }

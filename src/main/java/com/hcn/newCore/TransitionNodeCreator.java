@@ -23,7 +23,6 @@ public class TransitionNodeCreator {
 
     public void create() {
         TransitionNodeCreationActivity activity = ActivityCenter.isDbMode() ? new TransitionNodeCreationActivity(fixNode.bodyNodes.firstEntry().getValue().getBodyNodeId() - 1) : null;
-        log.debug("Transition Creation began");
         collectApiNodesToMove();
         findDyingbodyChains();
         buildNewTransitionNode();
