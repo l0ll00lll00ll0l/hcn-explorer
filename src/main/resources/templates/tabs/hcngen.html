@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <label style="margin-bottom: 8px; display: inline-flex; align-items: center; gap: 4px; font-size: 11px;">
+        <input type="checkbox" id="showDeactivated" checked onchange="toggleDeactivated()"/> Show Deactivated Bodies
+    </label>
+    <table class="level-table">
+        <thead>
+            <tr><th>#</th><th th:if="${matrix.dbMode}">dbId</th><th>Body</th><th>firstHcn</th><th>firstSuperiorHcn</th><th>lastGeneratedHcn</th><th>firstDominatedHcn</th></tr>
+        </thead>
+        <tbody id="hcngen-bodylist">
+            <tr th:if="${matrix.lastTransition.bodyList != null}"
+                th:each="body, bIter : ${@newCoreController.getBodies(matrix.lastTransition.bodyList)}"
+                th:data-deactivated="${body.deactivated}">
+                <td th:text="${bIter.index}"></td>
+                <td th:if="${matrix.dbMode}" th:text="${body.dbId}"></td>
+                <td th:text="${@newCoreController.guiString(body)}"></td>
+                <td th:text="${body.firstHcn != null ? body.firstHcn.lapi + ' v=' + body.firstHcn.value + ' f=' + body.firstHcn.factor : ''}"></td>
+                <td th:text="${body.firstSuperiorHcn != null ? body.firstSuperiorHcn.lapi + ' v=' + body.firstSuperiorHcn.value + ' f=' + body.firstSuperiorHcn.factor : ''}"></td>
+                <td th:text="${body.lastGeneratedHcn != null ? body.lastGeneratedHcn.lapi + ' v=' + body.lastGeneratedHcn.value + ' f=' + body.lastGeneratedHcn.factor : ''}"></td>
+                <td th:text="${body.firstDominatedHcn != null ? body.firstDominatedHcn.lapi + ' v=' + body.firstDominatedHcn.value + ' f=' + body.firstDominatedHcn.factor : ''}"></td>
+            </tr>
+        </tbody>
+        <tbody id="hcngen-activelist" style="display:none;">
+            <tr th:if="${matrix.lastTransition.bodyList != null}"
+                th:each="body, bIter : ${@newCoreController.getActiveBodiesChain(matrix.lastTransition.bodyList)}">
+                <td th:text="${bIter.index}"></td>
+                <td th:if="${matrix.dbMode}" th:text="${body.dbId}"></td>
+                <td th:text="${@newCoreController.guiString(body)}"></td>
+                <td th:text="${body.firstHcn != null ? body.firstHcn.lapi + ' v=' + body.firstHcn.value + ' f=' + body.firstHcn.factor : ''}"></td>
+                <td th:text="${body.firstSuperiorHcn != null ? body.firstSuperiorHcn.lapi + ' v=' + body.firstSuperiorHcn.value + ' f=' + body.firstSuperiorHcn.factor : ''}"></td>
+                <td th:text="${body.lastGeneratedHcn != null ? body.lastGeneratedHcn.lapi + ' v=' + body.lastGeneratedHcn.value + ' f=' + body.lastGeneratedHcn.factor : ''}"></td>
+                <td th:text="${body.firstDominatedHcn != null ? body.firstDominatedHcn.lapi + ' v=' + body.firstDominatedHcn.value + ' f=' + body.firstDominatedHcn.factor : ''}"></td>
+            </tr>
+        </tbody>
+    </table>
+    <script>
+        window.toggleDeactivated = function() {
+            var checked = document.getElementById('showDeactivated').checked;
+            document.getElementById('hcngen-bodylist').style.display = checked ? '' : 'none';
+            document.getElementById('hcngen-activelist').style.display = checked ? 'none' : '';
+        };
+    </script>
+</div>
+</body>
+</html>

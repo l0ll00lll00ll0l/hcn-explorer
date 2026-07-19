@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px;">
+        <label>MatrixNode:
+            <select id="matrixNodeSelect" onchange="loadBodyNodeSelect()" style="font-family: monospace;">
+                <option th:each="node, iter : ${matrixChain}" th:value="${iter.index}"
+                        th:selected="${iter.index == activeMatrixNodeIdx}"
+                        th:text="${@newCoreController.matrixNodeLabel(node)}"></option>
+            </select>
+        </label>
+        <label>BodyNode:
+            <select id="bodyNodeSelect" onchange="loadBodyNodeDetail()" style="font-family: monospace;">
+                <option th:each="bn : ${activeBodyNodes}" th:value="${bn.bodyNodeId}"
+                        th:selected="${bn.bodyNodeId == activeBodyNodeId}"
+                        th:text="${(bn.isDeactivated() ? '[D] ' : '') + bn.bodyNodeId + ' (v=' + bn.value + ' f=' + bn.factor + ')'}"></option>
+            </select>
+        </label>
+    </div>
+    <div id="bodynode-detail"></div>
+    <script th:inline="javascript">
+        var matrixNodeBodyNodes = JSON.parse(/*[[${bodyNodesPerMatrixNode}]]*/ '[]');
+
+        window.loadBodyNodeSelect = function() {
+            var idx = parseInt(document.getElementById('matrixNodeSelect').value);
+            var select = document.getElementById('bodyNodeSelect');
+            select.innerHTML = '';
+            (matrixNodeBodyNodes[idx] || []).forEach(function(bn) {
+                var opt = document.createElement('option');
+                opt.value = bn.id;
+                opt.textContent = (bn.deactivated ? '[D] ' : '') + bn.id + ' (v=' + bn.value + ' f=' + bn.factor + ')';
+                if (bn.deactivated) opt.style.color = '#888';
+                select.appendChild(opt);
+            });
+            window.loadBodyNodeDetail();
+        };
+
+        window.loadBodyNodeDetail = function() {
+            var matrixIdx = document.getElementById('matrixNodeSelect').value;
+            var bodyNodeId = document.getElementById('bodyNodeSelect').value;
+            tabCache['bodynode'] = null;
+            fetch('/newcore/bodynode-detail?matrixNodeIdx=' + matrixIdx + '&bodyNodeId=' + bodyNodeId)
+                .then(r => r.text())
+                .then(html => { document.getElementById('bodynode-detail').innerHTML = html; });
+        };
+
+        // load detail on initial render
+        window.loadBodyNodeDetail();
+    </script>
+</div>
+</body>
+</html>

@@ -29,6 +29,7 @@ public class NewCoreController {
 
     private Matrix matrix;
     private String activeTab = "matrix";
+    private String activeSubTab = null;
     private int activeBodyList = -1;
     private int activeMatrixNodeIdx = 0;
     private int activeBodyNodeId = -1;
@@ -60,32 +61,108 @@ public class NewCoreController {
         }
         model.addAttribute("matrix", matrix);
         model.addAttribute("logLevel", currentLogLevel);
-        if (!ActivityCenter.isProving()) {
-            List<MatrixNode> chain = getMatrixChain();
-            model.addAttribute("matrixChain", chain);
-            model.addAttribute("activeBodyList", activeBodyList == -1 ? chain.size() - 1 : activeBodyList);
-            model.addAttribute("activeMatrixNodeIdx", activeMatrixNodeIdx);
-            model.addAttribute("activeBodyNodeId", activeBodyNodeId);
-        }
         model.addAttribute("activeTab", activeTab);
-        if (matrix.isDbMode()) {
-            String db = matrix.getDbName();
-            model.addAttribute("dbMatrixMainActivities",      activityReadService.getMatrixMainActivities(db));
-            model.addAttribute("dbMatrixExtensionActivities", activityReadService.getMatrixExtensionActivities(db));
-            model.addAttribute("dbHcnGenerationActivities",   activityReadService.getHcnGenerationActivities(db));
-            model.addAttribute("dbApiNodeCreationActivities", activityReadService.getApiNodeCreationActivities(db));
-            model.addAttribute("dbTransitionNodeActivities",  activityReadService.getTransitionNodeCreationActivities(db));
-            model.addAttribute("dbSqlInsertActivities",       activityReadService.getSqlInsertActivities(db));
-        }
+        model.addAttribute("activeSubTab", activeSubTab);
         return "newcore";
     }
 
-    @PostMapping("/newcore/loglevel")
-    public String setLogLevel(@RequestParam String level,
-                              @RequestParam(defaultValue = "matrix") String tab,
-                              @RequestParam(defaultValue = "-1") int bodyListIdx) {
+    @GetMapping("/newcore/bodynode-detail")
+    public String bodynodeDetail(Model model,
+                                 @RequestParam(defaultValue = "0") int matrixNodeIdx,
+                                 @RequestParam(defaultValue = "-1") int bodyNodeId) {
+        if (matrixNodeIdx >= 0) activeMatrixNodeIdx = matrixNodeIdx;
+        if (bodyNodeId >= 0) activeBodyNodeId = bodyNodeId;
+        model.addAttribute("matrix", matrix);
+        List<MatrixNode> chain = getMatrixChain();
+        MatrixNode node = chain.get(activeMatrixNodeIdx);
+        BodyNode selected = node.getBodyNodes().get(activeBodyNodeId);
+        if (selected == null) selected = node.getDeactivatedBodyNodes().get(activeBodyNodeId);
+        if (selected == null && !node.getBodyNodes().isEmpty()) selected = node.getBodyNodes().firstEntry().getValue();
+        model.addAttribute("selectedBodyNode", selected);
+        return "tabs/bodynode-detail :: content";
+    }
+
+    @GetMapping("/newcore/tab")
+    public String tab(Model model,
+                      @RequestParam String tab,
+                      @RequestParam(defaultValue = "") String subtab,
+                      @RequestParam(defaultValue = "-1") int matrixNodeIdx,
+                      @RequestParam(defaultValue = "-1") int bodyNodeId) {
         activeTab = tab;
-        activeBodyList = bodyListIdx;
+        model.addAttribute("matrix", matrix);
+        List<MatrixNode> chain = getMatrixChain();
+        model.addAttribute("matrixChain", chain);
+
+        switch (tab) {
+            case "matrix" -> {}
+            case "bodynodes" -> {
+                activeBodyList = matrixNodeIdx == -1 ? (activeBodyList == -1 ? chain.size() - 1 : activeBodyList) : matrixNodeIdx;
+                model.addAttribute("activeBodyList", activeBodyList);
+            }
+            case "bodynode" -> {
+                if (matrixNodeIdx >= 0) activeMatrixNodeIdx = matrixNodeIdx;
+                if (bodyNodeId >= 0) activeBodyNodeId = bodyNodeId;
+                model.addAttribute("activeMatrixNodeIdx", activeMatrixNodeIdx);
+                model.addAttribute("activeBodyNodeId", activeBodyNodeId);
+                model.addAttribute("bodyNodesPerMatrixNode", getBodyNodesPerMatrixNodeJson(chain));
+                MatrixNode node = chain.get(activeMatrixNodeIdx);
+                BodyNode selected = node.getBodyNodes().get(activeBodyNodeId);
+                if (selected == null) selected = node.getDeactivatedBodyNodes().get(activeBodyNodeId);
+                if (selected == null && !node.getBodyNodes().isEmpty()) selected = node.getBodyNodes().firstEntry().getValue();
+                model.addAttribute("selectedBodyNode", selected);
+                model.addAttribute("activeBodyNodes", getBodyNodesForNode(node));
+            }
+            case "database" -> {
+                activeSubTab = subtab.isEmpty() ? (activeSubTab != null ? activeSubTab : "hcn") : subtab;
+                model.addAttribute("activeSubTab", activeSubTab);
+                if (!subtab.isEmpty()) {
+                    return "tabs/database-" + activeSubTab;
+                }
+            }
+            case "processactivity" -> {
+                String db = matrix.getDbName();
+                model.addAttribute("dbMatrixMainActivities",      activityReadService.getMatrixMainActivities(db));
+                model.addAttribute("dbMatrixExtensionActivities", activityReadService.getMatrixExtensionActivities(db));
+                model.addAttribute("dbHcnGenerationActivities",   activityReadService.getHcnGenerationActivities(db));
+                model.addAttribute("dbApiNodeCreationActivities", activityReadService.getApiNodeCreationActivities(db));
+                model.addAttribute("dbTransitionNodeActivities",  activityReadService.getTransitionNodeCreationActivities(db));
+                model.addAttribute("dbSqlInsertActivities",       activityReadService.getSqlInsertActivities(db));
+            }
+        }
+        return "tabs/" + tab + " :: content";
+    }
+
+    private List<BodyNode> getBodyNodesForNode(MatrixNode node) {
+        List<BodyNode> result = new ArrayList<>();
+        node.getBodyNodes().descendingMap().values().forEach(result::add);
+        node.getDeactivatedBodyNodes().descendingMap().values().forEach(result::add);
+        return result;
+    }
+
+    private String getBodyNodesPerMatrixNodeJson(List<MatrixNode> chain) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < chain.size(); i++) {
+            if (i > 0) sb.append(",");
+            MatrixNode node = chain.get(i);
+            sb.append("[");
+            boolean first = true;
+            for (var entry : node.getBodyNodes().descendingMap().entrySet()) {
+                if (!first) sb.append(","); first = false;
+                BodyNode bn = entry.getValue();
+                sb.append("{\"id\":").append(bn.getBodyNodeId()).append(",\"deactivated\":false,\"value\":\"").append(bn.getValue()).append("\",\"factor\":\"").append(bn.getFactor()).append("\"}");
+            }
+            for (var entry : node.getDeactivatedBodyNodes().descendingMap().entrySet()) {
+                if (!first) sb.append(","); first = false;
+                BodyNode bn = entry.getValue();
+                sb.append("{\"id\":").append(bn.getBodyNodeId()).append(",\"deactivated\":true,\"value\":\"").append(bn.getValue()).append("\",\"factor\":\"").append(bn.getFactor()).append("\"}");
+            }
+            sb.append("]");
+        }
+        return sb.append("]").toString();
+    }
+
+    @PostMapping("/newcore/loglevel")
+    public String setLogLevel(@RequestParam String level) {
         currentLogLevel = level.toUpperCase();
         LoggerContext ctx = (LoggerContext) LoggerFactory.getILoggerFactory();
         ctx.getLogger("com.hcn.newCore").setLevel(Level.toLevel(currentLogLevel));
@@ -131,6 +208,7 @@ public class NewCoreController {
             dbInsertService.setTargetDb(db);
         }
         activeTab = "matrix";
+        activeSubTab = null;
         activeBodyList = -1;
         return "redirect:/newcore";
     }
@@ -139,17 +217,14 @@ public class NewCoreController {
     public String quit() {
         matrix = null;
         activeTab = "matrix";
+        activeSubTab = null;
         activeBodyList = -1;
         return "redirect:/";
     }
 
     @PostMapping("/newcore/prove")
     @ResponseBody
-    public String prove(@RequestParam(defaultValue = "1") int count,
-                        @RequestParam(defaultValue = "matrix") String tab,
-                        @RequestParam(defaultValue = "-1") int bodyListIdx) {
-        activeTab = tab;
-        activeBodyList = bodyListIdx;
+    public String prove(@RequestParam(defaultValue = "1") int count) {
         if (!ActivityCenter.isProving()) {
             ActivityCenter.setProving(true);
             ActivityCenter.setProveTarget(count);
@@ -287,63 +362,5 @@ public class NewCoreController {
         return bn.getActiveBodies().stream().mapToInt(Body::getActiveHcnGeneratorCount).sum();
     }
 
-    private void appendBodyJson(StringBuilder sb, Body body) {
-        sb.append("{\"guiString\":\"").append(guiString(body).replace("\"", "\\\"")).append("\"")
-          .append(",\"value\":\"").append(body.getValue()).append("\"")
-          .append(",\"factor\":\"").append(body.getFactor()).append("\"")
-          .append(",\"proved\":").append(body.isProved())
-          .append(",\"activeHcnGeneratorCount\":").append(body.getActiveHcnGeneratorCount())
-          .append(",\"log\":\"").append(body.getValue().logBase(body.getFactor())).append("\"");
-        sb.append("}");
-    }
 
-    public String getBodyNodesJson(List<MatrixNode> chain) {
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < chain.size(); i++) {
-            if (i > 0) sb.append(",");
-            MatrixNode node = chain.get(i);
-            sb.append("[");
-            boolean first = true;
-            for (var entry : node.getBodyNodes().descendingMap().entrySet()) {
-                BodyNode bn = entry.getValue();
-                if (!first) sb.append(",");
-                first = false;
-                appendBodyNodeJson(sb, bn, false);
-            }
-            for (var entry : node.getDeactivatedBodyNodes().descendingMap().entrySet()) {
-                BodyNode bn = entry.getValue();
-                if (!first) sb.append(",");
-                first = false;
-                appendBodyNodeJson(sb, bn, true);
-            }
-            sb.append("]");
-        }
-        sb.append("]");
-        return sb.toString();
-    }
-
-    private void appendBodyNodeJson(StringBuilder sb, BodyNode bn, boolean deactivated) {
-        sb.append("{\"id\":").append(bn.getBodyNodeId())
-          .append(",\"deactivated\":").append(deactivated)
-          .append(",\"value\":\"").append(bn.getValue()).append("\"")
-          .append(",\"factor\":\"").append(bn.getFactor()).append("\"")
-          .append(",\"proved\":").append(bn.isProved())
-          .append(",\"activeBodiesCount\":").append(bn.getActiveBodies().size())
-          .append(",\"totalActiveHcnGen\":").append(bn.getActiveBodies().stream().mapToInt(Body::getActiveHcnGeneratorCount).sum())
-          .append(",\"activeBodies\":[");
-        boolean firstBody = true;
-        for (Body body : bn.getActiveBodies().stream().sorted().toList()) {
-            if (!firstBody) sb.append(",");
-            firstBody = false;
-            appendBodyJson(sb, body);
-        }
-        sb.append("],\"deactivatedBodies\":[");
-        firstBody = true;
-        for (Body body : bn.getDeactivatedBodies().stream().sorted().toList()) {
-            if (!firstBody) sb.append(",");
-            firstBody = false;
-            appendBodyJson(sb, body);
-        }
-        sb.append("]}");
-    }
 }

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <div th:if="${selectedBodyNode != null}">
+        <table class="level-table" style="width:auto; margin-bottom:10px;">
+            <thead><tr><th>Field</th><th>Value</th></tr></thead>
+            <tbody>
+                <tr><td>ID</td><td th:text="${selectedBodyNode.bodyNodeId}"></td></tr>
+                <tr><td>Deactivated</td><td th:text="${selectedBodyNode.isDeactivated()}"></td></tr>
+                <tr><td>Value</td><td th:text="${selectedBodyNode.value}"></td></tr>
+                <tr><td>Factor</td><td th:text="${selectedBodyNode.factor}"></td></tr>
+                <tr><td>Proved</td><td th:text="${selectedBodyNode.proved}"></td></tr>
+                <tr><td>Active Bodies</td><td th:text="${selectedBodyNode.activeBodies.size()}"></td></tr>
+                <tr><td>Total ActiveHcnGen</td><td th:text="${@newCoreController.totalActiveHcnGen(selectedBodyNode)}"></td></tr>
+            </tbody>
+        </table>
+        <div th:if="${!selectedBodyNode.activeBodies.isEmpty()}">
+            <h4 style="margin: 10px 0 4px;">Active Bodies</h4>
+            <table class="level-table">
+                <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Proved</th><th>ActiveHcnGen</th></tr></thead>
+                <tbody>
+                    <tr th:each="body, bIter : ${selectedBodyNode.activeBodies.stream().sorted().toList()}"
+                        th:style="${body.proved ? 'background-color: #90EE90;' : ''}">
+                        <td th:text="${bIter.index}"></td>
+                        <td th:text="${@newCoreController.guiString(body)}"></td>
+                        <td th:text="${body.value}"></td>
+                        <td th:text="${body.factor}"></td>
+                        <td th:text="${body.value.logBase(body.factor)}"></td>
+                        <td th:text="${body.proved}"></td>
+                        <td th:text="${body.activeHcnGeneratorCount}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${!selectedBodyNode.deactivatedBodies.isEmpty()}">
+            <h4 style="margin: 10px 0 4px;">Deactivated Bodies</h4>
+            <table class="level-table">
+                <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Proved</th></tr></thead>
+                <tbody>
+                    <tr th:each="body, bIter : ${selectedBodyNode.deactivatedBodies.stream().sorted().toList()}"
+                        th:style="${body.proved ? 'background-color: #c8e6c9;' : 'background-color: #e0e0e0;'}">
+                        <td th:text="${bIter.index}"></td>
+                        <td th:text="${@newCoreController.guiString(body)}"></td>
+                        <td th:text="${body.value}"></td>
+                        <td th:text="${body.factor}"></td>
+                        <td th:text="${body.value.logBase(body.factor)}"></td>
+                        <td th:text="${body.proved}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

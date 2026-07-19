@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <div class="bodylist-selector">
+        <span th:each="node, iter : ${matrixChain}">
+            <button class="bodylist-btn" th:classappend="${iter.index == activeBodyList ? ' active' : ''}"
+                    th:attr="onclick='selectBodyList(' + ${iter.index} + ')'"
+                    th:if="${node instanceof T(com.hcn.newCore.ApiNode)}"
+                    th:text="'p' + ${node.indexes.get(0).index}"></button>
+            <button class="bodylist-btn" th:classappend="${iter.index == activeBodyList ? ' active' : ''}"
+                    th:attr="onclick='selectBodyList(' + ${iter.index} + ')'"
+                    th:if="${node instanceof T(com.hcn.newCore.TransitionNode)}"
+                    th:text="'p' + ${node.indexes.get(0).index} + '→p' + ${node.indexes.get(node.indexes.size() - 1).index}"></button>
+        </span>
+    </div>
+    <div th:each="node, iter : ${matrixChain}" class="bodylist-panel"
+         th:id="'bodylist-' + ${iter.index}"
+         th:style="${iter.index == activeBodyList ? '' : 'display:none;'}">
+        <div style="font-size: 11px; margin-bottom: 6px;">
+            <b>Smallest Possible Extension:</b> <span th:text="${node.getSmallestPossibleExtension() != null ? node.getSmallestPossibleExtension() : 'not set'}"></span>
+        </div>
+        <table class="level-table">
+            <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Proved</th><th>Deact</th><th>ActiveHcnGen</th><th>Offsprings</th><th>DeactOffsprings</th></tr></thead>
+            <tbody>
+                <tr th:if="${node instanceof T(com.hcn.newCore.ApiNode) and node.bodyList != null}"
+                    th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}"
+                    th:style="${body.deactivated ? (body.proved ? 'background-color: #c8e6c9;' : 'background-color: #e0e0e0;') : (body.proved ? 'background-color: #90EE90;' : '')}">
+                    <td th:text="${bIter.index}"></td>
+                    <td th:text="${@newCoreController.guiString(body)}"></td>
+                    <td th:text="${body.value}"></td>
+                    <td th:text="${body.factor}"></td>
+                    <td th:text="${body.value.logBase(body.factor)}"></td>
+                    <td th:text="${body.proved}"></td>
+                    <td th:text="${body.deactivated}"></td>
+                    <td th:text="${body.activeHcnGeneratorCount}"></td>
+                    <td th:text="${@newCoreController.offspringString(body)}"></td>
+                    <td th:text="${@newCoreController.deactivatedOffspringString(body)}"></td>
+                </tr>
+                <tr th:if="${node instanceof T(com.hcn.newCore.TransitionNode) and node.bodyList != null}"
+                    th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}"
+                    th:style="${body.deactivated ? (body.proved ? 'background-color: #c8e6c9;' : 'background-color: #e0e0e0;') : (body.proved ? 'background-color: #90EE90;' : '')}">
+                    <td th:text="${bIter.index}"></td>
+                    <td th:text="${@newCoreController.guiString(body)}"></td>
+                    <td th:text="${body.value}"></td>
+                    <td th:text="${body.factor}"></td>
+                    <td th:text="${body.value.logBase(body.factor)}"></td>
+                    <td th:text="${body.proved}"></td>
+                    <td th:text="${body.deactivated}"></td>
+                    <td th:text="${body.activeHcnGeneratorCount}"></td>
+                    <td th:text="${@newCoreController.offspringString(body)}"></td>
+                    <td th:text="${@newCoreController.deactivatedOffspringString(body)}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <script>
+        window.selectBodyList = function(idx) {
+            document.querySelectorAll('.bodylist-panel').forEach(function(p) { p.style.display = 'none'; });
+            document.querySelectorAll('.bodylist-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.getElementById('bodylist-' + idx).style.display = '';
+            document.querySelectorAll('.bodylist-btn')[idx].classList.add('active');
+        };
+    </script>
+</div>
+</body>
+</html>
