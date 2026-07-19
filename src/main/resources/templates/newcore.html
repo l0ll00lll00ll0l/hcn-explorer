@@ -253,30 +253,44 @@
     </div>
 
     <div id="tab-lapi" class="tab-content" th:classappend="${activeTab == 'lapi' ? ' active' : ''}">
+        <div style="display: flex; gap: 12px; margin-bottom: 8px; font-size: 11px; flex-wrap: wrap;">
+            <label><input type="checkbox" class="lapi-col-toggle" data-col="col-lapi-idx" checked onchange="saveLapiCols()"/> #</label>
+            <th:block th:if="${matrix.dbMode}"><label><input type="checkbox" class="lapi-col-toggle" data-col="col-lapi-dbid" checked onchange="saveLapiCols()"/> dbId</label></th:block>
+            <label><input type="checkbox" class="lapi-col-toggle" data-col="col-lapi-body" onchange="saveLapiCols()"/> Body</label>
+            <label><input type="checkbox" class="lapi-col-toggle" data-col="col-lapi-lapi" checked onchange="saveLapiCols()"/> Lapi</label>
+            <label><input type="checkbox" class="lapi-col-toggle" data-col="col-lapi-value" checked onchange="saveLapiCols()"/> Value</label>
+            <label><input type="checkbox" class="lapi-col-toggle" data-col="col-lapi-factor" checked onchange="saveLapiCols()"/> Factor</label>
+            <label><input type="checkbox" class="lapi-col-toggle" data-col="col-lapi-log" checked onchange="saveLapiCols()"/> Log</label>
+        </div>
         <div class="lapi-chain">
             <div th:each="lapi, iter : ${@newCoreController.getLapiChain()}" class="lapi-box"
                  th:classappend="${iter.first ? ' lapi-next' : ''}">
                 <div class="lapi-header" th:text="'Lapi ' + ${lapi.prime.index} + ' (' + ${lapi.prime.intValue} + ')'"></div>
                 <div class="lapi-content">
                     <table class="level-table">
-                        <thead><tr><th>#</th><th th:if="${matrix.dbMode}">dbId</th><th>Lapi</th><th>Value</th><th>Factor</th><th>Log</th></tr></thead>
+                        <thead><tr><th class="col-lapi-idx">#</th><th th:if="${matrix.dbMode}" class="col-lapi-dbid">dbId</th><th class="col-lapi-body" style="display:none">Body</th><th class="col-lapi-lapi">Lapi</th><th class="col-lapi-value">Value</th><th class="col-lapi-factor">Factor</th><th class="col-lapi-log">Log</th></tr></thead>
                         <tbody>
                             <tr th:if="${lapi.walker != null and lapi.walker.lastGeneratedHcn != null}" style="border-bottom: 3px solid #333;">
-                                <td><b>walker</b></td>
-                                <td th:if="${matrix.dbMode}" th:text="${lapi.walker.dbId}"></td>
-                                <td th:text="${lapi.walker.lastGeneratedHcn.lapi}"></td>
-                                <td th:text="${lapi.walker.lastGeneratedHcn.value}"></td>
-                                <td th:text="${lapi.walker.lastGeneratedHcn.factor}"></td>
-                                <td th:text="${lapi.walker.lastGeneratedHcn.value.logBase(lapi.walker.lastGeneratedHcn.factor)}"></td>
+                                <td class="col-lapi-idx"><b>walker</b></td>
+                                <td th:if="${matrix.dbMode}" class="col-lapi-dbid" th:text="${lapi.walker.dbId}"></td>
+                                <td class="col-lapi-body" style="display:none" th:text="${@newCoreController.guiString(lapi.walker)}"></td>
+                                <td class="col-lapi-lapi" th:text="${lapi.walker.lastGeneratedHcn.lapi}"></td>
+                                <td class="col-lapi-value" th:text="${lapi.walker.lastGeneratedHcn.value}"></td>
+                                <td class="col-lapi-factor" th:text="${lapi.walker.lastGeneratedHcn.factor}"></td>
+                                <td class="col-lapi-log" th:text="${lapi.walker.lastGeneratedHcn.value.logBase(lapi.walker.lastGeneratedHcn.factor)}"></td>
                             </tr>
                             <tr th:each="hcn, hIter : ${lapi.hcnList}"
-                                th:style="${hcn.body != null and hcn.body.firstSuperiorHcn != null ? 'background-color: #90EE90;' : ''}">
-                                <td th:text="${hIter.index}"></td>
-                                <td th:if="${matrix.dbMode}" th:text="${hcn.body?.dbId}"></td>
-                                <td th:text="${hcn.lapi}"></td>
-                                <td th:text="${hcn.value}"></td>
-                                <td th:text="${hcn.factor}"></td>
-                                <td th:text="${hcn.value.logBase(hcn.factor)}"></td>
+                                th:with="deleted=${hcn.body != null and hcn.body.deleted},
+                                          superior=${hcn.body != null and hcn.body.firstSuperiorHcn != null},
+                                          striped=${deleted and superior and hcn.body.firstDominatedHcn != null and hcn.value.isSmallerThan(hcn.body.firstDominatedHcn.value)}"
+                                th:style="${striped ? 'background-color: #FFA500;' : (deleted ? 'background-color: #ff9999;' : (superior ? 'background-color: #90EE90;' : ''))}">
+                                <td class="col-lapi-idx" th:text="${hIter.index}"></td>
+                                <td th:if="${matrix.dbMode}" class="col-lapi-dbid" th:text="${hcn.body?.dbId}"></td>
+                                <td class="col-lapi-body" style="display:none" th:text="${hcn.body != null ? @newCoreController.guiString(hcn.body) : ''}"></td>
+                                <td class="col-lapi-lapi" th:text="${hcn.lapi}"></td>
+                                <td class="col-lapi-value" th:text="${hcn.value}"></td>
+                                <td class="col-lapi-factor" th:text="${hcn.factor}"></td>
+                                <td class="col-lapi-log" th:text="${hcn.value.logBase(hcn.factor)}"></td>
                             </tr>
                         </tbody>
                     </table>
@@ -635,6 +649,35 @@
         }
         // Auto-start polling if proving (page was refreshed mid-prove)
         if (/*[[${@activityCenter.isProving()}]]*/ false) { startPolling(); }
+
+        // Lapi column toggles - persist in localStorage
+        function applyLapiCols() {
+            document.querySelectorAll('.lapi-col-toggle').forEach(function(cb) {
+                var col = cb.dataset.col;
+                var visible = cb.checked;
+                document.querySelectorAll('.' + col).forEach(function(el) {
+                    el.style.display = visible ? '' : 'none';
+                });
+            });
+        }
+        function saveLapiCols() {
+            var state = {};
+            document.querySelectorAll('.lapi-col-toggle').forEach(function(cb) {
+                state[cb.dataset.col] = cb.checked;
+            });
+            localStorage.setItem('lapiCols', JSON.stringify(state));
+            applyLapiCols();
+        }
+        function restoreLapiCols() {
+            var saved = localStorage.getItem('lapiCols');
+            if (!saved) return;
+            var state = JSON.parse(saved);
+            document.querySelectorAll('.lapi-col-toggle').forEach(function(cb) {
+                if (state[cb.dataset.col] !== undefined) cb.checked = state[cb.dataset.col];
+            });
+            applyLapiCols();
+        }
+        restoreLapiCols();
 
 
     </script>

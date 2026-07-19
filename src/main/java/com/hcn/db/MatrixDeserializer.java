@@ -107,6 +107,8 @@ public class MatrixDeserializer {
             bodyNodeMap.put(id, bodyNode);
             if (active) {
                 parentNode.getBodyNodes().put(bodyNodeId, bodyNode);
+            } else {
+                parentNode.getDeactivatedBodyNodes().put(bodyNodeId, bodyNode);
             }
         });
     }
@@ -114,7 +116,7 @@ public class MatrixDeserializer {
     private void loadBodies() {
         dbTemplate.query("SELECT * FROM tmp_body", rs -> {
             int id = rs.getInt("id");
-            int bodyNodeId = rs.getInt("body_node");
+            Integer bodyNodeId = (Integer) rs.getObject("body_node");
             double valueMantissa = rs.getDouble("value_mantissa");
             long valueExponent = rs.getLong("value_exponent");
             double factorMantissa = rs.getDouble("factor_mantissa");
@@ -123,7 +125,7 @@ public class MatrixDeserializer {
             boolean deactivated = rs.getBoolean("deactivated");
 
             Body body = Body.builder()
-                    .bodyNode(bodyNodeMap.get(bodyNodeId))
+                    .bodyNode(bodyNodeId != null ? bodyNodeMap.get(bodyNodeId) : null)
                     .value(new ScientificNumber(valueMantissa, valueExponent))
                     .factor(new ScientificNumber(factorMantissa, factorExponent))
                     .proved(proved)
@@ -262,7 +264,10 @@ public class MatrixDeserializer {
 
     private void buildOffsprings() {
         for (Body body : bodyMap.values()) {
-            if (!body.isDeactivated() && body.getParent() != null) {
+            if (body.getBodyNode() == null || body.getParent() == null) continue;
+            if (body.isDeactivated()) {
+                body.getParent().getDeactivatedOffsprings().add(body);
+            } else {
                 body.getParent().getOffsprings().add(body);
             }
         }
@@ -270,7 +275,10 @@ public class MatrixDeserializer {
 
     private void buildActiveBodies() {
         for (Body body : bodyMap.values()) {
-            if (!body.isDeactivated()) {
+            if (body.getBodyNode() == null) continue; // deleted body
+            if (body.isDeactivated()) {
+                body.getBodyNode().getDeactivatedBodies().add(body);
+            } else {
                 body.getBodyNode().getActiveBodies().add(body);
             }
         }

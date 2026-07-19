@@ -104,24 +104,18 @@ public class NewCoreController {
                 databaseService.truncateTmpTables(matrix.getDbName());
             }
             MatrixSerializer serializer = new MatrixSerializer();
-            serializer.resetAllBodyTempIds(matrix);
-            List<MatrixNode> activeNodes = serializer.buildActiveMatrixNodeSet(matrix);
-            List<Lapi> lapis = serializer.buildLapiList(matrix);
-            serializer.prepareForSave(matrix, activeNodes, lapis);
+            serializer.assignTempIds(matrix);
             JdbcTemplate dbTemplate = databaseService.createTemplateForDb(matrix.getDbName());
             dbTemplate.execute(serializer.buildMatrixNodeInsert());
-            dbTemplate.execute(serializer.buildPrimeInsert(activeNodes, lapis));
-            dbTemplate.execute(serializer.buildLapiInsert(lapis));
-            String lapiHcnInsert = serializer.buildLapiHcnInsert(lapis);
+            dbTemplate.execute(serializer.buildPrimeInsert(matrix));
+            dbTemplate.execute(serializer.buildLapiInsert(matrix));
+            String lapiHcnInsert = serializer.buildLapiHcnInsert(matrix);
             if (lapiHcnInsert != null) dbTemplate.execute(lapiHcnInsert);
             String refIntervalHcnInsert = serializer.buildReferenceIntervalHcnInsert(matrix);
             if (refIntervalHcnInsert != null) dbTemplate.execute(refIntervalHcnInsert);
-            String bodyInsert = serializer.buildBodyInsert();
-            if (bodyInsert != null) dbTemplate.execute(bodyInsert);
-            String bodyNodeInsert = serializer.buildBodyNodeInsert();
-            if (bodyNodeInsert != null) dbTemplate.execute(bodyNodeInsert);
-            String hcnInsert = serializer.buildHcnInsert();
-            if (hcnInsert != null) dbTemplate.execute(hcnInsert);
+            dbTemplate.execute(serializer.buildBodyInsert());
+            dbTemplate.execute(serializer.buildBodyNodeInsert());
+            dbTemplate.execute(serializer.buildHcnInsert());
             dbTemplate.execute(serializer.buildMatrixInsert(matrix));
         }
         return "redirect:/newcore";
@@ -207,6 +201,8 @@ public class NewCoreController {
     }
 
     public String guiString(Body body) {
+        if (body == null) return "";
+        if (body.getBodyNode() == null) return "DELETED BODY";
         StringBuilder sb = new StringBuilder();
         buildGuiString(body, sb);
         return sb.toString();

@@ -23,7 +23,7 @@ public class Hcn {
     }
 
     public void deactivateParent() {
-        body.setLastGeneratedHcn(this);
+        body.setFirstDominatedHcn(this);
         body.removeFromHcnGeneratorList();
         body.deactivate();
     }

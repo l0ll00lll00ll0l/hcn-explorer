@@ -86,6 +86,10 @@ public class Body implements Comparable<Body>{
     }
 
     public int getActiveHcnGeneratorCount() {
+        if (bodyNode == null) {
+            log.error("getActiveHcnGeneratorCount called on body with null bodyNode: value={} factor={} deactivated={} parent={}", value, factor, deactivated, parent);
+            return 0;
+        }
         if (bodyNode.getParentNode() instanceof TransitionNode transitionNode && transitionNode.getTransitionTo() == 1) {
             return 1;
         } else {
@@ -186,6 +190,7 @@ public class Body implements Comparable<Body>{
         StringBuilder sb = new StringBuilder();
         buildChain(this, sb);
         sb.append(" v=").append(value).append(" f=").append(factor);
+        /*
         if (!offsprings.isEmpty()) {
             sb.append(" offsprings: {");
             for (int i = 0; i < offsprings.size(); i++) {
@@ -199,6 +204,8 @@ public class Body implements Comparable<Body>{
             }
             sb.append("}");
         }
+
+         */
         return sb.toString();
     }
 
