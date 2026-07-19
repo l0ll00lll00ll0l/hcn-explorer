@@ -256,7 +256,6 @@ public class Matrix {
                 candidateIsSuperior = false;
                 nextLapi.setWalker(nextLapi.getWalker().getLargerHcnGenerator());
                 targetHcn.deactivateParent();
-                deactivateMaintain();
                 targetValue = determineTargetValue();
             }
 

@@ -26,10 +26,15 @@ public abstract class MatrixNode {
     protected final TreeMap<Integer, BodyNode> bodyNodes = new TreeMap<>();
     protected final TreeMap<Integer, BodyNode> deactivatedBodyNodes = new TreeMap<>();
     protected final List<Prime> indexes = new ArrayList<>();
+    protected boolean needsDeactivateMaintain = false;
 
     public void deactivatedMaintain() {
-        ScientificNumber smallestPossibleExtension = getSmallestPossibleExtension();
-        bodyList.deactivatedMaintain(smallestPossibleExtension);
+        if (needsDeactivateMaintain) {
+            ScientificNumber smallestPossibleExtension = getSmallestPossibleExtension();
+            bodyList.deactivatedMaintain(smallestPossibleExtension);
+            needsDeactivateMaintain = false;
+        }
+
         if (prevMatrixNode != null) {
             prevMatrixNode.deactivatedMaintain();
         }
@@ -41,6 +46,7 @@ public abstract class MatrixNode {
     }
 
     public void generateNewBodies(List<Body> incomingParents) {
+        needsDeactivateMaintain = false;
         Set<Body> createdBodies = incomingParents.stream()
                 .flatMap(previousBody -> bodyNodes.values().stream()
                         .map(bodyNode -> Body.builder().bodyNode(bodyNode).parent(previousBody)
@@ -60,6 +66,7 @@ public abstract class MatrixNode {
     }
 
     public void createNextBodyNode() {
+        needsDeactivateMaintain = true;
         int nextBodyNodeId = bodyNodes.lastKey() + 1;
         BodyNode nextBodyNode = provideNextBodyNode();
         if (ActivityCenter.isDbMode()) new MatrixExtensionActivity(nextBodyNode);

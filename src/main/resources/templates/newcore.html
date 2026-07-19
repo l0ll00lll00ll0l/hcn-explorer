@@ -86,7 +86,7 @@
         <button class="tab-btn" th:classappend="${activeTab == 'bodynode' ? ' active' : ''}" data-tab="bodynode" onclick="switchTab('bodynode')">BodyNode</button>
         <button class="tab-btn" th:classappend="${activeTab == 'hcngen' ? ' active' : ''}" data-tab="hcngen" onclick="switchTab('hcngen')">Hcn Generation</button>
         <button class="tab-btn" th:classappend="${activeTab == 'lapi' ? ' active' : ''}" data-tab="lapi" onclick="switchTab('lapi')">Lapi</button>
-        <button class="tab-btn" th:classappend="${activeTab == 'dbbody' ? ' active' : ''}" data-tab="dbbody" onclick="switchTab('dbbody')">DbBody</button>
+        <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'database' ? ' active' : ''}" data-tab="database" onclick="switchTab('database')">Database</button>
         <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'refinterval' ? ' active' : ''}" data-tab="refinterval" onclick="switchTab('refinterval')">ReferenceInterval</button>
         <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'processactivity' ? ' active' : ''}" data-tab="processactivity" onclick="switchTab('processactivity')">Activities</button>
     </div>
@@ -329,22 +329,15 @@
         </div>
     </div>
 
-    <div id="tab-dbbody" class="tab-content" th:classappend="${activeTab == 'dbbody' ? ' active' : ''}">
-        <table class="level-table">
-            <thead>
-                <tr><th>#</th><th>Body</th><th>Head</th><th>Tail</th><th>DbBody</th></tr>
-            </thead>
-            <tbody>
-                <tr th:if="${matrix.lastTransition.bodyList != null}"
-                    th:each="body, bIter : ${@newCoreController.getBodies(matrix.lastTransition.bodyList)}">
-                    <td th:text="${bIter.index}"></td>
-                    <td th:text="${@newCoreController.guiString(body)}"></td>
-                    <td th:text="${body.dbBody.head != null ? T(java.util.Arrays).toString(body.dbBody.head) : ''}"></td>
-                    <td th:text="${body.dbBody.tail != null ? T(java.util.Arrays).toString(body.dbBody.tail) : ''}"></td>
-                    <td th:text="${body.dbBody.toString()}"></td>
-                </tr>
-            </tbody>
-        </table>
+    <div th:if="${matrix.dbMode}" id="tab-database" class="tab-content" th:classappend="${activeTab == 'database' ? ' active' : ''}">
+        <div style="margin-bottom:8px;">
+            <button class="tab-btn active" data-subtab="db-hcn" onclick="switchSubTab('db-hcn')">Hcn</button>
+            <button class="tab-btn" data-subtab="db-body" onclick="switchSubTab('db-body')">Body</button>
+        </div>
+        <div id="subtab-db-hcn" class="subtab-content active">
+        </div>
+        <div id="subtab-db-body" class="subtab-content">
+        </div>
     </div>
 
     <div th:if="${matrix.dbMode}" id="tab-processactivity" class="tab-content" th:classappend="${activeTab == 'processactivity' ? ' active' : ''}">

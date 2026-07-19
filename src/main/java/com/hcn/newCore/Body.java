@@ -106,6 +106,7 @@ public class Body implements Comparable<Body>{
         deactivated = true;
         bodyNode.getActiveBodies().remove(this);
         bodyNode.getDeactivatedBodies().add(this);
+        bodyNode.getParentNode().needsDeactivateMaintain = true;
 
         if (parent != null) {
             //log.debug("deactivate parent offspring remove: {}", parent);
