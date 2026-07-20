@@ -9,10 +9,12 @@
     <div id="subtab-content"></div>
     <script th:inline="javascript">
         var initialSubTab = /*[[${activeSubTab ?: 'hcn'}]]*/ 'hcn';
-        window.loadSubTab = function(subtab) {
+        window.loadSubTab = function(subtab, lapi) {
             document.querySelectorAll('#database-subtab-bar .tab-btn').forEach(function(b) { b.classList.remove('active'); });
             document.querySelector('#database-subtab-bar .tab-btn[data-subtab="' + subtab + '"]').classList.add('active');
-            fetch('/newcore/tab?tab=database&subtab=' + subtab)
+            var url = '/newcore/tab?tab=database&subtab=' + subtab;
+            if (lapi) url += '&lapi=' + lapi;
+            fetch(url)
                 .then(r => r.text())
                 .then(html => { document.getElementById('subtab-content').innerHTML = html; });
         };

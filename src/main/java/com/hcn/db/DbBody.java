@@ -1,5 +1,8 @@
-package com.hcn.newCore;
+package com.hcn.db;
 
+import com.hcn.newCore.Body;
+import com.hcn.newCore.ScientificNumber;
+import com.hcn.newCore.TransitionNode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,6 +13,11 @@ import java.util.ArrayList;
 public class DbBody {
     private int[] head;
     private int[] tail;
+
+    public DbBody(int[] head, int[] tail) {
+        this.head = head;
+        this.tail = tail;
+    }
 
     public DbBody(Body body) {
 
@@ -24,7 +32,7 @@ public class DbBody {
             lastPower = transitionNode.getTransitionFrom();
         }
 
-        if (tail.get(tail.size() - 1) == currentBody.getBodyNode().getParentNode().indexes.get(0).getIndex()) {
+        if (tail.get(tail.size() - 1) == currentBody.getBodyNode().getParentNode().getIndexes().get(0).getIndex()) {
             lastPower--;
             tail.remove(tail.size() - 1);
 
@@ -38,7 +46,7 @@ public class DbBody {
                 break;
             } else {
                 if (currentApiPower > lastPower) {
-                    tail.add(currentBody.getBodyNode().getParentNode().indexes.get(0).getIndex());
+                    tail.add(currentBody.getBodyNode().getParentNode().getIndexes().get(0).getIndex());
                     lastPower = currentApiPower;
                 }
             }

@@ -4,7 +4,9 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import com.hcn.db.ActivityReadService;
 import com.hcn.db.DatabaseService;
+import com.hcn.db.DbCacheService;
 import com.hcn.db.DbInsertService;
+import com.hcn.db.DbInterval;
 import com.hcn.db.MatrixDeserializer;
 import com.hcn.db.MatrixSerializer;
 import com.hcn.event.ActivityCenter;
@@ -36,6 +38,9 @@ public class NewCoreController {
     private String currentLogLevel = "INFO";
 
     @Autowired
+    private DbCacheService dbCacheService;
+
+    @Autowired
     private DatabaseService databaseService;
 
     @Autowired
@@ -56,6 +61,7 @@ public class NewCoreController {
                 }
                 databaseService.createPermanentTables(matrix.getDbName());
                 dbInsertService.setTargetDb(matrix.getDbName());
+                dbCacheService.setDbName(matrix.getDbName());
             }
             matrix.initialize();
         }
@@ -87,7 +93,8 @@ public class NewCoreController {
                       @RequestParam String tab,
                       @RequestParam(defaultValue = "") String subtab,
                       @RequestParam(defaultValue = "-1") int matrixNodeIdx,
-                      @RequestParam(defaultValue = "-1") int bodyNodeId) {
+                      @RequestParam(defaultValue = "-1") int bodyNodeId,
+                      @RequestParam(defaultValue = "-1") int lapi) {
         activeTab = tab;
         model.addAttribute("matrix", matrix);
         List<MatrixNode> chain = getMatrixChain();
@@ -116,6 +123,19 @@ public class NewCoreController {
                 activeSubTab = subtab.isEmpty() ? (activeSubTab != null ? activeSubTab : "hcn") : subtab;
                 model.addAttribute("activeSubTab", activeSubTab);
                 if (!subtab.isEmpty()) {
+                    if (activeSubTab.equals("hcn")) {
+                        Integer highestLapi = dbCacheService.getHighestLapi();
+                        int rightLapi = (lapi > 0) ? lapi : (highestLapi != null ? highestLapi : -1);
+                        if (rightLapi > 0) {
+                            int leftLapi = rightLapi - 1;
+                            dbCacheService.generateHcnData(leftLapi, rightLapi);
+                            model.addAttribute("leftInterval", dbCacheService.getIntervalCache().get(leftLapi));
+                            model.addAttribute("rightInterval", dbCacheService.getIntervalCache().get(rightLapi));
+                            model.addAttribute("highestLapi", highestLapi);
+                            model.addAttribute("intervalCacheSize", dbCacheService.getIntervalCacheSize());
+                            model.addAttribute("bodyCacheSize", dbCacheService.getBodyCacheSize());
+                        }
+                    }
                     return "tabs/database-" + activeSubTab;
                 }
             }
@@ -206,6 +226,7 @@ public class NewCoreController {
         matrix.setDbName(db);
         if (matrix.isDbMode()) {
             dbInsertService.setTargetDb(db);
+            dbCacheService.setDbName(db);
         }
         activeTab = "matrix";
         activeSubTab = null;
@@ -229,6 +250,7 @@ public class NewCoreController {
             ActivityCenter.setProving(true);
             ActivityCenter.setProveTarget(count);
             ActivityCenter.setProveProgress(0);
+            dbCacheService.clear();
             new Thread(() -> matrix.proveLapi(count)).start();
         }
         return "{\"started\":true}";

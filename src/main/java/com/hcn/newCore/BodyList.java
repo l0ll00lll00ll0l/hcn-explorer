@@ -112,8 +112,9 @@ public class BodyList implements Iterable<Body> {
         return sb.toString();
     }
 
-    public void deactivatedMaintain(ScientificNumber smallestPossibleExtension) {
+    public List<Body> deactivatedMaintain(ScientificNumber smallestPossibleExtension) {
 
+        List<Body> deletedBodies = new ArrayList<>();
         Body bodyToDelete = smallestBody;
         while (bodyToDelete.getLargerBody() != null && bodyToDelete.getLargerBody().getValue().isSmallerThan(smallestPossibleExtension)) {
             Body nextBody = bodyToDelete.getLargerBody();
@@ -130,10 +131,12 @@ public class BodyList implements Iterable<Body> {
                         bodyToDelete.setLargerBody(null);
                     }
                     bodyToDelete.deleteDuringBodyListMaintain();
+                    deletedBodies.add(bodyToDelete);
                 }
             }
             bodyToDelete = nextBody;
         }
+        return deletedBodies;
     }
 
     @Override

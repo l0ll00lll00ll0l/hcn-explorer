@@ -26,18 +26,25 @@ public abstract class MatrixNode {
     protected final TreeMap<Integer, BodyNode> bodyNodes = new TreeMap<>();
     protected final TreeMap<Integer, BodyNode> deactivatedBodyNodes = new TreeMap<>();
     protected final List<Prime> indexes = new ArrayList<>();
+
+    public List<Prime> getIndexes() { return indexes; }
     protected boolean needsDeactivateMaintain = false;
 
-    public void deactivatedMaintain() {
+    public List<Body> deactivatedMaintain() {
+        ArrayList<Body> deactivatedHcnGenerators = new ArrayList<>();
         if (needsDeactivateMaintain) {
             ScientificNumber smallestPossibleExtension = getSmallestPossibleExtension();
-            bodyList.deactivatedMaintain(smallestPossibleExtension);
+            List<Body> deletedBodies = bodyList.deactivatedMaintain(smallestPossibleExtension);
+            if (nextMatrixNode == null) {
+                deactivatedHcnGenerators.addAll(deletedBodies);
+            }
             needsDeactivateMaintain = false;
         }
 
         if (prevMatrixNode != null) {
             prevMatrixNode.deactivatedMaintain();
         }
+        return deactivatedHcnGenerators;
     }
 
     protected BodyNode getLargestProvedBodyNode() {
