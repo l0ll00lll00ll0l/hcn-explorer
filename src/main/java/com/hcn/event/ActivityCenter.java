@@ -1,8 +1,11 @@
 package com.hcn.event;
 
 import com.hcn.db.DbInsertService;
+import com.hcn.newCore.Body;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 public class ActivityCenter {
@@ -88,6 +91,11 @@ public class ActivityCenter {
 
     public static void completeRun() {
         totalNanos += System.nanoTime() - nanoReference;
+    }
+
+    public static void submitBodyDeletionEvent(List<Body> deletedBodies) {
+        if (!dbMode || deletedBodies.isEmpty()) return;
+        dbInsertService.submitBodyDeletionEvent(new BodyDeletionEvent(deletedBodies));
     }
 
     public static void finishMatrixMainActivity(int lastLapi) {

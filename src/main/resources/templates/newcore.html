@@ -79,7 +79,7 @@
             <button class="tab-btn" th:classappend="${activeTab == 'lapi' ? ' active' : ''}"          onclick="loadTab('lapi')">Lapi</button>
             <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'database' ? ' active' : ''}"       onclick="loadTab('database')">Database</button>
             <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'refinterval' ? ' active' : ''}"    onclick="loadTab('refinterval')">ReferenceInterval</button>
-            <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'processactivity' ? ' active' : ''}" onclick="loadTab('processactivity')">Activities</button>
+            <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'activities' ? ' active' : ''}" onclick="loadTab('activities')">Activities</button>
         </div>
         <div id="tab-content"></div>
     </div>
@@ -90,7 +90,7 @@
         var activeSubTab = /*[[${activeSubTab}]]*/ null;
 
         function loadTab(tab, subtab, forceReload) {
-            if (!forceReload && tab !== 'database' && tabCache[tab]) {
+            if (!forceReload && tab !== 'database' && tab !== 'activities' && tabCache[tab]) {
                 showTab(tab, tabCache[tab]);
                 return;
             }

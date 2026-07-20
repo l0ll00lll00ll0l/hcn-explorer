@@ -260,5 +260,13 @@ public class DatabaseService {
                     table_name VARCHAR(32)
                 )
                 """);
+        dbTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS body_deletion_event (
+                    id INT PRIMARY KEY,
+                    nanos BIGINT,
+                    deleted_body_count INT,
+                    non_proved_body_count INT
+                )
+                """);
     }
 }

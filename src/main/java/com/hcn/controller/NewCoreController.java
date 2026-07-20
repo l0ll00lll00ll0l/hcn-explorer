@@ -32,6 +32,7 @@ public class NewCoreController {
     private Matrix matrix;
     private String activeTab = "matrix";
     private String activeSubTab = null;
+    private String activeActivitiesSubTab = null;
     private int activeBodyList = -1;
     private int activeMatrixNodeIdx = 0;
     private int activeBodyNodeId = -1;
@@ -139,15 +140,27 @@ public class NewCoreController {
                     return "tabs/database-" + activeSubTab;
                 }
             }
-            case "processactivity" -> {
-                String db = matrix.getDbName();
-                model.addAttribute("dbMatrixMainActivities",      activityReadService.getMatrixMainActivities(db));
-                model.addAttribute("dbMatrixExtensionActivities", activityReadService.getMatrixExtensionActivities(db));
-                model.addAttribute("dbHcnGenerationActivities",   activityReadService.getHcnGenerationActivities(db));
-                model.addAttribute("dbApiNodeCreationActivities", activityReadService.getApiNodeCreationActivities(db));
-                model.addAttribute("dbTransitionNodeActivities",  activityReadService.getTransitionNodeCreationActivities(db));
-                model.addAttribute("dbSqlInsertActivities",       activityReadService.getSqlInsertActivities(db));
+            case "activities" -> {
+                activeActivitiesSubTab = subtab.isEmpty() ? (activeActivitiesSubTab != null ? activeActivitiesSubTab : "sqlactivity") : subtab;
+                model.addAttribute("activeActivitiesSubTab", activeActivitiesSubTab);
+                if (!subtab.isEmpty()) {
+                    if (activeActivitiesSubTab.equals("sqlactivity") || activeActivitiesSubTab.equals("matrixactivity")) {
+                        String db = matrix.getDbName();
+                        model.addAttribute("dbMatrixMainActivities", activityReadService.getMatrixMainActivities(db));
+                        if (activeActivitiesSubTab.equals("matrixactivity")) {
+                            model.addAttribute("dbMatrixExtensionActivities", activityReadService.getMatrixExtensionActivities(db));
+                            model.addAttribute("dbHcnGenerationActivities",   activityReadService.getHcnGenerationActivities(db));
+                            model.addAttribute("dbApiNodeCreationActivities", activityReadService.getApiNodeCreationActivities(db));
+                            model.addAttribute("dbTransitionNodeActivities",  activityReadService.getTransitionNodeCreationActivities(db));
+                        }
+                        if (activeActivitiesSubTab.equals("sqlactivity")) {
+                            model.addAttribute("dbSqlInsertActivities", activityReadService.getSqlInsertActivities(db));
+                        }
+                    }
+                    return "tabs/activities-" + activeActivitiesSubTab + " :: content";
+                }
             }
+            case "sqlactivity" -> {}
         }
         return "tabs/" + tab + " :: content";
     }
@@ -230,6 +243,7 @@ public class NewCoreController {
         }
         activeTab = "matrix";
         activeSubTab = null;
+        activeActivitiesSubTab = null;
         activeBodyList = -1;
         return "redirect:/newcore";
     }
@@ -239,6 +253,7 @@ public class NewCoreController {
         matrix = null;
         activeTab = "matrix";
         activeSubTab = null;
+        activeActivitiesSubTab = null;
         activeBodyList = -1;
         return "redirect:/";
     }

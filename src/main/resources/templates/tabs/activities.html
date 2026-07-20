@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <div id="activities-subtab-bar" style="margin-bottom:8px;">
+        <button class="tab-btn" data-subtab="sqlactivity" onclick="loadSubTab('sqlactivity')">SQL Activity</button>
+        <button class="tab-btn" data-subtab="matrixactivity" onclick="loadSubTab('matrixactivity')">Matrix Activity</button>
+    </div>
+    <div id="subtab-content"></div>
+    <script th:inline="javascript">
+        var initialSubTab = /*[[${activeActivitiesSubTab ?: 'sqlactivity'}]]*/ 'sqlactivity';
+        window.loadSubTab = function(subtab) {
+            document.querySelectorAll('#activities-subtab-bar .tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelector('#activities-subtab-bar .tab-btn[data-subtab="' + subtab + '"]').classList.add('active');
+            fetch('/newcore/tab?tab=activities&subtab=' + subtab)
+                .then(r => r.text())
+                .then(html => {
+                    var container = document.getElementById('subtab-content');
+                    container.innerHTML = html;
+                    container.querySelectorAll('script').forEach(function(s) { eval(s.textContent); });
+                });
+        };
+        window.loadSubTab(initialSubTab);
+    </script>
+</div>
+</body>
+</html>

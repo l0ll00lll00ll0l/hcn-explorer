@@ -264,8 +264,8 @@ public class Matrix {
     }
 
     private void deactivateMaintain() {
-        List<Body> deactivatedHcnGenerators = lastTransition.deactivatedMaintain();
-        //TODO add deactivatedBody event
+        List<Body> deletedHcnGenerators = lastTransition.deactivatedMaintain();
+        ActivityCenter.submitBodyDeletionEvent(deletedHcnGenerators);
         MatrixNode potentialApiNode = lastTransition.prevMatrixNode;
         while (potentialApiNode != null) {
             potentialApiNode.transitionNodeTriggerCheck();

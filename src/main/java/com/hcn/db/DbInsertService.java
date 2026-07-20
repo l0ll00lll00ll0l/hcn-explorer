@@ -21,14 +21,15 @@ public class DbInsertService {
 
     private record InsertBatch(String sql, int count) {}
 
-    private final LinkedBlockingQueue<Interval> queue = new LinkedBlockingQueue<>();
+    private final LinkedBlockingQueue<DbTask> mainQueue = new LinkedBlockingQueue<>();
     private final LinkedBlockingQueue<InsertBatch> bodyQueue          = new LinkedBlockingQueue<>();
     private final LinkedBlockingQueue<InsertBatch> hcnQueue           = new LinkedBlockingQueue<>();
     private final LinkedBlockingQueue<InsertBatch> intervalQueue      = new LinkedBlockingQueue<>();
     private final LinkedBlockingQueue<InsertBatch> structuralQueue    = new LinkedBlockingQueue<>();
     private final LinkedBlockingQueue<InsertBatch> extensionQueue     = new LinkedBlockingQueue<>();
     private final LinkedBlockingQueue<InsertBatch> hcnGenerationQueue = new LinkedBlockingQueue<>();
-    private final LinkedBlockingQueue<InsertBatch> sqlInsertActQueue  = new LinkedBlockingQueue<>();
+    private final LinkedBlockingQueue<InsertBatch> sqlInsertActQueue       = new LinkedBlockingQueue<>();
+    private final LinkedBlockingQueue<InsertBatch> bodyDeletionEventQueue  = new LinkedBlockingQueue<>();
 
     private volatile boolean bodyRunning          = false;
     private volatile boolean hcnRunning           = false;
@@ -36,7 +37,8 @@ public class DbInsertService {
     private volatile boolean structuralRunning    = false;
     private volatile boolean extensionRunning     = false;
     private volatile boolean hcnGenerationRunning = false;
-    private volatile boolean sqlInsertActRunning  = false;
+    private volatile boolean sqlInsertActRunning       = false;
+    private volatile boolean bodyDeletionEventRunning  = false;
     private volatile int lastProcessedLapi = -1;
 
     private StringBuilder bodyBuffer;
@@ -46,16 +48,18 @@ public class DbInsertService {
     private StringBuilder extensionBuffer;
     private StringBuilder hcnGenerationBuffer;
     private StringBuilder sqlInsertActBuffer;
+    private StringBuilder bodyDeletionEventBuffer;
     private int bodyCount = 0;
     private int intervalCount = 0;
     private int hcnCount = 0;
     private int structuralCount    = 0;
     private int extensionCount     = 0;
     private int hcnGenerationCount = 0;
-    private int sqlInsertActCount  = 0;
+    private int sqlInsertActCount       = 0;
+    private int bodyDeletionEventCount  = 0;
 
     private static final java.util.Set<SqlTable> ACTIVITY_TABLES = java.util.Set.of(
-            SqlTable.STRUCTURAL_ACTIVITY, SqlTable.EXTENSION_ACTIVITY, SqlTable.HCN_GENERATION_ACTIVITY, SqlTable.SQL_INSERT_ACTIVITY);
+            SqlTable.STRUCTURAL_ACTIVITY, SqlTable.EXTENSION_ACTIVITY, SqlTable.HCN_GENERATION_ACTIVITY, SqlTable.SQL_INSERT_ACTIVITY, SqlTable.BODY_DELETION_EVENT);
 
     private static final String BODY_INSERT           = "INSERT INTO body (id, head, tail) VALUES ";
     private static final String INTERVAL_INSERT       = "INSERT INTO interval (lapi, value_mantissa, value_exponent, factor_mantissa, factor_exponent, first_hcn, size, reference_interval) VALUES ";
@@ -63,13 +67,15 @@ public class DbInsertService {
     private static final String STRUCTURAL_INSERT     = "INSERT INTO structural_activity (id, type, start_nanos, finish_nanos, int_1, int_2) VALUES ";
     private static final String EXTENSION_INSERT      = "INSERT INTO extension_activity (id, start_nanos, finish_nanos, index, power, created_active_body_count, deactivated_body_count) VALUES ";
     private static final String HCN_GENERATION_INSERT = "INSERT INTO hcn_generation_activity (id, start_nanos, finish_nanos, start_lapi, end_lapi) VALUES ";
-    private static final String SQL_INSERT_ACT_INSERT = "INSERT INTO sql_insert_activity (id, start_nanos, finish_nanos, row_count, table_name) VALUES ";
+    private static final String SQL_INSERT_ACT_INSERT      = "INSERT INTO sql_insert_activity (id, start_nanos, finish_nanos, row_count, table_name) VALUES ";
+    private static final String BODY_DELETION_EVENT_INSERT = "INSERT INTO body_deletion_event (id, nanos, deleted_body_count, non_proved_body_count) VALUES ";
 
     private int hcnIdCounter = 0;
     private int bodyIdCounter = 0;
     private int structuralIdCounter    = 0;
     private int extensionIdCounter     = 0;
-    private int hcnGenerationIdCounter = 0;
+    private int hcnGenerationIdCounter     = 0;
+    private int bodyDeletionEventIdCounter = 0;
     private final AtomicInteger sqlInsertActIdCounter = new AtomicInteger(0);
 
     public void setHcnIdCounter(int v) { hcnIdCounter = v; }
@@ -91,14 +97,15 @@ public class DbInsertService {
     @PostConstruct
     public void start() {
         resetBuffers();
-        new Thread(this::consumeIntervals,                                                                                                          "db-interval-consumer").start();
+        new Thread(this::consumeTasks, "db-main-consumer").start();
         new Thread(() -> consumeInserts(bodyQueue,          () -> bodyRunning          = true, () -> bodyRunning          = false, SqlTable.BODY),     "db-body-insert").start();
         new Thread(() -> consumeInserts(hcnQueue,           () -> hcnRunning           = true, () -> hcnRunning           = false, SqlTable.HCN),      "db-hcn-insert").start();
         new Thread(() -> consumeInserts(intervalQueue,      () -> intervalRunning      = true, () -> intervalRunning      = false, SqlTable.INTERVAL), "db-interval-insert").start();
         new Thread(() -> consumeInserts(structuralQueue,    () -> structuralRunning    = true, () -> structuralRunning    = false, SqlTable.STRUCTURAL_ACTIVITY),    "db-structural-insert").start();
         new Thread(() -> consumeInserts(extensionQueue,     () -> extensionRunning     = true, () -> extensionRunning     = false, SqlTable.EXTENSION_ACTIVITY),     "db-extension-insert").start();
         new Thread(() -> consumeInserts(hcnGenerationQueue, () -> hcnGenerationRunning = true, () -> hcnGenerationRunning = false, SqlTable.HCN_GENERATION_ACTIVITY), "db-hcngen-insert").start();
-        new Thread(() -> consumeInserts(sqlInsertActQueue,  () -> sqlInsertActRunning  = true, () -> sqlInsertActRunning  = false, SqlTable.SQL_INSERT_ACTIVITY), "db-sqlact-insert").start();
+        new Thread(() -> consumeInserts(sqlInsertActQueue,      () -> sqlInsertActRunning      = true, () -> sqlInsertActRunning      = false, SqlTable.SQL_INSERT_ACTIVITY),  "db-sqlact-insert").start();
+        new Thread(() -> consumeInserts(bodyDeletionEventQueue,  () -> bodyDeletionEventRunning = true, () -> bodyDeletionEventRunning = false, SqlTable.BODY_DELETION_EVENT), "db-bodydel-insert").start();
     }
 
     private void resetBuffers() {
@@ -109,8 +116,9 @@ public class DbInsertService {
         extensionBuffer     = new StringBuilder(EXTENSION_INSERT);
         hcnGenerationBuffer = new StringBuilder(HCN_GENERATION_INSERT);
         sqlInsertActBuffer  = new StringBuilder(SQL_INSERT_ACT_INSERT);
+        bodyDeletionEventBuffer = new StringBuilder(BODY_DELETION_EVENT_INSERT);
         bodyCount = 0; intervalCount = 0; hcnCount = 0;
-        structuralCount = 0; extensionCount = 0; hcnGenerationCount = 0; sqlInsertActCount = 0;
+        structuralCount = 0; extensionCount = 0; hcnGenerationCount = 0; sqlInsertActCount = 0; bodyDeletionEventCount = 0;
     }
 
     private void resetBodyBuffer() {
@@ -129,20 +137,30 @@ public class DbInsertService {
     }
 
     public void submit(Interval interval) {
-        queue.add(interval);
+        mainQueue.add(new DbTask.IntervalTask(interval));
     }
 
-    private void consumeIntervals() {
+    public void submitBodyDeletionEvent(BodyDeletionEvent event) {
+        mainQueue.add(new DbTask.BodyDeletionTask(event));
+    }
+
+    private void consumeTasks() {
         while (true) {
             try {
-                Interval interval = queue.take();
-                process(interval);
-                if (bodyCount >= THRESHOLD)     flushBody();
-                if (hcnCount >= THRESHOLD)      flushHcn();
-                if (intervalCount >= THRESHOLD) flushInterval();
-                synchronized (this) {
-                    lastProcessedLapi = interval.getLapi();
-                    notifyAll();
+                DbTask task = mainQueue.take();
+                if (task instanceof DbTask.IntervalTask t) {
+                    Interval interval = t.interval();
+                    process(interval);
+                    if (bodyCount >= THRESHOLD)     flushBody();
+                    if (hcnCount >= THRESHOLD)      flushHcn();
+                    if (intervalCount >= THRESHOLD) flushInterval();
+                    synchronized (this) {
+                        lastProcessedLapi = interval.getLapi();
+                        notifyAll();
+                    }
+                } else if (task instanceof DbTask.BodyDeletionTask t) {
+                    processBodyDeletionEvent(t.event());
+                    if (bodyCount >= THRESHOLD) flushBody();
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -286,6 +304,23 @@ public class DbInsertService {
         if (sqlInsertActCount > 0) { sqlInsertActQueue.add(new InsertBatch(sqlInsertActBuffer.toString(), sqlInsertActCount)); sqlInsertActBuffer = new StringBuilder(SQL_INSERT_ACT_INSERT); sqlInsertActCount = 0; }
     }
 
+    private void processBodyDeletionEvent(BodyDeletionEvent e) {
+        int nonProvedCount = 0;
+        for (Body body : e.getDeletedBodies()) {
+            if (body.getDbId() == null) {
+                appendBody(body);
+                nonProvedCount++;
+            }
+        }
+        if (bodyDeletionEventCount > 0) bodyDeletionEventBuffer.append(",");
+        bodyDeletionEventBuffer.append("(").append(bodyDeletionEventIdCounter++).append(",").append(e.getNanos()).append(",").append(e.getDeletedBodies().size()).append(",").append(nonProvedCount).append(")");
+        if (++bodyDeletionEventCount >= THRESHOLD) flushBodyDeletionEvent();
+    }
+
+    private void flushBodyDeletionEvent() {
+        if (bodyDeletionEventCount > 0) { bodyDeletionEventQueue.add(new InsertBatch(bodyDeletionEventBuffer.toString(), bodyDeletionEventCount)); bodyDeletionEventBuffer = new StringBuilder(BODY_DELETION_EVENT_INSERT); bodyDeletionEventCount = 0; }
+    }
+
     private void flushBody() {
         if (bodyCount > 0) { bodyQueue.add(new InsertBatch(bodyBuffer.toString(), bodyCount)); resetBodyBuffer(); }
     }
@@ -314,14 +349,15 @@ public class DbInsertService {
             while (lastProcessedLapi < lapiId) wait();
         }
         flushBody(); flushHcn(); flushInterval();
-        flushStructural(); flushExtension(); flushHcnGeneration(); flushSqlInsertActivity();
+        flushStructural(); flushExtension(); flushHcnGeneration(); flushSqlInsertActivity(); flushBodyDeletionEvent();
         while (!bodyQueue.isEmpty()          || bodyRunning          ||
                !hcnQueue.isEmpty()           || hcnRunning           ||
                !intervalQueue.isEmpty()      || intervalRunning      ||
                !structuralQueue.isEmpty()    || structuralRunning    ||
                !extensionQueue.isEmpty()     || extensionRunning     ||
                !hcnGenerationQueue.isEmpty() || hcnGenerationRunning ||
-               !sqlInsertActQueue.isEmpty()  || sqlInsertActRunning) {
+               !sqlInsertActQueue.isEmpty()  || sqlInsertActRunning ||
+               !bodyDeletionEventQueue.isEmpty() || bodyDeletionEventRunning) {
             Thread.sleep(10);
         }
         flushSqlInsertActivity();

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <div style="display: flex; gap: 16px; margin-bottom: 8px; font-size: 11px; font-family: monospace; flex-wrap: wrap;">
+        <span><span style="display:inline-block; width:14px; height:14px; background:#212121; opacity:0.3; border:1px solid #333; vertical-align:middle; margin-right:4px;"></span>MatrixMain</span>
+        <span><span style="display:inline-block; width:14px; height:14px; background:#9c27b0; vertical-align:middle; margin-right:4px;"></span>HcnGeneration</span>
+        <span><span style="display:inline-block; width:14px; height:14px; background:#4caf50; vertical-align:middle; margin-right:4px;"></span>Extension</span>
+        <span><span style="display:inline-block; width:14px; height:14px; background:#2196f3; vertical-align:middle; margin-right:4px;"></span>ApiNodeCreation</span>
+        <span><span style="display:inline-block; width:14px; height:14px; background:#ff9800; vertical-align:middle; margin-right:4px;"></span>TransitionNodeCreation</span>
+    </div>
+    <div id="activity-tooltip" style="position:fixed; background:#333; color:#fff; padding:4px 8px; font-size:10px; font-family:monospace; border-radius:3px; pointer-events:none; display:none; white-space:pre;"></div>
+    <div id="matrix-activity-timeline" style="border: 1px solid #ccc; overflow: hidden;"></div>
+    <script th:inline="javascript">
+    (function() {
+        var activities = [];
+        /*[# th:each="a : ${dbMatrixMainActivities}"]*/ activities.push({ type: 'MatrixMain',     start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+        /*[# th:each="a : ${dbHcnGenerationActivities}"]*/ activities.push({ type: 'HcnGeneration',  start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+        /*[# th:each="a : ${dbMatrixExtensionActivities}"]*/ activities.push({ type: 'Extension',      start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+        /*[# th:each="a : ${dbApiNodeCreationActivities}"]*/ activities.push({ type: 'ApiNode',        start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+        /*[# th:each="a : ${dbTransitionNodeActivities}"]*/ activities.push({ type: 'TransitionNode', start: /*[[${a.startNanos}]]*/ 0, end: /*[[${a.finishNanos}]]*/ 0, label: /*[[${a.labelName}]]*/ '', tooltip: /*[[${a.guiLabel}]]*/ '' }); /*[/]*/
+
+        if (activities.length === 0) return;
+
+        function renderChart() {
+        var colors = {
+            MatrixMain: 'rgba(33,33,33,0.25)', HcnGeneration: '#9c27b0', Extension: '#4caf50',
+            ApiNode: '#2196f3', TransitionNode: '#ff9800'
+        };
+        var axisH=30, laneH=20, innerH=160, matrixH=laneH+innerH;
+        var totalH=axisH+matrixH+20;
+        var allT=activities.reduce(function(acc,a){acc.push(a.start,a.end);return acc;},[]);
+        var minT=d3.min(allT), maxT=d3.max(allT);
+        var container=document.getElementById('matrix-activity-timeline');
+        var W=container.clientWidth || 1200, margin={left:10,right:10};
+        container.style.height=totalH+'px';
+        var svg=d3.select('#matrix-activity-timeline').append('svg').attr('width',W).attr('height',totalH);
+        svg.append('defs').append('clipPath').attr('id','matrix-lane-clip').append('rect').attr('x',0).attr('y',0).attr('width',W).attr('height',totalH);
+        var xScale=d3.scaleLinear().domain([minT,maxT]).range([margin.left,W-margin.right]);
+        var gMain=svg.append('g').attr('clip-path','url(#matrix-lane-clip)');
+        var xAxis=d3.axisTop(xScale).ticks(8);
+        var gAxis=svg.append('g').attr('transform','translate(0,'+axisH+')').call(xAxis);
+        var laneY=axisH;
+        var gRects=gMain.append('g');
+        var tooltip=document.getElementById('activity-tooltip');
+        function draw(scale){
+            gRects.selectAll('rect').remove(); gRects.selectAll('text').remove();
+            activities.forEach(function(a){
+                var x1=scale(a.start),x2=scale(a.end),w=Math.max(x2-x1,1),y,h,color;
+                if(a.type==='MatrixMain'){y=laneY;h=matrixH;color=colors.MatrixMain;}
+                else{y=laneY+laneH;h=innerH;color=colors[a.type];}
+                var isMain=a.type==='MatrixMain';
+                gRects.append('rect').attr('x',x1).attr('y',y).attr('width',w).attr('height',h).attr('rx',3).attr('ry',3).attr('fill',color).attr('stroke',isMain?'#555':'none').attr('stroke-width',isMain?0.5:0).style('cursor','pointer')
+                    .on('mousemove',function(event){tooltip.style.display='block';tooltip.style.left=(event.clientX+12)+'px';tooltip.style.top=(event.clientY+12)+'px';tooltip.textContent=a.tooltip;})
+                    .on('mouseleave',function(){tooltip.style.display='none';});
+                if(w>10){gRects.append('text').attr('x',x1+4).attr('y',y+4).attr('font-size','9px').attr('font-family','monospace').attr('fill',isMain?'#555':'#fff').style('writing-mode','vertical-rl').style('text-orientation','mixed').style('pointer-events','none').text(a.label);}
+            });
+        }
+        draw(xScale);
+        svg.call(d3.zoom().scaleExtent([1,500]).on('zoom',function(event){var ns=event.transform.rescaleX(xScale);gAxis.call(xAxis.scale(ns));draw(ns);}));
+        }
+        if (window.d3) { renderChart(); } else {
+            var s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js';
+            s.onload = renderChart;
+            document.head.appendChild(s);
+        }
+    })();
+    </script>
+</div>
+</body>
+</html>
