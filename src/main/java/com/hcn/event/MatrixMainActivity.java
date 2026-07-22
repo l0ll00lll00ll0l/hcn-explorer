@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Getter @Setter
-public class MatrixMainActivity extends Activity {
+public class MatrixMainActivity extends MainProcessActivity {
 
     private final int firstLapi;
     private int lastLapi;

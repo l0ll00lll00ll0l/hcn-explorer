@@ -1,7 +1,6 @@
 package com.hcn.db;
 
 import com.hcn.newCore.Body;
-import com.hcn.newCore.ScientificNumber;
 import com.hcn.newCore.TransitionNode;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,6 +12,9 @@ import java.util.ArrayList;
 public class DbBody {
     private int[] head;
     private int[] tail;
+    private Integer firstHcnLapi;
+    private Integer firstSuperiorHcnLapi;
+    private Integer firstDominatedHcnLapi;
 
     public DbBody(int[] head, int[] tail) {
         this.head = head;

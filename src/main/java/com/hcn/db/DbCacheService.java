@@ -1,5 +1,7 @@
 package com.hcn.db;
 
+import com.hcn.newCore.Body;
+import com.hcn.newCore.Matrix;
 import com.hcn.newCore.PrimeCenter;
 import com.hcn.newCore.ScientificNumber;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,17 +19,24 @@ public class DbCacheService {
 
     private String dbName;
     private Integer highestLapi;
+    private Matrix matrix;
     private final Map<Integer, DbInterval> intervalCache = new HashMap<>();
-    private final Map<Integer, DbBody> bodyCache = new HashMap<>();
+    private final Map<Integer, DbBody> bodyCache = new LinkedHashMap<>();
     private final PrimeCenter primeCenter = new PrimeCenter();
+    private final List<DbBody> bodyOrder = new ArrayList<>();
+    private int activeBodyCount = 0;
 
-    public void setDbName(String dbName) {
-        this.dbName = dbName;
-    }
+    public void setDbName(String dbName) { this.dbName = dbName; }
+    public void setMatrix(Matrix matrix) { this.matrix = matrix; }
 
     public Map<Integer, DbInterval> getIntervalCache() { return intervalCache; }
     public int getIntervalCacheSize() { return intervalCache.size(); }
     public int getBodyCacheSize() { return bodyCache.size(); }
+
+    public List<Map.Entry<Integer, DbBody>> getLastBodies(int count) {
+        List<Map.Entry<Integer, DbBody>> all = new ArrayList<>(bodyCache.entrySet());
+        return all.subList(Math.max(0, all.size() - count), all.size());
+    }
 
     public void generateHcnData(int firstLapi, int lastLapi) {
         List<DbInterval> fetched = getMissingIntervals(firstLapi, lastLapi);
@@ -37,7 +46,6 @@ public class DbCacheService {
             if (refLapi != null && !intervalCache.containsKey(refLapi)) {
                 fetched.add(0, getMissingIntervals(refLapi, refLapi).get(0));
             }
-
             updateHcnList(fetched);
         }
     }
@@ -46,11 +54,14 @@ public class DbCacheService {
         highestLapi = null;
         intervalCache.clear();
         bodyCache.clear();
+        bodyOrder.clear();
+        activeBodyCount = 0;
     }
 
     public Integer getHighestLapi() {
         if (highestLapi == null && dbName != null) {
             highestLapi = t().queryForObject("SELECT MAX(lapi) FROM interval", Integer.class);
+            initializeNonDeletedDbBodyData();
         }
         return highestLapi;
     }
@@ -104,11 +115,13 @@ public class DbCacheService {
             });
         }
 
-        fetchBodies(newBodies);
+        if (!newBodies.isEmpty()) {
+            fetchBodies(newBodies);
+        }
 
         selfreferredIntervals.forEach(interval -> interval.getHcnlist().forEach(hcn -> {
             hcn.setDbBody(bodyCache.get(hcn.getBodyId()));
-            ScientificNumber[]  valueMultiplier = calculateMultipliers(interval.getHcnlist().get(0), hcn);
+            ScientificNumber[] valueMultiplier = calculateMultipliers(interval.getHcnlist().get(0), hcn);
             hcn.setValue(valueMultiplier[0].multiply(interval.getValue()));
             hcn.setFactor(valueMultiplier[1].multiply(interval.getFactor()));
         }));
@@ -169,16 +182,77 @@ public class DbCacheService {
         return new ScientificNumber[] {valueMultiplier, factorMultiplier};
     }
 
+    public void initialBodySubTabData(int width) {
+        getHighestLapi();
+        int required = width - activeBodyCount;
+        if (required > 0) fetchOrderBodies(0, required);
+    }
+
+    public synchronized void fetchOrderBodies(int firstIdx, int step) {
+        int needed = step - firstIdx;
+        if (needed <= 0) return;
+        int deletedOffset = bodyOrder.size() - activeBodyCount;
+        String sql = "SELECT bl.body_id, bl.first_hcn_lapi, bl.first_superior_hcn_lapi, bl.first_dominated_hcn_lapi, b.head, b.tail " +
+                "FROM body_lifecycle bl JOIN body b ON b.id = bl.body_id " +
+                "ORDER BY bl.ctid DESC LIMIT ? OFFSET ?";
+        List<DbBody> prepend = new ArrayList<>();
+        t().query(sql, new Object[]{needed, deletedOffset}, rs -> {
+            int id = rs.getInt("body_id");
+            Integer[] headArr = (Integer[]) rs.getArray("head").getArray();
+            Integer[] tailArr = (Integer[]) rs.getArray("tail").getArray();
+            DbBody body = new DbBody(toIntArray(headArr), toIntArray(tailArr));
+            body.setFirstHcnLapi((Integer) rs.getObject("first_hcn_lapi"));
+            body.setFirstSuperiorHcnLapi((Integer) rs.getObject("first_superior_hcn_lapi"));
+            body.setFirstDominatedHcnLapi((Integer) rs.getObject("first_dominated_hcn_lapi"));
+            bodyCache.put(id, body);
+            prepend.add(body);
+        });
+        Collections.reverse(prepend);
+        bodyOrder.addAll(0, prepend);
+    }
+
+    public synchronized List<DbBody> getGraphBodies() { return new ArrayList<>(bodyOrder); }
+    public int getActiveBodyCount() { return activeBodyCount; }
+
     public void fetchBodies(Set<Integer> ids) {
-        Set<Integer> missing = ids.stream().filter(id -> !bodyCache.containsKey(id)).collect(Collectors.toSet());
-        if (!missing.isEmpty()) {
-            String in = missing.stream().map(String::valueOf).collect(Collectors.joining(","));
-            t().query("SELECT id, head, tail FROM body WHERE id IN (" + in + ")", rs -> {
-                Integer[] headArr = (Integer[]) rs.getArray("head").getArray();
-                Integer[] tailArr = (Integer[]) rs.getArray("tail").getArray();
-                DbBody body = new DbBody(toIntArray(headArr), toIntArray(tailArr));
-                bodyCache.put(rs.getInt("id"), body);
+
+
+            String in = ids.stream().map(String::valueOf).collect(Collectors.joining(","));
+            t().query("SELECT body_id, first_hcn_lapi, first_superior_hcn_lapi, first_dominated_hcn_lapi FROM body_lifecycle WHERE body_id IN (" + in + ") ORDER BY ctid", rs -> {
+                int id = rs.getInt("body_id");
+                DbBody body = new DbBody(new int[0], new int[0]);
+                body.setFirstHcnLapi((Integer) rs.getObject("first_hcn_lapi"));
+                body.setFirstSuperiorHcnLapi((Integer) rs.getObject("first_superior_hcn_lapi"));
+                body.setFirstDominatedHcnLapi((Integer) rs.getObject("first_dominated_hcn_lapi"));
+                bodyCache.put(id, body);
             });
+
+                t().query("SELECT id, head, tail FROM body WHERE id IN (" + in + ")", rs -> {
+                    int id = rs.getInt("id");
+                    Integer[] headArr = (Integer[]) rs.getArray("head").getArray();
+                    Integer[] tailArr = (Integer[]) rs.getArray("tail").getArray();
+                    DbBody body = bodyCache.get(id);
+                    if (body != null) {
+                        body.setHead(toIntArray(headArr));
+                        body.setTail(toIntArray(tailArr));
+                    } else {
+                        bodyCache.put(id, new DbBody(toIntArray(headArr), toIntArray(tailArr)));
+                    }
+                });
+
+    }
+
+    private void initializeNonDeletedDbBodyData() {
+        Body walker = matrix.getLastTransition().getBodyList().getSmallestBody();
+        while (walker != null) {
+            DbBody dbBody = walker.getDbBody();
+            dbBody.setFirstHcnLapi(walker.getFirstHcn() != null ? walker.getFirstHcn().getLapi() : null);
+            dbBody.setFirstSuperiorHcnLapi(walker.getFirstSuperiorHcn() != null ? walker.getFirstSuperiorHcn().getLapi() : null);
+            dbBody.setFirstDominatedHcnLapi(walker.getFirstDominatedHcn() != null ? walker.getFirstDominatedHcn().getLapi() : null);
+            bodyOrder.add(dbBody);
+            activeBodyCount++;
+            if (walker.getDbId() != null) bodyCache.put(walker.getDbId(), dbBody);
+            walker = walker.getLargerBody();
         }
     }
 

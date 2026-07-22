@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Getter @Setter
-public class HcnGenerationActivity extends Activity {
+public class HcnGenerationActivity extends MatrixActivity {
 
     private final int startLapi;
     private int endLapi;

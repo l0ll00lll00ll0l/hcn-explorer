@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Getter @Setter
-public class TransitionNodeCreationActivity extends Activity {
+public class TransitionNodeCreationActivity extends MatrixActivity {
 
     private final int transitionTo;
 

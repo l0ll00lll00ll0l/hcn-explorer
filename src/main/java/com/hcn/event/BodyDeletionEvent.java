@@ -6,7 +6,7 @@ import lombok.Getter;
 import java.util.List;
 
 @Getter
-public class BodyDeletionEvent extends Event {
+public class BodyDeletionEvent extends MatrixEvent {
 
     private final List<Body> deletedBodies;
 

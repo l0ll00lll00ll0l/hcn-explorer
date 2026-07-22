@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import com.hcn.db.ActivityReadService;
 import com.hcn.db.DatabaseService;
+import com.hcn.db.DbBody;
 import com.hcn.db.DbCacheService;
 import com.hcn.db.DbInsertService;
 import com.hcn.db.DbInterval;
@@ -63,6 +64,7 @@ public class NewCoreController {
                 databaseService.createPermanentTables(matrix.getDbName());
                 dbInsertService.setTargetDb(matrix.getDbName());
                 dbCacheService.setDbName(matrix.getDbName());
+                dbCacheService.setMatrix(matrix);
             }
             matrix.initialize();
         }
@@ -136,6 +138,12 @@ public class NewCoreController {
                             model.addAttribute("intervalCacheSize", dbCacheService.getIntervalCacheSize());
                             model.addAttribute("bodyCacheSize", dbCacheService.getBodyCacheSize());
                         }
+                    }
+                    if (activeSubTab.equals("body")) {
+                        int width = lapi > 0 ? lapi : 0;
+                        if (width > 0) dbCacheService.initialBodySubTabData(width);
+                        model.addAttribute("bodyWidth", width);
+                        model.addAttribute("activeBodyCount", dbCacheService.getActiveBodyCount());
                     }
                     return "tabs/database-" + activeSubTab;
                 }
@@ -240,6 +248,7 @@ public class NewCoreController {
         if (matrix.isDbMode()) {
             dbInsertService.setTargetDb(db);
             dbCacheService.setDbName(db);
+            dbCacheService.setMatrix(matrix);
         }
         activeTab = "matrix";
         activeSubTab = null;
@@ -269,6 +278,32 @@ public class NewCoreController {
             new Thread(() -> matrix.proveLapi(count)).start();
         }
         return "{\"started\":true}";
+    }
+
+    @GetMapping("/newcore/db/bodies/more")
+    @ResponseBody
+    public String fetchMoreBodies(@RequestParam int firstIdx, @RequestParam int step) {
+        dbCacheService.fetchOrderBodies(firstIdx, step);
+        return getGraphBodiesJson();
+    }
+
+    @GetMapping("/newcore/db/bodies")
+    @ResponseBody
+    public String getGraphBodies() { return getGraphBodiesJson(); }
+
+    private String getGraphBodiesJson() {
+        List<DbBody> bodies = dbCacheService.getGraphBodies();
+        StringBuilder sb = new StringBuilder("[");
+        boolean first = true;
+        for (DbBody b : bodies) {
+            if (!first) sb.append(",");
+            first = false;
+            sb.append("{\"firstHcn\":").append(b.getFirstHcnLapi() != null ? b.getFirstHcnLapi() : "null")
+              .append(",\"firstSuperior\":").append(b.getFirstSuperiorHcnLapi() != null ? b.getFirstSuperiorHcnLapi() : "null")
+              .append(",\"firstDominated\":").append(b.getFirstDominatedHcnLapi() != null ? b.getFirstDominatedHcnLapi() : "null")
+              .append(",\"label\":\"").append(b.toString().replace("\"", "\\\"")).append("\"}");
+        }
+        return sb.append("]").toString();
     }
 
     @GetMapping("/newcore/progress")

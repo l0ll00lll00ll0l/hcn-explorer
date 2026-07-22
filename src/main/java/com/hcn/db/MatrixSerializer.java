@@ -374,7 +374,7 @@ public class MatrixSerializer {
     }
 
     public String buildMatrixInsert(Matrix matrix) {
-        return String.format("INSERT INTO tmp_matrix (last_transition, next_lapi, lowest_lapi, highest_lapi, lowest_proved_lapi_within_interval, proved_count, proved_limit_mantissa, proved_limit_exponent, total_time_ms, matrix_maintain_time_ms, generate_hcn_list_time_ms, db_mode, total_nanos, reference_interval_lapi, reference_interval_value_mantissa, reference_interval_value_exponent, reference_interval_factor_mantissa, reference_interval_factor_exponent) VALUES (%d, %s, %s, %s, %d, %d, %s, %d, %d, %d, %d, %b, %d, %s, %s, %s, %s, %s)",
+        return String.format("INSERT INTO tmp_matrix (last_transition, next_lapi, lowest_lapi, highest_lapi, lowest_proved_lapi_within_interval, proved_count, proved_limit_mantissa, proved_limit_exponent, total_time_ms, matrix_maintain_time_ms, generate_hcn_list_time_ms, db_mode, total_nanos, total_matrix_nanos, reference_interval_lapi, reference_interval_value_mantissa, reference_interval_value_exponent, reference_interval_factor_mantissa, reference_interval_factor_exponent) VALUES (%d, %s, %s, %s, %d, %d, %s, %d, %d, %d, %d, %b, %d, %d, %s, %s, %s, %s, %s)",
                 matrix.getLastTransition().getTempId(),
                 matrix.getNextLapi() != null ? matrix.getNextLapi().getPrime().getIndex() : "NULL",
                 matrix.getLowestLapi() != null ? matrix.getLowestLapi().getPrime().getIndex() : "NULL",
@@ -388,6 +388,7 @@ public class MatrixSerializer {
                 matrix.getGenerateHcnListTimeMs(),
                 matrix.isDbMode(),
                 ActivityCenter.getTotalNanos(),
+                ActivityCenter.getTotalMatrixNanos(),
                 matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getLapi() : "NULL",
                 matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getValue().getMantissa() : "NULL",
                 matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getValue().getExponent() : "NULL",

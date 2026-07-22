@@ -20,7 +20,8 @@
                 <table class="level-table">
                     <thead><tr><th>id</th><th>bodyId</th><th>body</th><th>lapi</th><th>value</th><th>factor</th></tr></thead>
                     <tbody>
-                        <tr th:each="hcn : ${leftInterval.hcnlist}">
+                        <tr th:each="hcn : ${leftInterval.hcnlist}"
+                            th:style="${hcn.dbBody != null && hcn.dbBody.firstSuperiorHcnLapi != null && hcn.dbBody.firstDominatedHcnLapi != null && hcn.lapi == hcn.dbBody.firstSuperiorHcnLapi && hcn.lapi == hcn.dbBody.firstDominatedHcnLapi - 1} ? 'background:#e91e63; color:#fff;' : (${hcn.dbBody != null && hcn.dbBody.firstSuperiorHcnLapi != null && hcn.lapi == hcn.dbBody.firstSuperiorHcnLapi} ? 'background:#2e7d32; color:#fff;' : (${hcn.dbBody != null && hcn.dbBody.firstDominatedHcnLapi != null && hcn.lapi == hcn.dbBody.firstDominatedHcnLapi - 1} ? 'background:#e65100; color:#fff;' : ''))">
                             <td th:text="${hcn.id}"></td>
                             <td th:text="${hcn.bodyId}"></td>
                             <td th:text="${hcn.dbBody != null ? hcn.dbBody.toString() : ''}"></td>
@@ -40,7 +41,8 @@
                 <table class="level-table">
                     <thead><tr><th>id</th><th>bodyId</th><th>body</th><th>lapi</th><th>value</th><th>factor</th></tr></thead>
                     <tbody>
-                        <tr th:each="hcn : ${rightInterval.hcnlist}">
+                        <tr th:each="hcn : ${rightInterval.hcnlist}"
+                            th:style="${hcn.dbBody != null && hcn.dbBody.firstSuperiorHcnLapi != null && hcn.dbBody.firstDominatedHcnLapi != null && hcn.lapi == hcn.dbBody.firstSuperiorHcnLapi && hcn.lapi == hcn.dbBody.firstDominatedHcnLapi - 1} ? 'background:#e91e63; color:#fff;' : (${hcn.dbBody != null && hcn.dbBody.firstSuperiorHcnLapi != null && hcn.lapi == hcn.dbBody.firstSuperiorHcnLapi} ? 'background:#2e7d32; color:#fff;' : (${hcn.dbBody != null && hcn.dbBody.firstDominatedHcnLapi != null && hcn.lapi == hcn.dbBody.firstDominatedHcnLapi - 1} ? 'background:#e65100; color:#fff;' : ''))">
                             <td th:text="${hcn.id}"></td>
                             <td th:text="${hcn.bodyId}"></td>
                             <td th:text="${hcn.dbBody != null ? hcn.dbBody.toString() : ''}"></td>

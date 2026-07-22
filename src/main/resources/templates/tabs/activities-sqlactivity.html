@@ -12,6 +12,7 @@
         <span><span style="display:inline-block; width:14px; height:14px; background:#558b2f; vertical-align:middle; margin-right:4px;"></span>SqlInsert HCN_GENERATION_ACTIVITY</span>
         <span><span style="display:inline-block; width:14px; height:14px; background:#e91e63; vertical-align:middle; margin-right:4px;"></span>SqlInsert SQL_INSERT_ACTIVITY</span>
         <span><span style="display:inline-block; width:14px; height:14px; background:#795548; vertical-align:middle; margin-right:4px;"></span>SqlInsert BODY_DELETION_EVENT</span>
+        <span><span style="display:inline-block; width:14px; height:14px; background:#00acc1; vertical-align:middle; margin-right:4px;"></span>SqlInsert BODY_LIFECYCLE</span>
     </div>
     <div id="activity-tooltip" style="position:fixed; background:#333; color:#fff; padding:4px 8px; font-size:10px; font-family:monospace; border-radius:3px; pointer-events:none; display:none; white-space:pre;"></div>
     <div id="activity-timeline" style="border: 1px solid #ccc; overflow: hidden;"></div>
@@ -29,9 +30,9 @@
             BODY: '#e53935', HCN: '#00897b', INTERVAL: '#f9a825',
             STRUCTURAL_ACTIVITY: '#7b1fa2', EXTENSION_ACTIVITY: '#0288d1',
             HCN_GENERATION_ACTIVITY: '#558b2f', SQL_INSERT_ACTIVITY: '#e91e63',
-            BODY_DELETION_EVENT: '#795548'
+            BODY_DELETION_EVENT: '#795548', BODY_LIFECYCLE: '#00acc1'
         };
-        var lanes = ['MATRIX_MAIN','BODY','HCN','INTERVAL','STRUCTURAL_ACTIVITY','EXTENSION_ACTIVITY','HCN_GENERATION_ACTIVITY','SQL_INSERT_ACTIVITY','BODY_DELETION_EVENT'];
+        var lanes = ['MATRIX_MAIN','BODY','HCN','INTERVAL','STRUCTURAL_ACTIVITY','EXTENSION_ACTIVITY','HCN_GENERATION_ACTIVITY','SQL_INSERT_ACTIVITY','BODY_DELETION_EVENT','BODY_LIFECYCLE'];
         var axisH=30, laneH=60;
         var totalH=axisH+lanes.length*laneH+20;
         var allT=activities.reduce(function(acc,a){acc.push(a.start,a.end);return acc;},[]);

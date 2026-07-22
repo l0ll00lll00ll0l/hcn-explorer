@@ -89,3 +89,64 @@ submit(interval) ──► process(interval)
 finalFlush() ──────► wait lastLapi
                      flush remaining ────────► all 3 queues drain
 ```
+
+## Matrix Activity Timing — Dual Clock Plan
+
+### Problem
+
+The Matrix Activity chart shows large gaps between activities. These gaps are DB backpressure pauses — periods where the matrix thread is idle waiting for the insert queue to drain. Although `getNanos()` already excludes inter-run idle time via `totalNanos`, the pauses *within* a single `proveLapi` call are still visible as empty space on the chart.
+
+### Current Clock (`getNanos`)
+
+```
+totalNanos + System.nanoTime() - nanoReference
+```
+
+- `nanoReference` — wall-clock anchor, set at `initialize()` and reset at `resume()`
+- `totalNanos` — accumulates durations of completed `proveLapi` runs (persisted to DB and restored on load)
+- Result: continuous timestamp across multiple `proveLapi` calls, idle time between runs excluded
+
+DB backpressure pauses are handled in `Matrix.proveLapi()`:
+1. `finishMatrixMainActivity()` — finishes current `MatrixMainActivity`, calls `completeRun()` which banks into `totalNanos`
+2. Matrix thread sleeps until queue drains
+3. `resume()` — starts new `MatrixMainActivity`, resets `nanoReference`
+
+Each `MatrixMainActivity` segment = one continuous stretch of matrix computation between pauses.
+
+### Goal
+
+Add a second clock `getMatrixNanos()` that produces timestamps relative to pure matrix computation time only — collapsing the gaps between `MatrixMainActivity` segments so the Matrix Activity chart shows activities back-to-back with no idle gaps.
+
+### New Clock (`getMatrixNanos`)
+
+```
+totalMatrixNanos + (getNanos() - lastMatrixMainActivity.getStartNanos())
+```
+
+- `lastMatrixMainActivity.getStartNanos()` — start of the current `MatrixMainActivity` segment on the main clock
+- `totalMatrixNanos` — accumulates durations of all completed `MatrixMainActivity` segments (mirrors `totalNanos` pattern)
+- Result: continuous matrix-only timestamp, DB pause gaps collapsed to zero
+
+### What Needs to Change
+
+#### `ActivityCenter`
+- Add `private static long totalMatrixNanos = 0`
+- Add `getTotalMatrixNanos()` / `setTotalMatrixNanos()` (for DB persist/restore)
+- Add `getMatrixNanos()` as described above
+- In `finishMatrixMainActivity()` (called on each pause): bank completed segment duration into `totalMatrixNanos`
+
+#### `MatrixSerializer` / `MatrixDeserializer`
+- Save `totalMatrixNanos` alongside `totalNanos`
+- Restore via `ActivityCenter.setTotalMatrixNanos()` on load
+
+#### Event/Activity class hierarchy
+- First iteration (done): introduced `MainProcessActivity` and `MainProcessEvent` as intermediate classes, all leaf classes extend these, everything still uses `getNanos()` — compiles and runs identically
+- Second iteration (pending): introduce `MatrixActivity` and `MatrixEvent` extending `Activity`/`Event`, their constructors call `getMatrixNanos()` instead of `getNanos()`
+- Assignments:
+  - `MainProcessActivity`: `MatrixMainActivity`, `SqlInsertActivity`
+  - `MatrixActivity`: `HcnGenerationActivity`, `MatrixExtensionActivity`, `ApiNodeCreationActivity`, `TransitionNodeCreationActivity`
+  - `MainProcessEvent`: (base for main process events)
+  - `MatrixEvent`: `BodyDeletionEvent`
+
+#### Matrix Activity chart
+- No changes needed — once activities store `getMatrixNanos()` timestamps, the chart uses them as-is with no gaps

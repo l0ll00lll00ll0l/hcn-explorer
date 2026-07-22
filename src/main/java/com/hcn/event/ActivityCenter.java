@@ -85,8 +85,16 @@ public class ActivityCenter {
     public static long getTotalNanos() { return totalNanos; }
     public static void setTotalNanos(long v) { totalNanos = v; }
 
+    private static long totalMatrixNanos = 0;
+    public static long getTotalMatrixNanos() { return totalMatrixNanos; }
+    public static void setTotalMatrixNanos(long v) { totalMatrixNanos = v; }
+
     public static long getNanos() {
         return totalNanos + System.nanoTime() - nanoReference;
+    }
+
+    public static long getMatrixNanos() {
+        return totalMatrixNanos + (getNanos() - lastMatrixMainActivity.getStartNanos());
     }
 
     public static void completeRun() {
@@ -101,6 +109,7 @@ public class ActivityCenter {
     public static void finishMatrixMainActivity(int lastLapi) {
         if (!dbMode) return;
         interruptHcnGeneration(lastLapi);
+        totalMatrixNanos += getNanos() - lastMatrixMainActivity.getStartNanos();
         lastMatrixMainActivity.finish();
         lastMatrixMainActivity.setLastLapi(lastLapi);
         dbInsertService.submitStructural(lastMatrixMainActivity);

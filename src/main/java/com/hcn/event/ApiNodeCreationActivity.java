@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Getter
-public class ApiNodeCreationActivity extends Activity {
+public class ApiNodeCreationActivity extends MatrixActivity {
 
     private int index;
 

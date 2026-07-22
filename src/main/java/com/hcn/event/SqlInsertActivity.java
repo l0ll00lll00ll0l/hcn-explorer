@@ -3,7 +3,7 @@ package com.hcn.event;
 import lombok.Getter;
 
 @Getter
-public class SqlInsertActivity extends Activity {
+public class SqlInsertActivity extends MainProcessActivity {
 
     private final SqlTable table;
     private final int rowCount;

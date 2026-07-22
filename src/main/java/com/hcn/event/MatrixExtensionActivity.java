@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Getter @Setter
-public class MatrixExtensionActivity extends Activity {
+public class MatrixExtensionActivity extends MatrixActivity {
 
     private final int index;
     private final int power;

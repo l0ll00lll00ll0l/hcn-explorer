@@ -16,7 +16,11 @@
             if (lapi) url += '&lapi=' + lapi;
             fetch(url)
                 .then(r => r.text())
-                .then(html => { document.getElementById('subtab-content').innerHTML = html; });
+                .then(html => {
+                    var el = document.getElementById('subtab-content');
+                    el.innerHTML = html;
+                    el.querySelectorAll('script').forEach(function(s) { eval(s.textContent); });
+                });
         };
         window.loadSubTab(initialSubTab);
     </script>

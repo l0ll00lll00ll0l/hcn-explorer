@@ -10,4 +10,8 @@ public abstract class Event {
     protected Event() {
         this.nanos = ActivityCenter.getNanos();
     }
+
+    protected Event(long nanos) {
+        this.nanos = nanos;
+    }
 }

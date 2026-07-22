@@ -305,6 +305,7 @@ public class MatrixDeserializer {
         long generateHcnListTimeMs = (long) row.get("generate_hcn_list_time_ms");
         boolean dbMode = (boolean) row.get("db_mode");
         long totalNanos = (long) row.get("total_nanos");
+        long totalMatrixNanos = (long) row.get("total_matrix_nanos");
 
         Matrix matrix = Matrix.builder()
                 .lastTransition((TransitionNode) matrixNodeMap.get(lastTransitionId))
@@ -329,10 +330,12 @@ public class MatrixDeserializer {
             dbInsertService.setExtensionIdCounter(queryMaxId("extension_activity") + 1);
             dbInsertService.setHcnGenerationIdCounter(queryMaxId("hcn_generation_activity") + 1);
             dbInsertService.setSqlInsertActIdCounter(queryMaxId("sql_insert_activity") + 1);
+            dbInsertService.setBodyDeletionEventIdCounter(queryMaxId("body_deletion_event") + 1);
             matrix.setDbInsertService(dbInsertService);
         }
 
         ActivityCenter.setTotalNanos(totalNanos);
+        ActivityCenter.setTotalMatrixNanos(totalMatrixNanos);
 
         Integer refLapi = (Integer) row.get("reference_interval_lapi");
         if (refLapi != null) {

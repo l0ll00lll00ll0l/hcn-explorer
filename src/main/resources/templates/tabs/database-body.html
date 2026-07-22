@@ -1,6 +1,202 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<div th:fragment="content">placeholder body</div>
+<div th:fragment="content">
+    <div th:if="${bodyWidth == 0}">
+        <script>
+        (function() { window.loadSubTab('body', document.getElementById('tab-content').clientWidth); })();
+        </script>
+    </div>
+    <div th:if="${bodyWidth > 0}">
+        <div style="font-size:11px; margin-bottom:6px; display:flex; gap:12px; align-items:center; font-family:monospace;">
+            <button id="btn-left"  style="padding:2px 10px;">◀</button>
+            <button id="btn-right" style="padding:2px 10px;">▶</button>
+            <span>bodies: <b id="body-count">0</b></span>
+            <span>viewing: <b id="view-range"></b></span>
+            <span><span style="display:inline-block;width:12px;height:12px;background:#90a4ae;vertical-align:middle;margin-right:3px;"></span>non-superior</span>
+            <span><span style="display:inline-block;width:12px;height:12px;background:#388e3c;vertical-align:middle;margin-right:3px;"></span>superior</span>
+            <span><span style="display:inline-block;width:12px;height:12px;background:#e53935;vertical-align:middle;margin-right:3px;"></span>dominated</span>
+        </div>
+        <div id="body-tooltip" style="position:fixed;background:#333;color:#fff;padding:4px 8px;font-size:10px;font-family:monospace;border-radius:3px;pointer-events:none;display:none;white-space:pre;"></div>
+        <canvas id="body-canvas" style="display:block;border:1px solid #ccc;"></canvas>
+        <script th:inline="javascript">
+        (function() {
+            var W = /*[[${bodyWidth}]]*/ 1200;
+            var H = Math.max(300, window.innerHeight - 180);
+            var BODY_PX = 1;
+            var MIN_PX = 1;
+            var MAX_PX = 60;
+            var firstIdx = 0;
+            var bodies = [];
+            var canvas = document.getElementById('body-canvas');
+            var tooltip = document.getElementById('body-tooltip');
+            canvas.width = W;
+            canvas.height = H;
+
+            function visibleCount() { return Math.floor(W / BODY_PX); }
+
+            function draw() {
+                var ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, W, H);
+                var visible = bodies.slice(firstIdx, firstIdx + visibleCount());
+                if (visible.length === 0) { ctx.fillStyle='#333'; ctx.fillText('no data', 10, 20); return; }
+
+                var deletedCount = bodies.length - /*[[${activeBodyCount}]]*/ 0;
+                var deletedVisible = Math.max(0, Math.min(deletedCount - firstIdx, visible.length));
+                if (deletedVisible > 0) {
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.fillRect(0, 0, deletedVisible * BODY_PX, H);
+                }
+
+                var minL = Infinity, maxL = -Infinity;
+                visible.forEach(function(b) {
+                    if (b.firstHcn != null) { if (b.firstHcn < minL) minL = b.firstHcn; }
+                    if (b.firstHcn != null && b.firstHcn > maxL) maxL = b.firstHcn;
+                    if (b.firstSuperior != null && b.firstSuperior > maxL) maxL = b.firstSuperior;
+                    if (b.firstDominated != null && b.firstDominated > maxL) maxL = b.firstDominated;
+                });
+                if (minL === Infinity) return;
+
+                var range = maxL - minL || 1;
+                function yTop(lapi)    { return Math.round((maxL - lapi) / range * (H - 1)); }
+                function yBottom(lapi) { return Math.round((maxL - lapi + 1) / range * (H - 1)); }
+
+                // helplines
+                var steps = [1,2,5,10,20,50,100,200,500,1000,2000,5000,10000,20000,50000];
+                var step = steps.find(function(s) { return Math.floor(range / s) >= 5 && Math.floor(range / s) <= 8; }) || steps[steps.length-1];
+                var firstLine = Math.ceil(minL / step) * step;
+                ctx.save();
+                ctx.strokeStyle = '#bbb';
+                ctx.fillStyle = '#888';
+                ctx.font = '10px monospace';
+                ctx.lineWidth = 0.5;
+                for (var l = firstLine; l <= maxL; l += step) {
+                    var y = yTop(l);
+                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+                    ctx.fillText(l, 2, y - 2);
+                }
+                ctx.restore();
+                visible.forEach(function(b, i) {
+                    if (b.firstHcn == null) return;
+                    var x = i * BODY_PX;
+
+                    // grey: firstHcn to firstSuperior-1, or to firstDominated-1 if no superior, or to top if neither
+                    var greyTop    = b.firstSuperior != null ? yTop(b.firstSuperior - 1) : (b.firstDominated != null ? yTop(b.firstDominated - 1) : 0);
+                    var greyBottom = yBottom(b.firstHcn);
+                    if (greyBottom > greyTop) { ctx.fillStyle = '#90a4ae'; ctx.fillRect(x, greyTop, BODY_PX, greyBottom - greyTop); }
+
+                    // green: firstSuperior to firstDominated-1 (or top if no dominated)
+                    if (b.firstSuperior != null) {
+                        var greenTop    = b.firstDominated != null ? yTop(b.firstDominated - 1) : 0;
+                        var greenBottom = yBottom(b.firstSuperior);
+                        if (greenBottom > greenTop) { ctx.fillStyle = '#388e3c'; ctx.fillRect(x, greenTop, BODY_PX, greenBottom - greenTop); }
+                    }
+
+                    // red: firstDominated, 1 lapi tall
+                    if (b.firstDominated != null) {
+                        var redTop    = yTop(b.firstDominated);
+                        var redBottom = yBottom(b.firstDominated);
+                        ctx.fillStyle = '#e53935'; ctx.fillRect(x, redTop, BODY_PX, Math.max(1, redBottom - redTop));
+                    }
+                });
+
+                document.getElementById('body-count').textContent = bodies.length;
+                document.getElementById('view-range').textContent = (firstIdx + 1) + '–' + (firstIdx + visible.length);
+            }
+
+            function load() {
+                fetch('/newcore/db/bodies').then(function(r) { return r.json(); }).then(function(data) {
+                    bodies = data;
+                    firstIdx = 0;
+                    draw();
+                });
+            }
+
+            document.getElementById('btn-left').onclick = function() {
+                var step = Math.max(1, Math.floor(visibleCount() * 0.1));
+                fetch('/newcore/db/bodies/more?firstIdx=' + firstIdx + '&step=' + step)
+                    .then(function(r) { return r.json(); }).then(function(data) {
+                        bodies = data;
+                        firstIdx = Math.max(0, firstIdx - step);
+                        draw();
+                    });
+            };
+            document.getElementById('btn-right').onclick = function() {
+                var step = Math.max(1, Math.floor(visibleCount() * 0.1));
+                firstIdx = Math.min(firstIdx + step, Math.max(0, bodies.length - visibleCount()));
+                draw();
+            };
+
+            canvas.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                var rect = canvas.getBoundingClientRect();
+                var mouseX = e.clientX - rect.left;
+                var bodyAtMouse = firstIdx + mouseX / BODY_PX;
+                var newPx = e.deltaY < 0
+                    ? Math.min(MAX_PX, BODY_PX + 1)
+                    : Math.max(MIN_PX, BODY_PX - 1);
+                if (newPx === BODY_PX) return;
+                BODY_PX = newPx;
+                var newFirstIdx = Math.round(bodyAtMouse - mouseX / BODY_PX);
+                var step = Math.max(0, -newFirstIdx);
+                if (step > 0) {
+                    fetch('/newcore/db/bodies/more?firstIdx=0&step=' + step)
+                        .then(function(r) { return r.json(); }).then(function(data) {
+                            bodies = data;
+                            firstIdx = 0;
+                            draw();
+                        });
+                } else {
+                    firstIdx = Math.min(newFirstIdx, Math.max(0, bodies.length - visibleCount()));
+                    draw();
+                }
+            }, { passive: false });
+
+            var dragStartX = null;
+            var dragStartIdx = null;
+
+            canvas.addEventListener('mousedown', function(e) {
+                dragStartX = e.clientX;
+                dragStartIdx = firstIdx;
+            });
+            canvas.addEventListener('mouseup', function() { dragStartX = null; });
+            canvas.addEventListener('mouseleave', function() { dragStartX = null; tooltip.style.display = 'none'; });
+
+            canvas.addEventListener('mousemove', function(e) {
+                if (dragStartX !== null) {
+                    var delta = Math.round((dragStartX - e.clientX) / BODY_PX);
+                    var newFirstIdx = dragStartIdx + delta;
+                    if (newFirstIdx < 0) {
+                        var step = -newFirstIdx;
+                        dragStartX = e.clientX;
+                        dragStartIdx = 0;
+                        fetch('/newcore/db/bodies/more?firstIdx=0&step=' + step)
+                            .then(function(r) { return r.json(); }).then(function(data) {
+                                bodies = data;
+                                firstIdx = 0;
+                                draw();
+                            });
+                        return;
+                    }
+                    firstIdx = Math.min(newFirstIdx, Math.max(0, bodies.length - visibleCount()));
+                    draw();
+                    return;
+                }
+                var rect = canvas.getBoundingClientRect();
+                var i = firstIdx + Math.floor((e.clientX - rect.left) / BODY_PX);
+                if (i >= 0 && i < bodies.length) {
+                    var b = bodies[i];
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = (e.clientX + 12) + 'px';
+                    tooltip.style.top  = (e.clientY + 12) + 'px';
+                    tooltip.textContent = b.label + '\nfirstHcn: ' + b.firstHcn + '\nfirstSuperior: ' + b.firstSuperior + '\nfirstDominated: ' + b.firstDominated;
+                }
+            });
+
+            load();
+        })();
+        </script>
+    </div>
+</div>
 </body>
 </html>

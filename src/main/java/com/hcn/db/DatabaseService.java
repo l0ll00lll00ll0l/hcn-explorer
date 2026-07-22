@@ -175,6 +175,7 @@ public class DatabaseService {
                     generate_hcn_list_time_ms BIGINT,
                     db_mode BOOLEAN,
                     total_nanos BIGINT,
+                    total_matrix_nanos BIGINT,
                     reference_interval_lapi INT,
                     reference_interval_value_mantissa DOUBLE PRECISION,
                     reference_interval_value_exponent BIGINT,
@@ -266,6 +267,14 @@ public class DatabaseService {
                     nanos BIGINT,
                     deleted_body_count INT,
                     non_proved_body_count INT
+                )
+                """);
+        dbTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS body_lifecycle (
+                    body_id INT PRIMARY KEY,
+                    first_hcn_lapi INT,
+                    first_superior_hcn_lapi INT,
+                    first_dominated_hcn_lapi INT
                 )
                 """);
     }
