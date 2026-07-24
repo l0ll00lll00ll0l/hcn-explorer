@@ -24,7 +24,7 @@
             var W = /*[[${bodyWidth}]]*/ 1200;
             var H = Math.max(300, window.innerHeight - 180);
             var BODY_PX = 1;
-            var MIN_PX = 1;
+            var MIN_PX = 0.1;
             var MAX_PX = 60;
             var firstIdx = 0;
             var bodies = [];
@@ -33,7 +33,7 @@
             canvas.width = W;
             canvas.height = H;
 
-            function visibleCount() { return Math.floor(W / BODY_PX); }
+            function visibleCount() { return Math.ceil(W / BODY_PX); }
 
             function draw() {
                 var ctx = canvas.getContext('2d');
@@ -45,7 +45,7 @@
                 var deletedVisible = Math.max(0, Math.min(deletedCount - firstIdx, visible.length));
                 if (deletedVisible > 0) {
                     ctx.fillStyle = '#f0f0f0';
-                    ctx.fillRect(0, 0, deletedVisible * BODY_PX, H);
+                    ctx.fillRect(0, 0, Math.ceil(deletedVisible * BODY_PX), H);
                 }
 
                 var minL = Infinity, maxL = -Infinity;
@@ -76,29 +76,36 @@
                     ctx.fillText(l, 2, y - 2);
                 }
                 ctx.restore();
-                visible.forEach(function(b, i) {
-                    if (b.firstHcn == null) return;
-                    var x = i * BODY_PX;
 
-                    // grey: firstHcn to firstSuperior-1, or to firstDominated-1 if no superior, or to top if neither
-                    var greyTop    = b.firstSuperior != null ? yTop(b.firstSuperior - 1) : (b.firstDominated != null ? yTop(b.firstDominated - 1) : 0);
-                    var greyBottom = yBottom(b.firstHcn);
-                    if (greyBottom > greyTop) { ctx.fillStyle = '#90a4ae'; ctx.fillRect(x, greyTop, BODY_PX, greyBottom - greyTop); }
+                var pixelCount = Math.min(W, Math.ceil(visible.length * BODY_PX));
+                for (var px = 0; px < pixelCount; px++) {
+                    var iFrom = Math.floor(px / BODY_PX);
+                    var iTo   = Math.min(visible.length - 1, Math.floor((px + 1) / BODY_PX));
+                    var aggMinL = Infinity, aggMaxHcn = -Infinity, aggMaxSup = -Infinity, aggMaxDom = -Infinity;
+                    for (var ii = iFrom; ii <= iTo; ii++) {
+                        var b = visible[ii];
+                        if (b.firstHcn != null) { if (b.firstHcn < aggMinL) aggMinL = b.firstHcn; if (b.firstHcn > aggMaxHcn) aggMaxHcn = b.firstHcn; }
+                        if (b.firstSuperior != null && b.firstSuperior > aggMaxSup) aggMaxSup = b.firstSuperior;
+                        if (b.firstDominated != null && b.firstDominated > aggMaxDom) aggMaxDom = b.firstDominated;
+                    }
+                    if (aggMinL === Infinity) continue;
 
-                    // green: firstSuperior to firstDominated-1 (or top if no dominated)
-                    if (b.firstSuperior != null) {
-                        var greenTop    = b.firstDominated != null ? yTop(b.firstDominated - 1) : 0;
-                        var greenBottom = yBottom(b.firstSuperior);
-                        if (greenBottom > greenTop) { ctx.fillStyle = '#388e3c'; ctx.fillRect(x, greenTop, BODY_PX, greenBottom - greenTop); }
+                    var greyTop    = aggMaxSup !== -Infinity ? yTop(aggMaxSup - 1) : (aggMaxDom !== -Infinity ? yTop(aggMaxDom - 1) : 0);
+                    var greyBottom = yBottom(aggMinL);
+                    if (greyBottom > greyTop) { ctx.fillStyle = '#90a4ae'; ctx.fillRect(px, greyTop, 1, greyBottom - greyTop); }
+
+                    if (aggMaxSup !== -Infinity) {
+                        var greenTop    = aggMaxDom !== -Infinity ? yTop(aggMaxDom - 1) : 0;
+                        var greenBottom = yBottom(aggMaxSup);
+                        if (greenBottom > greenTop) { ctx.fillStyle = '#388e3c'; ctx.fillRect(px, greenTop, 1, greenBottom - greenTop); }
                     }
 
-                    // red: firstDominated, 1 lapi tall
-                    if (b.firstDominated != null) {
-                        var redTop    = yTop(b.firstDominated);
-                        var redBottom = yBottom(b.firstDominated);
-                        ctx.fillStyle = '#e53935'; ctx.fillRect(x, redTop, BODY_PX, Math.max(1, redBottom - redTop));
+                    if (aggMaxDom !== -Infinity) {
+                        var redTop    = yTop(aggMaxDom);
+                        var redBottom = yBottom(aggMaxDom);
+                        ctx.fillStyle = '#e53935'; ctx.fillRect(px, redTop, 1, Math.max(1, redBottom - redTop));
                     }
-                });
+                }
 
                 document.getElementById('body-count').textContent = bodies.length;
                 document.getElementById('view-range').textContent = (firstIdx + 1) + '–' + (firstIdx + visible.length);
@@ -133,8 +140,8 @@
                 var mouseX = e.clientX - rect.left;
                 var bodyAtMouse = firstIdx + mouseX / BODY_PX;
                 var newPx = e.deltaY < 0
-                    ? Math.min(MAX_PX, BODY_PX + 1)
-                    : Math.max(MIN_PX, BODY_PX - 1);
+                    ? Math.min(MAX_PX, BODY_PX * 1.2)
+                    : Math.max(MIN_PX, BODY_PX / 1.2);
                 if (newPx === BODY_PX) return;
                 BODY_PX = newPx;
                 var newFirstIdx = Math.round(bodyAtMouse - mouseX / BODY_PX);

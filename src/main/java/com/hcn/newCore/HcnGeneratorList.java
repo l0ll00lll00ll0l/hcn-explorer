@@ -16,15 +16,19 @@ public class HcnGeneratorList {
     public static int getSize() { return size; }
 
     public static void initialize(Body smallest) {
-        smallestBody = smallest;
+        if (smallest.isNonDeactivated()) {
+            smallestBody = smallest;
+        } else {
+            smallestBody = smallest.getNextActiveBody();
+        }
+
         size = 0;
-        Body current = smallest;
+        Body current = smallestBody;
         while (current != null) {
             size++;
             largestBody = current;
             current = current.getLargerHcnGenerator();
         }
-        log.debug("initialize: size={}", size);
     }
 
     public static void add(Body body) {

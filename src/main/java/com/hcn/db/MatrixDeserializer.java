@@ -209,7 +209,12 @@ public class MatrixDeserializer {
             node.setPrevMatrixNode(prevId != null ? matrixNodeMap.get(prevId) : null);
             node.setNextMatrixNode(nextId != null ? matrixNodeMap.get(nextId) : null);
             if (bodyListId != null) {
-                node.setBodyList(BodyList.builder().smallestBody(bodyMap.get(bodyListId)).build());
+                Body smallest = bodyMap.get(bodyListId);
+                Body walker = smallest;
+                int sz = 0;
+                Body largest = smallest;
+                while (walker != null) { sz++; largest = walker; walker = walker.getLargerBody(); }
+                node.setBodyList(BodyList.builder().smallestBody(smallest).largestBody(largest).size(sz).build());
             }
         });
     }

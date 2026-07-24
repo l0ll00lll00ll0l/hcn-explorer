@@ -23,7 +23,7 @@
             var W = /*[[${intervalWidth}]]*/ 1200;
             var H = Math.max(300, window.innerHeight - 180);
             var IV_PX = 1;
-            var MIN_PX = 1;
+            var MIN_PX = 0.1;
             var MAX_PX = 60;
             var firstIdx = 0;
             var intervals = [];
@@ -48,7 +48,7 @@
                 return 1;
             }
 
-            function visibleCount() { return Math.floor(W / IV_PX); }
+            function visibleCount() { return Math.ceil(W / IV_PX); }
 
             function draw() {
                 var ctx = canvas.getContext('2d');
@@ -71,19 +71,32 @@
                 var showSize   = chkSize.checked;
                 var showActive = chkActive.checked;
 
-                visible.forEach(function(iv, i) {
-                    var x = i * IV_PX;
+                var pixelCount = Math.min(W, Math.ceil(visible.length * IV_PX));
+                for (var px = 0; px < pixelCount; px++) {
+                    var iFrom = Math.floor(px / IV_PX);
+                    var iTo   = Math.min(visible.length - 1, Math.floor((px + 1) / IV_PX));
+                    var maxSizeVal = 0, maxActiveVal = 0;
+                    var hasExt = false, selfRef = false;
+                    for (var ii = iFrom; ii <= iTo; ii++) {
+                        var iv = visible[ii];
+                        if (iv.size > maxSizeVal) maxSizeVal = iv.size;
+                        if (iv.activeBodyCount > maxActiveVal) maxActiveVal = iv.activeBodyCount;
+                        if (iv.extensions && iv.extensions.length > 0) hasExt = true;
+                        if (iv.selfReferred) selfRef = true;
+                    }
+                    ctx.fillStyle = hasExt ? '#e53935' : selfRef ? '#bbdefb' : '#eeeeee';
+                    ctx.fillRect(px, 0, 1, H);
                     if (showActive) {
-                        var barH = Math.round(iv.activeBodyCount / ym * H);
+                        var barH = Math.round(maxActiveVal / ym * H);
                         ctx.fillStyle = '#f9a825';
-                        ctx.fillRect(x, H - barH, IV_PX, barH);
+                        ctx.fillRect(px, H - barH, 1, barH);
                     }
                     if (showSize) {
-                        var barH = Math.round(iv.size / ym * H);
+                        var barH = Math.round(maxSizeVal / ym * H);
                         ctx.fillStyle = '#2e7d32';
-                        ctx.fillRect(x, H - barH, IV_PX, barH);
+                        ctx.fillRect(px, H - barH, 1, barH);
                     }
-                });
+                }
 
                 // Y axis helplines
                 var steps = [1,2,5,10,20,50,100,200,500,1000,2000,5000,10000];
@@ -225,8 +238,8 @@
                 var mouseX = e.clientX - rect.left;
                 var ivAtMouse = firstIdx + mouseX / IV_PX;
                 var newPx = e.deltaY < 0
-                    ? Math.min(MAX_PX, IV_PX + 1)
-                    : Math.max(MIN_PX, IV_PX - 1);
+                    ? Math.min(MAX_PX, IV_PX * 1.2)
+                    : Math.max(MIN_PX, IV_PX / 1.2);
                 if (newPx === IV_PX) return;
                 IV_PX = newPx;
                 var newFirstIdx = Math.round(ivAtMouse - mouseX / IV_PX);
