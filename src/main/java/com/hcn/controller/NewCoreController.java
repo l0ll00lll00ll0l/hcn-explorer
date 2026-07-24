@@ -145,6 +145,13 @@ public class NewCoreController {
                         model.addAttribute("bodyWidth", width);
                         model.addAttribute("activeBodyCount", dbCacheService.getActiveBodyCount());
                     }
+                    if (activeSubTab.equals("interval")) {
+                        int width = lapi > 0 ? lapi : 0;
+                        if (width > 0) dbCacheService.initialIntervalSubTabData(width);
+                        model.addAttribute("intervalWidth", width);
+                        model.addAttribute("activeIntervalCount", dbCacheService.getActiveIntervalCount());
+                        return "tabs/database-interval";
+                    }
                     return "tabs/database-" + activeSubTab;
                 }
             }
@@ -291,6 +298,24 @@ public class NewCoreController {
     @ResponseBody
     public String getGraphBodies() { return getGraphBodiesJson(); }
 
+    @GetMapping("/newcore/db/intervals")
+    @ResponseBody
+    public String getGraphIntervals() { return getGraphIntervalsJson(); }
+
+    @GetMapping("/newcore/db/intervals/more")
+    @ResponseBody
+    public String fetchMoreIntervals(@RequestParam int firstLapi, @RequestParam int step) {
+        dbCacheService.fetchOrderIntervals(firstLapi, step);
+        return getGraphIntervalsJson();
+    }
+
+    @GetMapping("/newcore/db/intervals/meta")
+    @ResponseBody
+    public String getIntervalMeta() {
+        return "{\"maxSize\":" + dbCacheService.getMaxIntervalSize()
+             + ",\"maxActiveBodyCount\":" + dbCacheService.getMaxIntervalActiveBodyCount() + "}";
+    }
+
     private String getGraphBodiesJson() {
         List<DbBody> bodies = dbCacheService.getGraphBodies();
         StringBuilder sb = new StringBuilder("[");
@@ -306,6 +331,33 @@ public class NewCoreController {
         return sb.append("]").toString();
     }
 
+    private String getGraphIntervalsJson() {
+        List<DbInterval> intervals = dbCacheService.getGraphIntervals();
+        StringBuilder sb = new StringBuilder("[");
+        boolean first = true;
+        for (DbInterval iv : intervals) {
+            if (!first) sb.append(",");
+            first = false;
+            sb.append("{\"lapi\":").append(iv.getLapi())
+              .append(",\"size\":").append(iv.getSize())
+              .append(",\"activeBodyCount\":").append(iv.getActiveBodyCount())
+              .append(",\"selfReferred\":").append(iv.getReferenceInterval() != null && iv.getReferenceInterval() == iv.getLapi())
+              .append(",\"extensions\":[");
+            for (int i = 0; i < iv.getExtensions().size(); i++) {
+                var ext = iv.getExtensions().get(i);
+                if (i > 0) sb.append(",");
+                sb.append("{\"index\":").append(ext.getIndex())
+                  .append(",\"power\":").append(ext.getPower())
+                  .append(",\"createdActive\":").append(ext.getCreatedActiveBodyCount())
+                  .append(",\"deletedActive\":").append(ext.getDeletedActiveBodyCount())
+                  .append(",\"deletedDeactivated\":").append(ext.getDeletedDeactivatedBodyCount())
+                  .append("}");
+            }
+            sb.append("]}");
+        }
+        return sb.append("]").toString();
+    }
+
     @GetMapping("/newcore/progress")
     @ResponseBody
     public String progress() {
@@ -315,7 +367,7 @@ public class NewCoreController {
 
     public List<MatrixNode> getMatrixChain() {
         List<MatrixNode> chain = new ArrayList<>();
-        MatrixNode current = matrix.getLastTransition();
+        MatrixNode current = Matrix.lastTransition;
         while (current != null) {
             chain.add(current);
             current = current.getPrevMatrixNode();

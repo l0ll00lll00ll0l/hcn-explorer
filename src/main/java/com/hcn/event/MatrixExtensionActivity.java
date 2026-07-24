@@ -11,8 +11,10 @@ public class MatrixExtensionActivity extends MatrixActivity {
 
     private final int index;
     private final int power;
+    private int interval = 0;
     private int createdActiveBodyCount = 0;
-    private int deactivatedBodyCount = 0;
+    private int deletedActiveBodyCount = 0;
+    private int deletedDeactivatedBodyCount = 0;
 
     public MatrixExtensionActivity(BodyNode createdBodyNode) {
         super();
@@ -25,15 +27,18 @@ public class MatrixExtensionActivity extends MatrixActivity {
             this.index = transitionNode.getIndexes().get(transitionNode.getIndexes().size() - 1).getIndex();
             this.power = transitionNode.getTransitionFrom();
         }
+        this.interval = ActivityCenter.getCurrentLapi();
         ActivityCenter.addExtensionActivity(this);
     }
 
-    public MatrixExtensionActivity(int index, int power, int createdActiveBodyCount, int deactivatedBodyCount, long startNanos, long finishNanos) {
+    public MatrixExtensionActivity(int index, int power, int interval, int createdActiveBodyCount, int deletedActiveBodyCount, int deletedDeactivatedBodyCount, long startNanos, long finishNanos) {
         super(startNanos, finishNanos);
         this.index = index;
         this.power = power;
+        this.interval = interval;
         this.createdActiveBodyCount = createdActiveBodyCount;
-        this.deactivatedBodyCount = deactivatedBodyCount;
+        this.deletedActiveBodyCount = deletedActiveBodyCount;
+        this.deletedDeactivatedBodyCount = deletedDeactivatedBodyCount;
     }
 
     @Override
@@ -41,7 +46,7 @@ public class MatrixExtensionActivity extends MatrixActivity {
 
     @Override
     public String getGuiLabel() {
-        return "duration: " + formatDuration() + " | p" + index + "^" + power + " | active: " + createdActiveBodyCount + " | deact: " + deactivatedBodyCount;
+        return "duration: " + formatDuration() + " | p" + index + "^" + power + " | lapi: " + interval + " | +active: " + createdActiveBodyCount + " | -active: " + deletedActiveBodyCount + " | -deact: " + deletedDeactivatedBodyCount;
     }
 
     public void finish() {

@@ -66,10 +66,10 @@ public class DbInsertService {
             SqlTable.STRUCTURAL_ACTIVITY, SqlTable.EXTENSION_ACTIVITY, SqlTable.HCN_GENERATION_ACTIVITY, SqlTable.SQL_INSERT_ACTIVITY, SqlTable.BODY_DELETION_EVENT);
 
     private static final String BODY_INSERT           = "INSERT INTO body (id, head, tail) VALUES ";
-    private static final String INTERVAL_INSERT       = "INSERT INTO interval (lapi, value_mantissa, value_exponent, factor_mantissa, factor_exponent, first_hcn, size, reference_interval) VALUES ";
+    private static final String INTERVAL_INSERT       = "INSERT INTO interval (lapi, value_mantissa, value_exponent, factor_mantissa, factor_exponent, first_hcn, size, reference_interval, active_body_count) VALUES ";
     private static final String HCN_INSERT            = "INSERT INTO hcn (id, body, lapi) VALUES ";
     private static final String STRUCTURAL_INSERT     = "INSERT INTO structural_activity (id, type, start_nanos, finish_nanos, int_1, int_2) VALUES ";
-    private static final String EXTENSION_INSERT      = "INSERT INTO extension_activity (id, start_nanos, finish_nanos, index, power, created_active_body_count, deactivated_body_count) VALUES ";
+    private static final String EXTENSION_INSERT      = "INSERT INTO extension_activity (id, start_nanos, finish_nanos, index, power, interval, created_active_body_count, deleted_active_body_count, deleted_deactivated_body_count) VALUES ";
     private static final String HCN_GENERATION_INSERT = "INSERT INTO hcn_generation_activity (id, start_nanos, finish_nanos, start_lapi, end_lapi) VALUES ";
     private static final String SQL_INSERT_ACT_INSERT      = "INSERT INTO sql_insert_activity (id, start_nanos, finish_nanos, row_count, table_name) VALUES ";
     private static final String BODY_DELETION_EVENT_INSERT = "INSERT INTO body_deletion_event (id, nanos, deleted_body_count, non_proved_body_count) VALUES ";
@@ -247,6 +247,7 @@ public class DbInsertService {
                 .append(",").append(firstHcnId)
                 .append(",").append(interval.getHcnList().size())
                 .append(",").append(interval.getReferenceInterval().getLapi())
+                .append(",").append(interval.getActiveBodyCount())
                 .append(")");
         intervalCount++;
     }
@@ -280,7 +281,7 @@ public class DbInsertService {
 
     public void submitExtension(MatrixExtensionActivity a) {
         if (extensionCount > 0) extensionBuffer.append(",");
-        extensionBuffer.append("(").append(extensionIdCounter++).append(",").append(a.getStartNanos()).append(",").append(a.getFinishNanos()).append(",").append(a.getIndex()).append(",").append(a.getPower()).append(",").append(a.getCreatedActiveBodyCount()).append(",").append(a.getDeactivatedBodyCount()).append(")");
+        extensionBuffer.append("(").append(extensionIdCounter++).append(",").append(a.getStartNanos()).append(",").append(a.getFinishNanos()).append(",").append(a.getIndex()).append(",").append(a.getPower()).append(",").append(a.getInterval()).append(",").append(a.getCreatedActiveBodyCount()).append(",").append(a.getDeletedActiveBodyCount()).append(",").append(a.getDeletedDeactivatedBodyCount()).append(")");
         if (++extensionCount >= THRESHOLD) flushExtension();
     }
 

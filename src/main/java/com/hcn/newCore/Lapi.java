@@ -1,5 +1,6 @@
 package com.hcn.newCore;
 
+import com.hcn.event.ActivityCenter;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -62,6 +63,13 @@ public class Lapi {
         }
         if (result == null) return null;
         while (result.getLastGeneratedHcn().getValue().isNotBiggerThan(provedLimit)) {
+            if (!result.equals(HcnGeneratorList.getSmallestBody())) {
+                //System.out.println("1 " + result);
+            }
+
+            if (result.isNonDeactivated()) {
+                //System.out.println("2 " + result);
+            }
             Body next = result.getNextActiveBody();
             if (next == null) return null;
             result = next;

@@ -16,7 +16,7 @@ import java.util.List;
 @Builder
 public class Matrix {
 
-    private TransitionNode lastTransition;
+    public static TransitionNode lastTransition;
     private final List<Hcn> provedHcns = new ArrayList<>();
     private Lapi nextLapi;
     private Lapi lowestLapi;
@@ -133,8 +133,8 @@ public class Matrix {
         b32.setSmallerHcnGenerator(b22);
         b32.setLargerHcnGenerator(null);
 
-        lastTransition.setBodyList(BodyList.builder().smallestBody(b11).build());
-
+        lastTransition.setBodyList(BodyList.builder().smallestBody(b11).size(5).build());
+        HcnGeneratorList.initialize(b11);
         b01.getOffsprings().add(b11);
         b02.getOffsprings().add(b21);
         b03.getOffsprings().add(b31);
@@ -318,7 +318,7 @@ public class Matrix {
 
         if (dbMode) {
             Interval currentInterval = Interval.builder().lapi(highestLapi.getPrime().getIndex()).value(provedHcns.get(0).getValue())
-                    .factor(provedHcns.get(0).getFactor()).hcnList(new ArrayList<>(provedHcns)).build();
+                    .factor(provedHcns.get(0).getFactor()).hcnList(new ArrayList<>(provedHcns)).activeBodyCount(HcnGeneratorList.getSize()).build();
             referenceInterval = currentInterval.referenceCheck(referenceInterval);
             dbInsertService.submit(currentInterval);
         }

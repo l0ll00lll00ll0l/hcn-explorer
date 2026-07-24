@@ -307,8 +307,9 @@ public class MatrixDeserializer {
         long totalNanos = (long) row.get("total_nanos");
         long totalMatrixNanos = (long) row.get("total_matrix_nanos");
 
+        Matrix.lastTransition = (TransitionNode) matrixNodeMap.get(lastTransitionId);
+
         Matrix matrix = Matrix.builder()
-                .lastTransition((TransitionNode) matrixNodeMap.get(lastTransitionId))
                 .nextLapi(lapiMap.get(nextLapiPrime))
                 .lowestLapi(lapiMap.get(lowestLapiPrime))
                 .highestLapi(lapiMap.get(highestLapiPrime))
@@ -353,6 +354,7 @@ public class MatrixDeserializer {
             matrix.setReferenceInterval(ri);
         }
 
+        HcnGeneratorList.initialize(Matrix.lastTransition.getBodyList().getSmallestBody());
         return matrix;
     }
 }

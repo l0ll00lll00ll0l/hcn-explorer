@@ -30,6 +30,25 @@ public abstract class MatrixNode {
     public List<Prime> getIndexes() { return indexes; }
     protected boolean needsDeactivateMaintain = false;
 
+    public int getNonDeactivatedCount() {
+        int counter = 0;
+        for (BodyNode bodyNode : bodyNodes.values()) {
+            counter = counter + bodyNode.getActiveBodies().size();
+        }
+        return counter;
+    }
+
+    public int getDeactivatedCount() {
+        int counter = 0;
+        for (BodyNode bodyNode : bodyNodes.values()) {
+            counter = counter + bodyNode.getDeactivatedBodies().size();
+        }
+        for (BodyNode bodyNode : deactivatedBodyNodes.values()) {
+            counter = counter + bodyNode.getDeactivatedBodies().size();
+        }
+        return counter;
+    }
+
     public List<Body> deactivatedMaintain() {
         ArrayList<Body> deactivatedHcnGenerators = new ArrayList<>();
         if (needsDeactivateMaintain) {

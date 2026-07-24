@@ -212,7 +212,8 @@ public class DatabaseService {
                     factor_exponent BIGINT,
                     first_hcn INT,
                     size INT,
-                    reference_interval INT
+                    reference_interval INT,
+                    active_body_count INT
                 )
                 """);
         dbTemplate.execute("""
@@ -239,8 +240,10 @@ public class DatabaseService {
                     finish_nanos BIGINT,
                     index INT,
                     power INT,
+                    interval INT,
                     created_active_body_count INT,
-                    deactivated_body_count INT
+                    deleted_active_body_count INT,
+                    deleted_deactivated_body_count INT
                 )
                 """);
         dbTemplate.execute("""

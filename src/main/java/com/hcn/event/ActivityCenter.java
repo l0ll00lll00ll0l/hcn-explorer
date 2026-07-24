@@ -78,6 +78,7 @@ public class ActivityCenter {
     public static int getProveProgress() { return proveProgress; }
     public static void setProving(boolean v) { proving = v; }
     public static void setCurrentLapi(int lapi) { currentLapi = lapi; }
+    public static int getCurrentLapi() { return currentLapi; }
     public static void setProveTarget(int v) { proveTarget = v; }
     public static void setProveProgress(int v) { proveProgress = v; }
 

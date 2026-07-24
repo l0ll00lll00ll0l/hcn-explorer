@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <div th:if="${intervalWidth == 0}">
+        <script>
+        (function() { window.loadSubTab('interval', document.getElementById('tab-content').clientWidth); })();
+        </script>
+    </div>
+    <div th:if="${intervalWidth > 0}">
+        <div style="font-size:11px; margin-bottom:6px; display:flex; gap:12px; align-items:center; font-family:monospace;">
+            <button id="btn-left"  style="padding:2px 10px;">◀</button>
+            <button id="btn-right" style="padding:2px 10px;">▶</button>
+            <span>orderList size: <b id="interval-count">0</b></span>
+            <span>viewing: <b id="view-range"></b></span>
+            <label style="background:#f9a825;color:#000;padding:2px 6px;border-radius:3px;"><input type="checkbox" id="chk-active" checked> activeBodyCount</label>
+            <label style="background:#2e7d32;color:#fff;padding:2px 6px;border-radius:3px;"><input type="checkbox" id="chk-size" checked> hcnList size</label>
+        </div>
+        <div id="interval-tooltip" style="position:fixed;background:#333;color:#fff;padding:4px 8px;font-size:10px;font-family:monospace;border-radius:3px;pointer-events:none;display:none;white-space:pre;"></div>
+        <canvas id="interval-canvas" style="display:block;border:1px solid #ccc;"></canvas>
+        <script th:inline="javascript">
+        (function() {
+            var W = /*[[${intervalWidth}]]*/ 1200;
+            var H = Math.max(300, window.innerHeight - 180);
+            var IV_PX = 1;
+            var MIN_PX = 1;
+            var MAX_PX = 60;
+            var firstIdx = 0;
+            var intervals = [];
+            var maxSize = 0;
+            var maxActiveBodyCount = 0;
+            var canvas = document.getElementById('interval-canvas');
+            var tooltip = document.getElementById('interval-tooltip');
+            canvas.width = W;
+            canvas.height = H;
+
+            var chkSize   = document.getElementById('chk-size');
+            var chkActive = document.getElementById('chk-active');
+            chkSize.onchange   = draw;
+            chkActive.onchange = draw;
+
+            function yMax() {
+                var showSize   = chkSize.checked;
+                var showActive = chkActive.checked;
+                if (showSize && showActive) return Math.max(maxSize, maxActiveBodyCount);
+                if (showSize)   return maxSize;
+                if (showActive) return maxActiveBodyCount;
+                return 1;
+            }
+
+            function visibleCount() { return Math.floor(W / IV_PX); }
+
+            function draw() {
+                var ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, W, H);
+                var visible = intervals.slice(firstIdx, firstIdx + visibleCount());
+                if (visible.length === 0) { ctx.fillStyle='#333'; ctx.fillText('no data', 10, 20); return; }
+                visible.forEach(function(iv, i) {
+                    var x = i * IV_PX;
+                    if (iv.extensions && iv.extensions.length > 0) {
+                        ctx.fillStyle = '#e53935';
+                    } else if (iv.selfReferred) {
+                        ctx.fillStyle = '#bbdefb';
+                    } else {
+                        ctx.fillStyle = '#eeeeee';
+                    }
+                    ctx.fillRect(x, 0, IV_PX, H);
+                });
+
+                var ym = yMax() || 1;
+                var showSize   = chkSize.checked;
+                var showActive = chkActive.checked;
+
+                visible.forEach(function(iv, i) {
+                    var x = i * IV_PX;
+                    if (showActive) {
+                        var barH = Math.round(iv.activeBodyCount / ym * H);
+                        ctx.fillStyle = '#f9a825';
+                        ctx.fillRect(x, H - barH, IV_PX, barH);
+                    }
+                    if (showSize) {
+                        var barH = Math.round(iv.size / ym * H);
+                        ctx.fillStyle = '#2e7d32';
+                        ctx.fillRect(x, H - barH, IV_PX, barH);
+                    }
+                });
+
+                // Y axis helplines
+                var steps = [1,2,5,10,20,50,100,200,500,1000,2000,5000,10000];
+                var yStep = steps.find(function(s) { return Math.floor(ym / s) >= 5 && Math.floor(ym / s) <= 8; }) || steps[steps.length-1];
+                ctx.save();
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillStyle = '#000';
+                ctx.font = '9px monospace';
+                ctx.lineWidth = 0.5;
+                for (var yv = yStep; yv <= ym; yv += yStep) {
+                    var y = H - Math.round(yv / ym * H);
+                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+                    ctx.fillText(yv, 2, y - 2);
+                }
+                ctx.restore();
+
+                // X axis helplines
+                var visible2 = intervals.slice(firstIdx, firstIdx + visibleCount());
+                if (visible2.length > 1) {
+                    var lapiRange = visible2[visible2.length-1].lapi - visible2[0].lapi || 1;
+                    var xStep = steps.find(function(s) { return Math.floor(lapiRange / s) >= 5 && Math.floor(lapiRange / s) <= 8; }) || steps[steps.length-1];
+                    var firstLineLapi = Math.ceil(visible2[0].lapi / xStep) * xStep;
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                    ctx.fillStyle = '#000';
+                    ctx.font = '9px monospace';
+                    ctx.lineWidth = 0.5;
+                    for (var lv = firstLineLapi; lv <= visible2[visible2.length-1].lapi; lv += xStep) {
+                        var xi = (lv - visible2[0].lapi) * IV_PX;
+                        ctx.beginPath(); ctx.moveTo(xi, 0); ctx.lineTo(xi, H); ctx.stroke();
+                        ctx.fillText(lv, xi + 2, H - 4);
+                    }
+                    ctx.restore();
+                }
+
+                document.getElementById('interval-count').textContent = intervals.length;
+                document.getElementById('view-range').textContent = visible[0].lapi + '–' + visible[visible.length - 1].lapi;
+            }
+
+            function load() {
+                fetch('/newcore/db/intervals/meta').then(function(r) { return r.json(); }).then(function(meta) {
+                    maxSize = meta.maxSize;
+                    maxActiveBodyCount = meta.maxActiveBodyCount;
+                });
+                fetch('/newcore/db/intervals').then(function(r) { return r.json(); }).then(function(data) {
+                    intervals = data;
+                    firstIdx = Math.max(0, intervals.length - visibleCount());
+                    draw();
+                });
+            }
+
+            document.getElementById('btn-left').onclick = function() {
+                var step = Math.max(1, Math.floor(visibleCount() * 0.1));
+                if (firstIdx - step < 0 && intervals.length > 0 && intervals[0].lapi > 1) {
+                    var lowestLapi = intervals[0].lapi - 1;
+                    fetch('/newcore/db/intervals/more?firstLapi=' + lowestLapi + '&step=' + step)
+                        .then(function(r) { return r.json(); }).then(function(data) {
+                            var added = data.length - intervals.length;
+                            intervals = data;
+                            firstIdx = Math.max(0, firstIdx + added - step);
+                            draw();
+                        });
+                } else {
+                    firstIdx = Math.max(0, firstIdx - step);
+                    draw();
+                }
+            };
+
+            document.getElementById('btn-right').onclick = function() {
+                var step = Math.max(1, Math.floor(visibleCount() * 0.1));
+                firstIdx = Math.min(firstIdx + step, Math.max(0, intervals.length - visibleCount()));
+                draw();
+            };
+
+            load();
+
+            var dragStartX = null;
+            var dragStartIdx = null;
+            var isFetching = false;
+
+            canvas.addEventListener('mousedown', function(e) {
+                dragStartX = e.clientX;
+                dragStartIdx = firstIdx;
+                tooltip.style.display = 'none';
+            });
+            canvas.addEventListener('mouseup', function() { dragStartX = null; });
+            canvas.addEventListener('mouseleave', function() { dragStartX = null; tooltip.style.display = 'none'; });
+
+            canvas.addEventListener('mousemove', function(e) {
+                if (dragStartX === null || isFetching) {
+                    if (dragStartX === null) {
+                        var rect = canvas.getBoundingClientRect();
+                        var i = firstIdx + Math.floor((e.clientX - rect.left) / IV_PX);
+                        if (i >= 0 && i < intervals.length) {
+                            var iv = intervals[i];
+                            tooltip.style.display = 'block';
+                            tooltip.style.left = (e.clientX + 12) + 'px';
+                            tooltip.style.top  = (e.clientY + 12) + 'px';
+                            var text = 'lapi: ' + iv.lapi + '\nsize: ' + iv.size + '\nactiveBodyCount: ' + iv.activeBodyCount;
+                            if (iv.extensions && iv.extensions.length > 0) {
+                                iv.extensions.forEach(function(ext) {
+                                    text += '\n  ext p' + ext.index + '^' + ext.power + ' +' + ext.createdActive + ' -' + ext.deletedActive + ' -d' + ext.deletedDeactivated;
+                                });
+                            }
+                            tooltip.textContent = text;
+                        } else {
+                            tooltip.style.display = 'none';
+                        }
+                    }
+                    if (isFetching) return;
+                    return;
+                }
+                var delta = Math.round((dragStartX - e.clientX) / IV_PX);
+                var newFirstIdx = dragStartIdx + delta;
+                if (newFirstIdx < 0 && intervals.length > 0 && intervals[0].lapi > 1) {
+                    var lowestLapi = intervals[0].lapi - 1;
+                    var step = -newFirstIdx;
+                    isFetching = true;
+                    var currentClientX = e.clientX;
+                    fetch('/newcore/db/intervals/more?firstLapi=' + lowestLapi + '&step=' + step)
+                        .then(function(r) { return r.json(); }).then(function(data) {
+                            var added = data.length - intervals.length;
+                            intervals = data;
+                            firstIdx = 0;
+                            dragStartX = currentClientX;
+                            dragStartIdx = 0;
+                            isFetching = false;
+                            draw();
+                        });
+                    return;
+                }
+                firstIdx = Math.min(Math.max(0, newFirstIdx), Math.max(0, intervals.length - visibleCount()));
+                draw();
+            });
+
+            canvas.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                var rect = canvas.getBoundingClientRect();
+                var mouseX = e.clientX - rect.left;
+                var ivAtMouse = firstIdx + mouseX / IV_PX;
+                var newPx = e.deltaY < 0
+                    ? Math.min(MAX_PX, IV_PX + 1)
+                    : Math.max(MIN_PX, IV_PX - 1);
+                if (newPx === IV_PX) return;
+                IV_PX = newPx;
+                var newFirstIdx = Math.round(ivAtMouse - mouseX / IV_PX);
+                if (newFirstIdx < 0 && intervals.length > 0 && intervals[0].lapi > 1) {
+                    var lowestLapi = intervals[0].lapi - 1;
+                    var step = -newFirstIdx;
+                    fetch('/newcore/db/intervals/more?firstLapi=' + lowestLapi + '&step=' + step)
+                        .then(function(r) { return r.json(); }).then(function(data) {
+                            var added = data.length - intervals.length;
+                            intervals = data;
+                            firstIdx = Math.max(0, newFirstIdx + added);
+                            draw();
+                        });
+                } else {
+                    firstIdx = Math.min(Math.max(0, newFirstIdx), Math.max(0, intervals.length - visibleCount()));
+                    draw();
+                }
+            }, { passive: false });
+        })();
+        </script>
+    </div>
+</div>
+</body>
+</html>

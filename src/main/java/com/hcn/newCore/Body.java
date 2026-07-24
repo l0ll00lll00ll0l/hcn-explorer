@@ -43,6 +43,7 @@ public class Body implements Comparable<Body>{
     public boolean isDeleted() {
         return smallerBody == null && largerBody == null;
     }
+    public boolean isNonDeactivated() {return smallerHcnGenerator != null || largerHcnGenerator != null;}
 
     public DbBody getDbBody() {
         if (dbBody == null) {
@@ -61,29 +62,6 @@ public class Body implements Comparable<Body>{
         Body candidate = smallerBody;
         while (candidate != null && candidate.deactivated) {candidate = candidate.smallerBody;}
         return candidate;
-    }
-
-    public void removeFromHcnGeneratorList() {
-        if (smallerHcnGenerator != null) {
-            smallerHcnGenerator.setLargerHcnGenerator(largerHcnGenerator);
-        }
-        if (largerHcnGenerator != null) {
-            largerHcnGenerator.setSmallerHcnGenerator(smallerHcnGenerator);
-        }
-        smallerHcnGenerator = null;
-        largerHcnGenerator = null;
-    }
-
-    public void addToHcnGeneratorList() {
-        this.smallerHcnGenerator = getPrevActiveBody();
-        this.largerHcnGenerator = getNextActiveBody();
-
-        if (smallerHcnGenerator != null) {
-            smallerHcnGenerator.setLargerHcnGenerator(this);
-        }
-        if (largerHcnGenerator != null) {
-            largerHcnGenerator.setSmallerHcnGenerator(this);
-        }
     }
 
     public int getActiveHcnGeneratorCount() {

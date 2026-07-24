@@ -1,5 +1,6 @@
 package com.hcn.db;
 
+import com.hcn.event.MatrixExtensionActivity;
 import com.hcn.newCore.ScientificNumber;
 import lombok.Getter;
 
@@ -14,14 +15,17 @@ public class DbInterval {
     private final long firstHcn;
     private final int size;
     private final Integer referenceInterval;
+    private final int activeBodyCount;
     private final List<DbHcn> hcnlist = new ArrayList<>();
+    private final List<MatrixExtensionActivity> extensions = new ArrayList<>();
 
-    public DbInterval(int lapi, double valueMantissa, long valueExponent, double factorMantissa, long factorExponent, long firstHcn, int size, Integer referenceInterval) {
+    public DbInterval(int lapi, double valueMantissa, long valueExponent, double factorMantissa, long factorExponent, long firstHcn, int size, Integer referenceInterval, int activeBodyCount) {
         this.lapi = lapi;
         this.value = new ScientificNumber(valueMantissa, valueExponent);
         this.factor = new ScientificNumber(factorMantissa, factorExponent);
         this.firstHcn = firstHcn;
         this.size = size;
         this.referenceInterval = referenceInterval;
+        this.activeBodyCount = activeBodyCount;
     }
 }

@@ -1,5 +1,6 @@
 package com.hcn.db;
 
+import com.hcn.event.MatrixExtensionActivity;
 import com.hcn.newCore.Body;
 import com.hcn.newCore.Matrix;
 import com.hcn.newCore.PrimeCenter;
@@ -25,6 +26,10 @@ public class DbCacheService {
     private final PrimeCenter primeCenter = new PrimeCenter();
     private final List<DbBody> bodyOrder = new ArrayList<>();
     private int activeBodyCount = 0;
+    private final List<DbInterval> intervalOrder = new ArrayList<>();
+    private int activeIntervalCount = 0;
+    private int maxIntervalSize = 0;
+    private int maxIntervalActiveBodyCount = 0;
 
     public void setDbName(String dbName) { this.dbName = dbName; }
     public void setMatrix(Matrix matrix) { this.matrix = matrix; }
@@ -55,7 +60,9 @@ public class DbCacheService {
         intervalCache.clear();
         bodyCache.clear();
         bodyOrder.clear();
+        intervalOrder.clear();
         activeBodyCount = 0;
+        activeIntervalCount = 0;
     }
 
     public Integer getHighestLapi() {
@@ -74,10 +81,10 @@ public class DbCacheService {
         if (missing.isEmpty()) return Collections.emptyList();
         String in = missing.stream().map(String::valueOf).collect(Collectors.joining(","));
         List<DbInterval> fetched = new ArrayList<>();
-        t().query("SELECT lapi, value_mantissa, value_exponent, factor_mantissa, factor_exponent, first_hcn, size, reference_interval FROM interval WHERE lapi IN (" + in + ")", rs -> {
+        t().query("SELECT lapi, value_mantissa, value_exponent, factor_mantissa, factor_exponent, first_hcn, size, reference_interval, active_body_count FROM interval WHERE lapi IN (" + in + ")", rs -> {
             DbInterval iv = new DbInterval(rs.getInt("lapi"), rs.getDouble("value_mantissa"), rs.getLong("value_exponent"),
                     rs.getDouble("factor_mantissa"), rs.getLong("factor_exponent"),
-                    rs.getLong("first_hcn"), rs.getInt("size"), (Integer) rs.getObject("reference_interval"));
+                    rs.getLong("first_hcn"), rs.getInt("size"), (Integer) rs.getObject("reference_interval"), rs.getInt("active_body_count"));
             intervalCache.put(iv.getLapi(), iv);
             fetched.add(iv);
         });
@@ -214,6 +221,48 @@ public class DbCacheService {
     public synchronized List<DbBody> getGraphBodies() { return new ArrayList<>(bodyOrder); }
     public int getActiveBodyCount() { return activeBodyCount; }
 
+    public void initialIntervalSubTabData(int width) {
+        getHighestLapi();
+        if (intervalOrder.isEmpty() && highestLapi != null) {
+            fetchOrderIntervals(highestLapi, width);
+        }
+        if (maxIntervalSize == 0) {
+            Integer ms = t().queryForObject("SELECT MAX(size) FROM interval", Integer.class);
+            Integer ma = t().queryForObject("SELECT MAX(active_body_count) FROM interval", Integer.class);
+            if (ms != null) maxIntervalSize = ms;
+            if (ma != null) maxIntervalActiveBodyCount = ma;
+        }
+    }
+
+    public synchronized void fetchOrderIntervals(int firstLapi, int step) {
+        int fetchFrom = firstLapi - step + 1;
+        if (fetchFrom < 1) fetchFrom = 1;
+        if (fetchFrom > firstLapi) return;
+        Map<Integer, DbInterval> fetched = new LinkedHashMap<>();
+        t().query("SELECT lapi, value_mantissa, value_exponent, factor_mantissa, factor_exponent, first_hcn, size, reference_interval, active_body_count FROM interval WHERE lapi BETWEEN ? AND ? ORDER BY lapi ASC",
+                new Object[]{fetchFrom, firstLapi}, rs -> {
+            DbInterval iv = new DbInterval(rs.getInt("lapi"), rs.getDouble("value_mantissa"), rs.getLong("value_exponent"),
+                    rs.getDouble("factor_mantissa"), rs.getLong("factor_exponent"),
+                    rs.getLong("first_hcn"), rs.getInt("size"), (Integer) rs.getObject("reference_interval"), rs.getInt("active_body_count"));
+            fetched.put(iv.getLapi(), iv);
+        });
+        t().query("SELECT interval, index, power, created_active_body_count, deleted_active_body_count, deleted_deactivated_body_count, start_nanos, finish_nanos FROM extension_activity WHERE interval BETWEEN ? AND ? ORDER BY id",
+                new Object[]{fetchFrom, firstLapi}, rs -> {
+            DbInterval iv = fetched.get(rs.getInt("interval"));
+            if (iv != null) iv.getExtensions().add(new MatrixExtensionActivity(
+                    rs.getInt("index"), rs.getInt("power"), rs.getInt("interval"),
+                    rs.getInt("created_active_body_count"), rs.getInt("deleted_active_body_count"),
+                    rs.getInt("deleted_deactivated_body_count"), rs.getLong("start_nanos"), rs.getLong("finish_nanos")));
+        });
+        intervalOrder.addAll(0, fetched.values());
+        activeIntervalCount += fetched.size();
+    }
+
+    public synchronized List<DbInterval> getGraphIntervals() { return new ArrayList<>(intervalOrder); }
+    public int getActiveIntervalCount() { return activeIntervalCount; }
+    public int getMaxIntervalSize() { return maxIntervalSize; }
+    public int getMaxIntervalActiveBodyCount() { return maxIntervalActiveBodyCount; }
+
     public void fetchBodies(Set<Integer> ids) {
 
 
@@ -243,7 +292,7 @@ public class DbCacheService {
     }
 
     private void initializeNonDeletedDbBodyData() {
-        Body walker = matrix.getLastTransition().getBodyList().getSmallestBody();
+        Body walker = Matrix.lastTransition.getBodyList().getSmallestBody();
         while (walker != null) {
             DbBody dbBody = walker.getDbBody();
             dbBody.setFirstHcnLapi(walker.getFirstHcn() != null ? walker.getFirstHcn().getLapi() : null);

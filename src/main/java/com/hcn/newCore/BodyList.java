@@ -18,46 +18,73 @@ import java.util.List;
 @Slf4j
 public class BodyList implements Iterable<Body> {
     private Body smallestBody;
+    private Body largestBody;
+    private int size = 0;
     private final List<Body> successfullyAddedNewBodies = new ArrayList<>();
-    private final List<Body> dominatedBodies = new ArrayList<>();
+    private final List<Body> dominatedSuperiorBodies = new ArrayList<>();
+    private final List<Body> dominatedDeactivatedBodies = new ArrayList<>();
 
-    public int size() {
+    public int getActualNonDeletedSize() {
+        Body walker = smallestBody;
         int count = 0;
-        Body current = smallestBody;
-        while (current != null) {
-            if (!current.isDeactivated()) {
+        while (walker != null) {
+                count++;
+            walker = walker.getLargerBody();
+        }
+        return count;
+    }
+
+    public int getActualNonDeactivatedSize() {
+        Body walker = smallestBody;
+        int count = 0;
+        while (walker != null) {
+            if (!walker.isDeactivated()) {
                 count++;
             }
-            current = current.getLargerBody();
+            walker = walker.getLargerBody();
         }
         return count;
     }
 
     public void mergeBodies(Collection<Body> otherBodyList) {
         successfullyAddedNewBodies.clear();
-        dominatedBodies.clear();
+        dominatedSuperiorBodies.clear();
+        dominatedDeactivatedBodies.clear();
         List<Body> sorted = new ArrayList<>(otherBodyList);
         sorted.sort(Body::compareTo);
+        List<Body> filtered = new ArrayList<>();
+        filtered.add(sorted.get(0));
+        ScientificNumber factorLimit = sorted.get(0).getFactor();
+        for (int i = 0; i < sorted.size() - 1; i++) {
+            if (sorted.get(i+1).getFactor().isBiggerThan(factorLimit)) {
+                filtered.add(sorted.get(i+1));
+                factorLimit = sorted.get(i+1).getFactor();
+            }
+        }
 
         if (smallestBody == null) {
             Body previousBody = null;
-            for (Body body : sorted) {
+            for (Body body : filtered) {
                 if (previousBody == null || body.getFactor().isBiggerThan(previousBody.getFactor())) {
                     body.setSmallerBody(previousBody);
                     if (previousBody != null) previousBody.setLargerBody(body);
                     successfullyAddedNewBodies.add(body);
+                    size++;
                     previousBody = body;
                 }
             }
-            if (!successfullyAddedNewBodies.isEmpty()) smallestBody = successfullyAddedNewBodies.get(0);
+            if (!successfullyAddedNewBodies.isEmpty()) {
+                smallestBody = successfullyAddedNewBodies.get(0);
+                largestBody = previousBody;
+            }
             return;
         }
 
         Body current = smallestBody;
-        if (!sorted.isEmpty() && sorted.get(0).getValue().isSmallerThan(smallestBody.getValue())) {
-            log.warn("mergeBodies: incoming body {} is smaller than smallestBody {}", sorted.get(0), smallestBody);
+        if (!filtered.isEmpty() && filtered.get(0).getValue().isSmallerThan(smallestBody.getValue())) {
+            log.warn("mergeBodies: incoming body {} is smaller than smallestBody {}", filtered.get(0), smallestBody);
         }
-        for (Body newBody : sorted) {
+        for (Body newBody : filtered) {
             // advance current until we find the floor (largest body smaller than newBody)
             while (current.getLargerBody() != null && current.getLargerBody().getValue().isSmallerThan(newBody.getValue())) {
                 current = current.getLargerBody();
@@ -74,7 +101,12 @@ public class BodyList implements Iterable<Body> {
                 Body next = ceiling.getLargerBody();
                 ceiling.setSmallerBody(null);
                 ceiling.setLargerBody(null);
-                dominatedBodies.add(ceiling);
+                if (ceiling.isDeactivated()) {
+                    dominatedDeactivatedBodies.add(ceiling);
+                } else {
+                    dominatedSuperiorBodies.add(ceiling);
+                }
+                size--;
                 ceiling = next;
             }
 
@@ -88,10 +120,18 @@ public class BodyList implements Iterable<Body> {
                 newBody.getParent().getOffsprings().add(newBody);
             }
             successfullyAddedNewBodies.add(newBody);
+            size++;
+
+            if (ceiling == null) largestBody = newBody;
             current = newBody;
         }
 
-        dominatedBodies.forEach(body -> {
+        dominatedSuperiorBodies.forEach(body -> {
+            body.setSmallerBody(null);
+            body.setLargerBody(null);
+            body.deletedDuringExtension();
+        });
+        dominatedDeactivatedBodies.forEach(body -> {
             body.setSmallerBody(null);
             body.setLargerBody(null);
             body.deletedDuringExtension();
@@ -132,6 +172,7 @@ public class BodyList implements Iterable<Body> {
                     }
                     bodyToDelete.deleteDuringBodyListMaintain();
                     deletedBodies.add(bodyToDelete);
+                    size--;
                 }
             }
             bodyToDelete = nextBody;
@@ -149,12 +190,13 @@ public class BodyList implements Iterable<Body> {
     }
 
     public void maintainHcnGeneratorList() {
-        dominatedBodies.forEach(Body::removeFromHcnGeneratorList);
-        successfullyAddedNewBodies.forEach(Body::addToHcnGeneratorList);
+        dominatedSuperiorBodies.forEach(b -> { HcnGeneratorList.remove(b); });
+        successfullyAddedNewBodies.forEach(b -> { HcnGeneratorList.add(b); });
         if (ActivityCenter.isDbMode()) {
             MatrixExtensionActivity mea = ActivityCenter.getLastMatrixExtensionActivity();
             mea.setCreatedActiveBodyCount(successfullyAddedNewBodies.size());
-            mea.setDeactivatedBodyCount(dominatedBodies.size());
+            mea.setDeletedActiveBodyCount(dominatedSuperiorBodies.size());
+            mea.setDeletedDeactivatedBodyCount(dominatedDeactivatedBodies.size());
         }
     }
 }

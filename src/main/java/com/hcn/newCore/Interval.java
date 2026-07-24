@@ -16,6 +16,7 @@ public class Interval {
     private ScientificNumber factor;
     private List<Hcn> hcnList;
     private Interval referenceInterval;
+    private int activeBodyCount;
 
     public boolean isReferenced() {
         return referenceInterval != null && referenceInterval != this;

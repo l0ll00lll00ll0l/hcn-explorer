@@ -37,9 +37,10 @@ public class ActivityReadService {
     }
 
     public List<MatrixExtensionActivity> getMatrixExtensionActivities(String dbName) {
-        return t(dbName).query("SELECT start_nanos, finish_nanos, index, power, created_active_body_count, deactivated_body_count FROM extension_activity ORDER BY id",
+        return t(dbName).query("SELECT start_nanos, finish_nanos, index, power, interval, created_active_body_count, deleted_active_body_count, deleted_deactivated_body_count FROM extension_activity ORDER BY id",
                 (rs, i) -> new MatrixExtensionActivity(rs.getInt("index"), rs.getInt("power"),
-                        rs.getInt("created_active_body_count"), rs.getInt("deactivated_body_count"),
+                        rs.getInt("interval"), rs.getInt("created_active_body_count"),
+                        rs.getInt("deleted_active_body_count"), rs.getInt("deleted_deactivated_body_count"),
                         rs.getLong("start_nanos"), rs.getLong("finish_nanos")));
     }
 
