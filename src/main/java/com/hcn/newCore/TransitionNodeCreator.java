@@ -191,11 +191,14 @@ public class TransitionNodeCreator {
     private BodyList createBodyList() {
         BodyList bodyList = BodyList.builder().smallestBody(bodiesForBodyList.get(0)).build();
         Body prevBody = null;
+        int counter = 0;
         for (Body body : bodiesForBodyList) {
             body.setSmallerBody(prevBody);
             if (prevBody != null) { prevBody.setLargerBody(body); }
             prevBody = body;
+            counter ++;
         }
+        bodyList.setSize(counter);
         return bodyList;
     }
 }

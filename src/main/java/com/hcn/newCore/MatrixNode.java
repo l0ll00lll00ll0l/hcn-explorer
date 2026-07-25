@@ -104,9 +104,9 @@ public abstract class MatrixNode {
             bodyList.mergeBodies(createdBodies);
         } else {
             int bodyNodeIdLowLimit = determineBodyNodeIdLowLimit();
-            List<Body> parents = prevMatrixNode.bodyNodes.values().stream()
+            List<Body> parents = bodyList.createSortedList(prevMatrixNode.bodyNodes.values().stream()
                     .filter(pip -> pip.getBodyNodeId() >= bodyNodeIdLowLimit)
-                    .flatMap(pip -> pip.getActiveBodies().stream()).sorted().collect(Collectors.toList());
+                    .map(pip -> new ArrayList<>(pip.getActiveBodies())).collect(Collectors.toList()));
             createdBodies = List.of(parents.stream().map(parentBody -> Body.builder().bodyNode(nextBodyNode).parent(parentBody)
                             .value(nextBodyNode.getValue().multiply(parentBody.getValue()))
                             .factor(nextBodyNode.getFactor().multiply(parentBody.getFactor())).build())

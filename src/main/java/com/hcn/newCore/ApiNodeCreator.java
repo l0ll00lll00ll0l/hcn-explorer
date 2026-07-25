@@ -174,11 +174,14 @@ public class ApiNodeCreator {
     private BodyList createBodyList() {
         BodyList bodyList = BodyList.builder().smallestBody(distinctLocalBodies.firstEntry().getValue()).build();
         Body prevBody = null;
+        int counter = 0;
         for (Body body : distinctLocalBodies.values()) {
             body.setSmallerBody(prevBody);
             if (prevBody != null) { prevBody.setLargerBody(body); }
             prevBody = body;
+            counter ++;
         }
+        bodyList.setSize(counter);
         return bodyList;
     }
 }

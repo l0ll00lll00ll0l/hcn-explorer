@@ -92,7 +92,7 @@ public class Matrix {
         b03.setSmallerBody(b02);
         b03.setLargerBody(null);
 
-        p0.setBodyList(BodyList.builder().smallestBody(b01).build());
+        p0.setBodyList(BodyList.builder().smallestBody(b01).largestBody(b03).size(3).build());
 
         Body b11 = Body.builder().bodyNode(t1).parent(b01).value(new ScientificNumber(6, 0))
                 .factor(new ScientificNumber(4, 0)).proved(true).build();
@@ -133,7 +133,7 @@ public class Matrix {
         b32.setSmallerHcnGenerator(b22);
         b32.setLargerHcnGenerator(null);
 
-        lastTransition.setBodyList(BodyList.builder().smallestBody(b11).size(5).build());
+        lastTransition.setBodyList(BodyList.builder().smallestBody(b11).largestBody(b32).size(5).build());
         HcnGeneratorList.initialize(b11);
         b01.getOffsprings().add(b11);
         b02.getOffsprings().add(b21);

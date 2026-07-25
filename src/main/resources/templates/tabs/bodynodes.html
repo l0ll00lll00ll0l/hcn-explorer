@@ -19,6 +19,10 @@
          th:style="${iter.index == activeBodyList ? '' : 'display:none;'}">
         <div style="font-size: 11px; margin-bottom: 6px;">
             <b>Smallest Possible Extension:</b> <span th:text="${node.getSmallestPossibleExtension() != null ? node.getSmallestPossibleExtension() : 'not set'}"></span>
+            &nbsp;|&nbsp;
+            <b>Size:</b> <span th:text="${node.bodyList != null ? node.bodyList.size : '-'}"></span>
+            &nbsp;|&nbsp;
+            <b>Largest Body:</b> <span th:text="${node.bodyList != null and node.bodyList.largestBody != null ? node.bodyList.largestBody.value : '-'}"></span>
         </div>
         <table class="level-table">
             <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Proved</th><th>Deact</th><th>ActiveHcnGen</th><th>Offsprings</th><th>DeactOffsprings</th></tr></thead>

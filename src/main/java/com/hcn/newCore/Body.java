@@ -28,6 +28,8 @@ public class Body implements Comparable<Body>{
     private Body largerBody;
     private Body smallerHcnGenerator;
     private Body largerHcnGenerator;
+    private Body previousRecorder;
+    private Body nextRecorder;
     @Builder.Default
     private Hcn lastGeneratedHcn = null;
     @Builder.Default

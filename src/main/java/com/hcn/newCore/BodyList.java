@@ -23,28 +23,6 @@ public class BodyList implements Iterable<Body> {
     private final List<Body> dominatedSuperiorBodies = new ArrayList<>();
     private final List<Body> dominatedDeactivatedBodies = new ArrayList<>();
 
-    public int getActualNonDeletedSize() {
-        Body walker = smallestBody;
-        int count = 0;
-        while (walker != null) {
-                count++;
-            walker = walker.getLargerBody();
-        }
-        return count;
-    }
-
-    public int getActualNonDeactivatedSize() {
-        Body walker = smallestBody;
-        int count = 0;
-        while (walker != null) {
-            if (!walker.isDeactivated()) {
-                count++;
-            }
-            walker = walker.getLargerBody();
-        }
-        return count;
-    }
-
     public void mergeBodies(List<List<Body>> otherBodyList) {
         successfullyAddedNewBodies.clear();
         dominatedSuperiorBodies.clear();
@@ -135,7 +113,7 @@ public class BodyList implements Iterable<Body> {
         });
     }
 
-    private List<Body> createSortedList(List<List<Body>> otherBodyList) {
+    public List<Body> createSortedList(List<List<Body>> otherBodyList) {
         List<Body> previousSortedList = new ArrayList<>(otherBodyList.get(0));
 
         for (int i = 1; i < otherBodyList.size(); i++) {
