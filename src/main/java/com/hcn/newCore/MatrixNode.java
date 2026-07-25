@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -73,12 +72,13 @@ public abstract class MatrixNode {
 
     public void generateNewBodies(List<Body> incomingParents) {
         needsDeactivateMaintain = false;
-        Set<Body> createdBodies = incomingParents.stream()
-                .flatMap(previousBody -> bodyNodes.values().stream()
-                        .map(bodyNode -> Body.builder().bodyNode(bodyNode).parent(previousBody)
+        List<List<Body>> createdBodies = bodyNodes.values().stream()
+                .map(bodyNode -> incomingParents.stream()
+                        .map(previousBody -> Body.builder().bodyNode(bodyNode).parent(previousBody)
                                 .value(bodyNode.getValue().multiply(previousBody.getValue()))
-                                .factor(bodyNode.getFactor().multiply(previousBody.getFactor())).build()))
-                .collect(Collectors.toSet());
+                                .factor(bodyNode.getFactor().multiply(previousBody.getFactor())).build())
+                        .collect(Collectors.toList()))
+                .collect(Collectors.toList());
 
         bodyList.mergeBodies(createdBodies);
         parentDeactivationCheck(incomingParents);
@@ -98,19 +98,19 @@ public abstract class MatrixNode {
         if (ActivityCenter.isDbMode()) new MatrixExtensionActivity(nextBodyNode);
         bodyNodes.put(nextBodyNodeId, nextBodyNode);
 
-        Set<Body> createdBodies;
+        List<List<Body>> createdBodies;
         if (prevMatrixNode == null) {
-            createdBodies = Set.of(Body.builder().bodyNode(nextBodyNode).parent(null).value(nextBodyNode.getValue()).factor(nextBodyNode.getFactor()).build());
+            createdBodies = List.of(List.of(Body.builder().bodyNode(nextBodyNode).parent(null).value(nextBodyNode.getValue()).factor(nextBodyNode.getFactor()).build()));
             bodyList.mergeBodies(createdBodies);
         } else {
             int bodyNodeIdLowLimit = determineBodyNodeIdLowLimit();
             List<Body> parents = prevMatrixNode.bodyNodes.values().stream()
                     .filter(pip -> pip.getBodyNodeId() >= bodyNodeIdLowLimit)
-                    .flatMap(pip -> pip.getActiveBodies().stream()).collect(Collectors.toList());
-            createdBodies = parents.stream().map(parentBody -> Body.builder().bodyNode(nextBodyNode).parent(parentBody)
+                    .flatMap(pip -> pip.getActiveBodies().stream()).sorted().collect(Collectors.toList());
+            createdBodies = List.of(parents.stream().map(parentBody -> Body.builder().bodyNode(nextBodyNode).parent(parentBody)
                             .value(nextBodyNode.getValue().multiply(parentBody.getValue()))
                             .factor(nextBodyNode.getFactor().multiply(parentBody.getFactor())).build())
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toList()));
             bodyList.mergeBodies(createdBodies);
             parentDeactivationCheck(parents);
         }

@@ -20,7 +20,7 @@
             <table class="level-table">
                 <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Proved</th><th>ActiveHcnGen</th></tr></thead>
                 <tbody>
-                    <tr th:each="body, bIter : ${selectedBodyNode.activeBodies.stream().sorted().toList()}"
+                    <tr th:each="body, bIter : ${selectedBodyNode.activeBodies}"
                         th:style="${body.proved ? 'background-color: #90EE90;' : ''}">
                         <td th:text="${bIter.index}"></td>
                         <td th:text="${@newCoreController.guiString(body)}"></td>

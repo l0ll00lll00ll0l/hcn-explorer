@@ -6,6 +6,7 @@ import lombok.Setter;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 @Getter
 @Setter
@@ -18,7 +19,7 @@ public class BodyNode {
     private boolean proved = false;
     private ScientificNumber value;
     private ScientificNumber factor;
-    private final Set<Body> activeBodies = new HashSet<>();
+    private final TreeSet<Body> activeBodies = new TreeSet<>();
     private final Set<Body> deactivatedBodies = new HashSet<>();
     @Builder.Default
     private Integer tempId = null;

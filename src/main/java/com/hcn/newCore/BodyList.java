@@ -8,7 +8,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
@@ -46,19 +45,17 @@ public class BodyList implements Iterable<Body> {
         return count;
     }
 
-    public void mergeBodies(Collection<Body> otherBodyList) {
+    public void mergeBodies(List<List<Body>> otherBodyList) {
         successfullyAddedNewBodies.clear();
         dominatedSuperiorBodies.clear();
         dominatedDeactivatedBodies.clear();
-        List<Body> sorted = new ArrayList<>(otherBodyList);
-        sorted.sort(Body::compareTo);
+        List<Body> sorted = createSortedList(otherBodyList);
         List<Body> filtered = new ArrayList<>();
-        filtered.add(sorted.get(0));
-        ScientificNumber factorLimit = sorted.get(0).getFactor();
-        for (int i = 0; i < sorted.size() - 1; i++) {
-            if (sorted.get(i+1).getFactor().isBiggerThan(factorLimit)) {
-                filtered.add(sorted.get(i+1));
-                factorLimit = sorted.get(i+1).getFactor();
+        ScientificNumber factorLimit = null;
+        for (Body body : sorted) {
+            if (factorLimit == null || body.getFactor().isBiggerThan(factorLimit)) {
+                filtered.add(body);
+                factorLimit = body.getFactor();
             }
         }
 
@@ -136,6 +133,28 @@ public class BodyList implements Iterable<Body> {
             body.setLargerBody(null);
             body.deletedDuringExtension();
         });
+    }
+
+    private List<Body> createSortedList(List<List<Body>> otherBodyList) {
+        List<Body> previousSortedList = new ArrayList<>(otherBodyList.get(0));
+
+        for (int i = 1; i < otherBodyList.size(); i++) {
+            List<Body> currentMerge = new ArrayList<>();
+            List<Body> nextList = otherBodyList.get(i);
+            int p = 0, q = 0;
+            while (p < previousSortedList.size() && q < nextList.size()) {
+                if (previousSortedList.get(p).compareTo(nextList.get(q)) <= 0) {
+                    currentMerge.add(previousSortedList.get(p++));
+                } else {
+                    currentMerge.add(nextList.get(q++));
+                }
+            }
+            while (p < previousSortedList.size()) currentMerge.add(previousSortedList.get(p++));
+            while (q < nextList.size()) currentMerge.add(nextList.get(q++));
+            previousSortedList = currentMerge;
+        }
+
+        return previousSortedList;
     }
 
     @Override
