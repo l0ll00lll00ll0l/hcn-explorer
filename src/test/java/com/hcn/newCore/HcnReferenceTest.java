@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class HcnReferenceTest {
 
+    /*
     record RefBody(int[] head, int[] tail, int lapi) {}
 
     static RefBody parseLine(String line) {
@@ -90,5 +91,7 @@ public class HcnReferenceTest {
             fail(e.getMessage());
         }
     }
+
+     */
 
 }

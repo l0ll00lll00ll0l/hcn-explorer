@@ -45,8 +45,8 @@ public class MatrixSerializer {
 
     private void reassignLapiBodiesAndHcns(Lapi lowestLapi) {
         Lapi currentLapi = lowestLapi;
-        while (currentLapi != null) {
-            assignHcnIdsAndDeletedBodyIds(currentLapi.getHcnList());
+        while (currentLapi.getHigherLapi() != null) {
+            //assignHcnIdsAndDeletedBodyIds(currentLapi.getHcnList());
             currentLapi = currentLapi.getHigherLapi();
         }
     }
@@ -107,10 +107,13 @@ public class MatrixSerializer {
         // we need to make sure their tempIds are null, also resetting all previous tempids
         Lapi currentLapi = matrix.getHighestLapi();
         while (currentLapi != null) {
+            /*
             for (Hcn hcn : currentLapi.getHcnList()){
                 hcn.getBody().setTempId(null);
                 resetBodyHcnTempIds(hcn.getBody());
             }
+
+             */
             currentLapi = currentLapi.getLowerLapi();
         }
     }
@@ -200,7 +203,7 @@ public class MatrixSerializer {
             }
         }
         Lapi currentLapi = matrix.getLowestLapi();
-        while (currentLapi != null) {
+        while (currentLapi != matrix.getNextLapi()) {
             if (!insertedPrimeIndexes.contains(currentLapi.getPrime().getIndex())) {
                 if (!first) sb.append(", ");
                 first = false;
@@ -254,21 +257,27 @@ public class MatrixSerializer {
         StringBuilder sb = new StringBuilder("INSERT INTO tmp_lapi_hcn (lapi_prime, list_position, hcn) VALUES ");
         boolean first = true;
         if (matrix.getNextLapi() != null) {
+            /*
             for (int i = 0; i < matrix.getNextLapi().getHcnList().size(); i++) {
                 Hcn hcn = matrix.getNextLapi().getHcnList().get(i);
                 if (!first) sb.append(", ");
                 first = false;
                 sb.append(String.format("(%d, %d, %d)", matrix.getNextLapi().getPrime().getIndex(), i, hcn.getTempId()));
             }
+
+             */
         }
         Lapi lapi = matrix.getLowestLapi();
         while (lapi != null) {
+            /*
             for (int i = 0; i < lapi.getHcnList().size(); i++) {
                 Hcn hcn = lapi.getHcnList().get(i);
                 if (!first) sb.append(", ");
                 first = false;
                 sb.append(String.format("(%d, %d, %d)", lapi.getPrime().getIndex(), i, hcn.getTempId()));
             }
+
+             */
             lapi = lapi.getHigherLapi();
         }
         return first ? null : sb.toString();
@@ -351,7 +360,7 @@ public class MatrixSerializer {
             sb.append(String.format("(%d, %d, %d, %s, %d, %s, %d)",
                     hcn.getTempId(),
                     hcn.getBody().getTempId(),
-                    hcn.getLapi(),
+                    hcn.getLapiIndex(),
                     hcn.getValue().getMantissa(),
                     hcn.getValue().getExponent(),
                     hcn.getFactor().getMantissa(),

@@ -7,11 +7,11 @@
             <button class="bodylist-btn" th:classappend="${iter.index == activeBodyList ? ' active' : ''}"
                     th:attr="onclick='selectBodyList(' + ${iter.index} + ')'"
                     th:if="${node instanceof T(com.hcn.newCore.ApiNode)}"
-                    th:text="'p' + ${node.indexes.get(0).index}"></button>
+                    th:text="${node.indexes.isEmpty() ? 'p?' : 'p' + node.indexes.get(0).index}"></button>
             <button class="bodylist-btn" th:classappend="${iter.index == activeBodyList ? ' active' : ''}"
                     th:attr="onclick='selectBodyList(' + ${iter.index} + ')'"
                     th:if="${node instanceof T(com.hcn.newCore.TransitionNode)}"
-                    th:text="'p' + ${node.indexes.get(0).index} + '→p' + ${node.indexes.get(node.indexes.size() - 1).index}"></button>
+                    th:text="${node.indexes.isEmpty() ? 't?' : ('p' + node.indexes.get(0).index + '→p' + node.indexes.get(node.indexes.size() - 1).index)}"></button>
         </span>
     </div>
     <div th:each="node, iter : ${matrixChain}" class="bodylist-panel"

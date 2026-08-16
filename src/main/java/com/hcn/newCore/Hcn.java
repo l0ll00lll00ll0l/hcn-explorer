@@ -11,32 +11,31 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class Hcn {
     private final Body body;
-    private final int lapi;
+    private Lapi lapi;
     private ScientificNumber value;
     private ScientificNumber factor;
     @Builder.Default
     private Integer tempId = null;
 
-    public void matrixMaintainCheck() {
-        if (!body.isProved()) {
-            body.setFirstSuperiorHcn(this);
-            body.matrixMaintainCheck();
-        }
+    public int getLapiIndex() {
+        return lapi.getPrime().getIndex();
     }
 
-    public void deactivateParent() {
-        body.setFirstDominatedHcn(this);
-        HcnGeneratorList.remove(body);
-        body.deactivate();
+    public void matrixMaintainCheck() {
+
+            body.setFirstSuperiorHcn(this);
+            body.matrixMaintainCheck();
+
     }
 
     @Override
     public String toString() {
-        return "Hcn{" +
-                "body=" + body +
-                ", lapi=" + lapi +
-                ", value=" + value +
-                ", factor=" + factor +
+        StringBuilder sb = new StringBuilder();
+        body.buildChain(sb);
+        return "{" + sb +
+                " | " + getLapiIndex() +
+                " | v: " + value +
+                ", f: " + factor +
                 '}';
     }
 }

@@ -232,7 +232,7 @@ public class DbInsertService {
         if (hcnCount > 0) hcnBuffer.append(",");
         hcnBuffer.append("(").append(++hcnIdCounter)
                 .append(",").append(hcn.getBody().getDbId())
-                .append(",").append(hcn.getLapi())
+                .append(",").append(hcn.getLapiIndex())
                 .append(")");
         hcnCount++;
     }
@@ -336,9 +336,9 @@ public class DbInsertService {
 
     private void appendBodyLifecycle(Body body) {
         if (bodyLifecycleCount > 0) bodyLifecycleBuffer.append(",");
-        Integer firstHcnLapi           = body.getFirstHcn()           != null ? body.getFirstHcn().getLapi()           : null;
-        Integer firstSuperiorHcnLapi   = body.getFirstSuperiorHcn()   != null ? body.getFirstSuperiorHcn().getLapi()   : null;
-        Integer firstDominatedHcnLapi  = body.getFirstDominatedHcn()  != null ? body.getFirstDominatedHcn().getLapi()  : null;
+        Integer firstHcnLapi           = body.getFirstHcn()           != null ? body.getFirstHcn().getLapiIndex()           : null;
+        Integer firstSuperiorHcnLapi   = body.getFirstSuperiorHcn()   != null ? body.getFirstSuperiorHcn().getLapiIndex()   : null;
+        Integer firstDominatedHcnLapi  = body.getFirstDominatedHcn()  != null ? body.getFirstDominatedHcn().getLapiIndex()  : null;
         bodyLifecycleBuffer.append("(").append(body.getDbId())
                 .append(",").append(firstHcnLapi          != null ? firstHcnLapi          : "NULL")
                 .append(",").append(firstSuperiorHcnLapi  != null ? firstSuperiorHcnLapi  : "NULL")

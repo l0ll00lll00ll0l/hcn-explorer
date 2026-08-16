@@ -1,62 +1,79 @@
 package com.hcn.newCore;
 
-import com.hcn.event.ActivityCenter;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
-import java.util.List;
 
 @Getter
 @Setter
 @Builder
 @Slf4j
 public class Lapi {
+    private static Lapi lowestLapi;
+    private static Lapi highestLapi;
     private final Prime prime;
     private Lapi lowerLapi;
     private Lapi higherLapi;
     private Body walker;
-    private final List<Hcn> hcnList = new ArrayList<>();
     private ScientificNumber valueMultiplier;
     private ScientificNumber factorMultiplier;
+    private final ArrayList<Hcn> generatedHcns = new ArrayList<>();
 
-    public void maintainAfterInterval() {
-        Hcn last = hcnList.get(hcnList.size()-1);
-        hcnList.clear();
-        hcnList.add(last);
+    public static Lapi getLowestLapi() {
+        return lowestLapi;
+    }
 
-        if (higherLapi != null) {
-            higherLapi.maintainAfterInterval();
-        }
+    public static void setLowestLapi(Lapi lowestLapi) {
+        Lapi.lowestLapi = lowestLapi;
+    }
+
+    public static Lapi getHighestLapi() {
+        return highestLapi;
+    }
+
+    public static void setHighestLapi(Lapi highestLapi) {
+        Lapi.highestLapi = highestLapi;
+    }
+
+    public static Lapi createNextLapi() {
+        Lapi nextLapi = Lapi.builder().prime(highestLapi.getPrime().getNextPrime()).lowerLapi(highestLapi)
+                .valueMultiplier(highestLapi.getValueMultiplier().multiply(highestLapi.getPrime().getNextPrime().getValue()))
+                .factorMultiplier(highestLapi.getFactorMultiplier().multiply(new ScientificNumber(2, 0))).build();
+        highestLapi.setHigherLapi(nextLapi);
+        highestLapi = nextLapi;
+        return nextLapi;
     }
 
     public Lapi deleteLapi() {
-        hcnList.clear();
+        //hcnList.clear();
+        log.debug("deleteLapi {}", prime.getIndex());
         higherLapi.setLowerLapi(null);
         Lapi newLowLapi = higherLapi;
         this.setHigherLapi(null);
         return newLowLapi;
     }
 
-    public void generateHcnList(ScientificNumber provedLimit, ScientificNumber targetValue, Body smallestBody) {
+    public void hcnGenerationPhase(ScientificNumber provedLimit) {
+        //log.debug("generateHcnList for prime " + prime.getIndex());
         if (walker == null || walker.isDeactivated() || walker.getLargerHcnGenerator() == null) {
-            walker = restoreWalker(smallestBody, provedLimit);
+            walker = restoreWalker(provedLimit);
         }
         if (walker != null) {
-            moveWalkerIfNotSuperiorCheck();
-            createBaseHcnList(targetValue);
-            mergeLowerHcnlist(provedLimit);
+            //moveWalkerIfNotSuperiorCheck();
+            createBaseHcnList();
+            //mergeLowerHcnlist(provedLimit);
         }
-        if (higherLapi != null) {higherLapi.generateHcnList(provedLimit, targetValue, smallestBody);}
+        if (higherLapi != null) {higherLapi.hcnGenerationPhase(provedLimit);}
     }
 
-    private Body restoreWalker(Body smallestBody, ScientificNumber provedLimit) {
+    private Body restoreWalker(ScientificNumber provedLimit) {
         Body result = null;
-        Body candidate = smallestBody;
+        Body candidate = HcnGeneratorList.getSmallestBody();
         while (candidate != null) {
-            if (!candidate.isDeactivated() && candidate.getLastGeneratedHcn() != null && candidate.getLastGeneratedHcn().getLapi() == prime.getIndex()) {
+            if (!candidate.isDeactivated() && candidate.getLastGeneratedHcn() != null && candidate.getLastGeneratedHcn().getLapiIndex() == prime.getIndex()) {
                 result = candidate;
             }
             candidate = candidate.getNextActiveBody();
@@ -73,25 +90,34 @@ public class Lapi {
             Body next = result.getNextActiveBody();
             if (next == null) return null;
             result = next;
-            if (result.getLastGeneratedHcn() == null || result.getLastGeneratedHcn().getLapi() != prime.getIndex()) {
-                generateHcn(result);
+            if (result.getLastGeneratedHcn() == null || result.getLastGeneratedHcn().getLapiIndex() != prime.getIndex()) {
+                result.generateHcn(this);
             }
         }
         return result;
     }
 
-    private void createBaseHcnList(ScientificNumber targetValue) {
-        while (walker.getLastGeneratedHcn().getValue().isSmallerThan(targetValue)) {
-            hcnList.add(walker.getLastGeneratedHcn());
-            Body walkercandidate = walker.getLargerHcnGenerator();
-            if (walkercandidate == null) {
-                break;
-            }
-            walker = walkercandidate;
-            generateHcn(walker);
+    private void createBaseHcnList() {
+        //log.debug("createBaseHcnList for prime " + prime.getIndex());
+        ScientificNumber targetValue = Matrix.getCurrentInterval().getTargetValue();
+        generatedHcns.clear();
+        while (walker != null) {
+            if (!determineNextHcnValue().isNotBiggerThan(targetValue)) break;
+            generatedHcns.add(walker.generateHcn(this));
+            walker = walker.getLargerHcnGenerator();
         }
+        //log.debug(RecorderList.print());
     }
 
+    private ScientificNumber determineNextHcnValue() {
+        return walker.getValue().multiply(valueMultiplier);
+    }
+
+    public void huntingPhase() {
+        generatedHcns.forEach(hcn -> hcn.getBody().hunt(hcn));
+        if (higherLapi != null) {higherLapi.huntingPhase();}
+    }
+    /*
     private void moveWalkerIfNotSuperiorCheck() {
         if (lowerLapi != null) {
             if (hcnList.get(hcnList.size() - 1).getLapi() < prime.getIndex()) {
@@ -138,6 +164,8 @@ public class Lapi {
         return hcnList.size();
     }
 
+
+     */
     public void recalculateMultipliers(Prime prevLastMatrixIndex) {
 
         valueMultiplier = valueMultiplier.divide(prevLastMatrixIndex.getValue());
@@ -145,21 +173,5 @@ public class Lapi {
         if (higherLapi != null) {
             higherLapi.recalculateMultipliers(prevLastMatrixIndex);
         }
-    }
-
-    public Hcn generateHcn(Body body) {
-
-        Hcn newHcn = Hcn.builder().body(body).lapi(prime.getIndex()).value(body.getValue().multiply(valueMultiplier))
-                .factor(body.getFactor().multiply(factorMultiplier)).build();
-
-        if (body.getFirstHcn() == null || body.getFirstHcn().getLapi() > prime.getIndex()) {
-            body.setFirstHcn(newHcn);
-        }
-
-        if (body.getLastGeneratedHcn() == null || body.getLastGeneratedHcn().getLapi() < prime.getIndex()) {
-            body.setLastGeneratedHcn(newHcn);
-        }
-
-        return newHcn;
     }
 }

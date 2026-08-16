@@ -5,7 +5,7 @@
     <div class="matrix-chain">
         <div th:each="node, iter : ${matrixChain}" class="matrix-box">
             <th:block th:if="${node instanceof T(com.hcn.newCore.ApiNode)}">
-                <div class="matrix-box-header" th:text="${node.indexes.get(0).intValue}"></div>
+                <div class="matrix-box-header" th:text="${node.indexes.isEmpty() ? '?' : node.indexes.get(0).intValue}"></div>
                 <div class="matrix-box-content">
                     <div th:each="entry : ${node.bodyNodes.descendingMap()}" class="transition-panel"
                          th:style="'cursor:pointer;' + ${entry.value.proved ? 'background-color: #90EE90;' : ''}"
@@ -24,7 +24,7 @@
                     <div th:text="'Bodies (' + (${@newCoreController.totalActiveBodyCount(node)} + ${@newCoreController.totalDeactivatedBodyCount(node)}) + ')'"></div>
                     <div th:text="${@newCoreController.totalActiveBodyCount(node)} + ' - ' + ${@newCoreController.totalDeactivatedBodyCount(node)}"></div>
                 </div>
-                <div class="matrix-box-footer" th:text="'p' + ${node.indexes.get(0).index}"></div>
+                <div class="matrix-box-footer" th:text="${node.indexes.isEmpty() ? 'p?' : 'p' + node.indexes.get(0).index}"></div>
             </th:block>
             <th:block th:if="${node instanceof T(com.hcn.newCore.TransitionNode)}">
                 <div class="matrix-box-header" th:text="${node.transitionFrom} + ' → ' + ${node.transitionTo}"></div>
@@ -46,7 +46,7 @@
                     <div th:text="'Bodies (' + (${@newCoreController.totalActiveBodyCount(node)} + ${@newCoreController.totalDeactivatedBodyCount(node)}) + ')'"></div>
                     <div th:text="${@newCoreController.totalActiveBodyCount(node)} + ' - ' + ${@newCoreController.totalDeactivatedBodyCount(node)}"></div>
                 </div>
-                <div class="matrix-box-footer" th:text="'p' + ${node.indexes.get(0).index} + ' → p' + ${node.indexes.get(node.indexes.size() - 1).index}"></div>
+                <div class="matrix-box-footer" th:text="${node.indexes.isEmpty() ? 't?' : ('p' + node.indexes.get(0).index + ' → p' + node.indexes.get(node.indexes.size() - 1).index)}"></div>
             </th:block>
         </div>
     </div>

@@ -14,7 +14,6 @@ import java.util.List;
 public class TransitionNode extends MatrixNode{
     private final int transitionFrom;
     private final int transitionTo;
-    private PrimeCenter primeCenter;
 
     @Override
     protected BodyNode provideNextBodyNode() {
@@ -47,7 +46,7 @@ public class TransitionNode extends MatrixNode{
     public ScientificNumber getSmallestPossibleExtension() {
         Prime nextprime;
         if (nextMatrixNode == null) {
-            nextprime = primeCenter.getPrime(bodyNodes.lastKey() + 1);
+            nextprime = PrimeCenter.getPrime(bodyNodes.lastKey() + 1);
         } else {
             nextprime = nextMatrixNode.indexes.get(0);
         }
@@ -72,7 +71,8 @@ public class TransitionNode extends MatrixNode{
     public void extensionCheck() {
         Prime newPrime;
         if (nextMatrixNode == null) {
-            newPrime = primeCenter.getPrime(getLastPrime().getIndex() + 1);
+            newPrime = PrimeCenter.getPrime(getLastPrime().getIndex() + 1);
+            Lapi.getLowestLapi().recalculateMultipliers(newPrime);
         } else {
             newPrime = ((TransitionNode) nextMatrixNode).releaseFirstIndex();
         }

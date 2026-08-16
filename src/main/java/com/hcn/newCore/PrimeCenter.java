@@ -1,37 +1,46 @@
 package com.hcn.newCore;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class PrimeCenter {
-    private final List<Prime> primes;
 
-    public PrimeCenter() {
-        primes = new ArrayList<>(List.of(Prime.builder().index(0).intValue(2).value(new ScientificNumber(2, 0)).build(),
-                Prime.builder().index(1).intValue(3).value(new ScientificNumber(3, 0)).build()));
+    private static Prime largestPrime;
+    private static Prime firstPrime;
+
+    public static void initialize() {
+        firstPrime = Prime.builder().index(0).intValue(2).value(new ScientificNumber(2, 0)).previousPrime(null).build();
+        largestPrime = Prime.builder().index(1).intValue(3).value(new ScientificNumber(3, 0)).previousPrime(firstPrime).nextPrime(null).build();
+        firstPrime.setNextPrime(largestPrime);
     }
 
-    public Prime getPrime(int primeIndex) {
-        if (primeIndex >= primes.size()) {
+    public static Prime getPrime(int primeIndex) {
+        if (primeIndex > largestPrime.getIndex()) {
             generatePrimesUpTo(primeIndex);
+            return largestPrime;
+        } else {
+            Prime prime = firstPrime;
+            while (prime.getIndex() < primeIndex) {
+                prime = prime.getNextPrime();
+            }
+            return prime;
         }
-        return primes.get(primeIndex);
     }
 
-    private void generatePrimesUpTo(int targetIndex) {
-        int candidate = primes.get(primes.size() - 1).getIntValue() + 2;
+    private static void generatePrimesUpTo(int targetIndex) {
+        int candidate = largestPrime.getIntValue() + 2;
 
-        while (primes.size() <= targetIndex) {
+        while (largestPrime.getIndex() < targetIndex) {
             if (isPrime(candidate)) {
-                primes.add(Prime.builder().index(primes.size()).intValue(candidate).value(new ScientificNumber(candidate, 0)).build());
+                largestPrime.setNextPrime(Prime.builder().index(largestPrime.getIndex() + 1).intValue(candidate).value(new ScientificNumber(candidate, 0)).previousPrime(largestPrime).nextPrime(null).build());
+                largestPrime = largestPrime.getNextPrime();
             }
             candidate += 2;
         }
     }
 
-    private boolean isPrime(int n) {
-        for (int i = 0; primes.get(i).getIntValue() * primes.get(i).getIntValue() <= n; i++) {
-            if (n % primes.get(i).getIntValue() == 0) return false;
+    private static boolean isPrime(int n) {
+        Prime divisor = firstPrime;
+        while (divisor != null && divisor.getIntValue() * divisor.getIntValue() <= n) {
+            if (n % divisor.getIntValue() == 0) return false;
+            divisor = divisor.getNextPrime();
         }
         return true;
     }

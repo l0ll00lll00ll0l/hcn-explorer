@@ -35,7 +35,6 @@
         <div style="display: flex; align-items: center; gap: 12px;">
             <h2 style="margin: 0;">HCN - New Core</h2>
             <form id="proveForm" style="display: flex; align-items: center; gap: 4px;">
-                <input type="number" name="count" id="proveCount" value="1" min="1" style="width: 50px; font-family: monospace; padding: 2px 4px;"/>
                 <button type="submit" id="proveBtn" style="font-family: monospace; padding: 4px 12px;" th:disabled="${@activityCenter.isProving()}">Prove</button>
             </form>
             <div id="progressBar" style="display: none; align-items: center; gap: 6px;">
@@ -46,7 +45,7 @@
             </div>
             <span th:if="${!@activityCenter.isProving()}" style="font-size: 11px; color: #555;">
                 | proved: <b th:text="${matrix.provedCount}"></b>
-                | nextLapi: <b th:text="${matrix.nextLapi.prime.index} + ' (' + ${matrix.nextLapi.prime.intValue} + ')'"></b>
+                | nextLapi: <b th:text="${matrix.nextLapi != null ? matrix.nextLapi.prime.index + ' (' + matrix.nextLapi.prime.intValue + ')' : 'n/a'}"></b>
                 | limit: <b th:text="${matrix.provedLimit}"></b>
                 | total: <b th:text="${matrix.totalTimeMs} + 'ms'"></b>
                 | hcnList: <b th:text="${matrix.generateHcnListTimeMs} + 'ms'"></b>
@@ -77,8 +76,10 @@
             <button class="tab-btn" th:classappend="${activeTab == 'bodynode' ? ' active' : ''}"      onclick="loadTab('bodynode')">BodyNode</button>
             <button class="tab-btn" th:classappend="${activeTab == 'hcngen' ? ' active' : ''}"        onclick="loadTab('hcngen')">Hcn Generation</button>
             <button class="tab-btn" th:classappend="${activeTab == 'lapi' ? ' active' : ''}"          onclick="loadTab('lapi')">Lapi</button>
+            <button class="tab-btn" th:classappend="${activeTab == 'recorderlist' ? ' active' : ''}"   onclick="loadTab('recorderlist')">RecorderList</button>
             <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'database' ? ' active' : ''}"       onclick="loadTab('database')">Database</button>
-            <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'refinterval' ? ' active' : ''}"    onclick="loadTab('refinterval')">ReferenceInterval</button>
+            <button class="tab-btn" th:classappend="${activeTab == 'refinterval' ? ' active' : ''}"    onclick="loadTab('refinterval')">ReferenceInterval</button>
+            <button class="tab-btn" th:classappend="${activeTab == 'currentinterval' ? ' active' : ''}" onclick="loadTab('currentinterval')">CurrentInterval</button>
             <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'activities' ? ' active' : ''}" onclick="loadTab('activities')">Activities</button>
         </div>
         <div id="tab-content"></div>
@@ -132,9 +133,8 @@
         // Prove form via AJAX
         document.getElementById('proveForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            var count = document.getElementById('proveCount').value;
             tabCache = {};
-            fetch('/newcore/prove', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'count=' + count })
+            fetch('/newcore/prove', { method: 'POST' })
                 .then(function() { startPolling(); });
         });
 

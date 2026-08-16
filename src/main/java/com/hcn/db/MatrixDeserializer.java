@@ -74,7 +74,6 @@ public class MatrixDeserializer {
                 TransitionNode tn = TransitionNode.builder()
                         .transitionFrom(transFrom)
                         .transitionTo(transTo)
-                        .primeCenter(id == lastTransitionId ? matrixPrimeCenter : null)
                         .build();
                 node = tn;
             } else {
@@ -135,6 +134,8 @@ public class MatrixDeserializer {
         });
     }
 
+    private final Map<Integer, Integer> hcnLapiIndexMap = new HashMap<>();
+
     private void loadHcns() {
         dbTemplate.query("SELECT * FROM tmp_hcn", rs -> {
             int id = rs.getInt("id");
@@ -147,11 +148,11 @@ public class MatrixDeserializer {
 
             Hcn hcn = Hcn.builder()
                     .body(bodyMap.get(bodyId))
-                    .lapi(lapi)
                     .value(new ScientificNumber(valueMantissa, valueExponent))
                     .factor(new ScientificNumber(factorMantissa, factorExponent))
                     .build();
             hcnMap.put(id, hcn);
+            hcnLapiIndexMap.put(id, lapi);
         });
     }
 
@@ -186,7 +187,7 @@ public class MatrixDeserializer {
         dbTemplate.query("SELECT * FROM tmp_lapi_hcn ORDER BY lapi_prime, list_position", rs -> {
             int lapiPrime = rs.getInt("lapi_prime");
             int hcnId = rs.getInt("hcn");
-            lapiMap.get(lapiPrime).getHcnList().add(hcnMap.get(hcnId));
+            //lapiMap.get(lapiPrime).getHcnList().add(hcnMap.get(hcnId));
         });
     }
 
@@ -252,7 +253,7 @@ public class MatrixDeserializer {
     }
 
     private void wireHcnReferences() {
-        // Hcns are already fully wired during loadHcns (body ref set via builder)
+        hcnLapiIndexMap.forEach((id, lapiIndex) -> hcnMap.get(id).setLapi(lapiMap.get(lapiIndex)));
     }
 
     private void wireLapiReferences() {

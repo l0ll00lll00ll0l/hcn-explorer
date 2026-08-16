@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <div style="font-size: 11px; margin-bottom: 12px;">
+        <span>targetValue: <b th:text="${@newCoreController.getCurrentIntervalTargetValue()}"></b></span>
+    </div>
+    <div th:each="body, bodyStat : ${@newCoreController.getRecorderList()}"
+         style="margin-bottom: 12px; border: 1px solid #333;">
+        <table class="level-table" style="font-size: 11px;">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Body</th>
+                    <th>Value</th>
+                    <th>Factor</th>
+                    <th>Lapi</th>
+                    <th>Pray</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:style="${body.deactivated ? 'background:#ff9999;' : 'background:#e8f5e9;'}">
+                    <td th:text="${bodyStat.index}"></td>
+                    <td th:text="${@newCoreController.guiString(body)}"></td>
+                    <td th:text="${body.lastGeneratedHcn?.value}"></td>
+                    <td th:text="${body.lastGeneratedHcn?.factor}"></td>
+                    <td th:text="${body.lastGeneratedHcn?.lapiIndex}"></td>
+                    <td th:text="${@newCoreController.guiString(body.prayBody)}"></td>
+                </tr>
+            </tbody>
+        </table>
+        <div th:if="${!body.hunters.isEmpty()}" style="margin: 4px 8px 8px 24px;">
+            <div style="font-size: 10px; color: #666; margin-bottom: 2px;">hunters:</div>
+            <table class="level-table" style="font-size: 11px; width: auto;">
+                <thead>
+                    <tr>
+                        <th>Body</th>
+                        <th>Value</th>
+                        <th>Factor</th>
+                        <th>Lapi</th>
+                        <th>Pray</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="hunter : ${body.hunters}"
+                        th:style="${hunter.deactivated ? 'background:#ff9999;' : ''}">
+                        <td th:text="${@newCoreController.guiString(hunter)}"></td>
+                        <td th:text="${hunter.lastGeneratedHcn?.value}"></td>
+                        <td th:text="${hunter.lastGeneratedHcn?.factor}"></td>
+                        <td th:text="${hunter.lastGeneratedHcn?.lapiIndex}"></td>
+                        <td th:text="${@newCoreController.guiString(hunter.prayBody)}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${body.hunters.isEmpty()}" style="margin: 2px 8px 6px 24px; font-size: 10px; color: #999;">no hunters</div>
+    </div>
+
+    <div style="margin-top: 16px;">
+        <div style="font-size: 11px; font-weight: bold; margin-bottom: 4px;">bodiesWaitingToJoin</div>
+        <table class="level-table" style="font-size: 11px;">
+            <thead>
+                <tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Lapi</th><th>Pray</th></tr>
+            </thead>
+            <tbody>
+                <tr th:each="body, bStat : ${@newCoreController.getBodiesWaitingToJoin()}">
+                    <td th:text="${bStat.index}"></td>
+                    <td th:text="${@newCoreController.guiString(body)}"></td>
+                    <td th:text="${body.lastGeneratedHcn?.value}"></td>
+                    <td th:text="${body.lastGeneratedHcn?.factor}"></td>
+                    <td th:text="${body.lastGeneratedHcn?.lapiIndex}"></td>
+                    <td th:text="${@newCoreController.guiString(body.prayBody)}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

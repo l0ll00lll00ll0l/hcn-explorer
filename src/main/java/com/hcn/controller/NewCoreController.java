@@ -66,7 +66,7 @@ public class NewCoreController {
                 dbCacheService.setDbName(matrix.getDbName());
                 dbCacheService.setMatrix(matrix);
             }
-            matrix.initialize();
+            matrix.initialize2();
         }
         model.addAttribute("matrix", matrix);
         model.addAttribute("logLevel", currentLogLevel);
@@ -276,13 +276,11 @@ public class NewCoreController {
 
     @PostMapping("/newcore/prove")
     @ResponseBody
-    public String prove(@RequestParam(defaultValue = "1") int count) {
+    public String prove() {
         if (!ActivityCenter.isProving()) {
             ActivityCenter.setProving(true);
-            ActivityCenter.setProveTarget(count);
-            ActivityCenter.setProveProgress(0);
             dbCacheService.clear();
-            new Thread(() -> matrix.proveLapi(count)).start();
+            new Thread(() -> matrix.proveNextRecorder()).start();
         }
         return "{\"started\":true}";
     }
@@ -407,17 +405,47 @@ public class NewCoreController {
         return sb.toString();
     }
 
-    private void buildGuiString(Body body, StringBuilder sb) {
+                private void buildGuiString(Body body, StringBuilder sb) {
         if (body.getParent() != null) {
             buildGuiString(body.getParent(), sb);
             sb.append(", ");
         }
         BodyNode node = body.getBodyNode();
         if (node.getParentNode() instanceof ApiNode apiNode) {
-            sb.append("p").append(apiNode.getIndexes().get(0).getIndex()).append("^").append(node.getBodyNodeId());
+            String idx = apiNode.getIndexes().isEmpty() ? "?" : String.valueOf(apiNode.getIndexes().get(0).getIndex());
+            sb.append("p").append(idx).append("^").append(node.getBodyNodeId());
         } else {
             sb.append("t").append(node.getBodyNodeId());
         }
+    }
+
+    public Hcn getDisplayHcn(Body body, boolean isFirst) {
+        List<Hcn> hcns = body.getGeneratedHcns();
+        if (isFirst && hcns.size() >= 2) return hcns.get(hcns.size() - 2);
+        return hcns.isEmpty() ? null : hcns.get(hcns.size() - 1);
+    }
+
+    public Interval getCurrentInterval() {
+        return Matrix.getCurrentInterval();
+    }
+
+    public ScientificNumber getCurrentIntervalTargetValue() {
+        Interval ci = Matrix.getCurrentInterval();
+        return ci != null ? ci.getTargetValue() : null;
+    }
+
+    public List<Body> getRecorderList() {
+        List<Body> result = new ArrayList<>();
+        Body current = RecorderList.getFirstRecorder();
+        for (int i = 0; i < RecorderList.getSize(); i++) {
+            result.add(current);
+            current = current.getNextRecorder();
+        }
+        return result;
+    }
+
+    public List<Body> getBodiesWaitingToJoin() {
+        return RecorderList.getBodiesWaitingToJoin();
     }
 
     public List<Lapi> getLapiChain() {
@@ -467,8 +495,15 @@ public class NewCoreController {
     }
 
     public String matrixNodeLabel(MatrixNode node) {
-        if (node instanceof ApiNode a) return "p" + a.getIndexes().get(0).getIndex();
-        if (node instanceof TransitionNode t) return "p" + t.getIndexes().get(0).getIndex() + "→p" + t.getIndexes().get(t.getIndexes().size() - 1).getIndex();
+        if (node instanceof ApiNode a) {
+            if (a.getIndexes().isEmpty()) return "p?";
+            return "p" + a.getIndexes().get(0).getIndex();
+        }
+        if (node instanceof TransitionNode t) {
+            if (t.getIndexes().isEmpty()) return "t?";
+            if (t.getIndexes().size() == 1) return "p" + t.getIndexes().get(0).getIndex();
+            return "p" + t.getIndexes().get(0).getIndex() + "→p" + t.getIndexes().get(t.getIndexes().size() - 1).getIndex();
+        }
         return "";
     }
 

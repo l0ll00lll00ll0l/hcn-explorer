@@ -188,7 +188,10 @@ public class BodyList implements Iterable<Body> {
 
     public void maintainHcnGeneratorList() {
         dominatedSuperiorBodies.forEach(b -> { HcnGeneratorList.remove(b); });
-        successfullyAddedNewBodies.forEach(b -> { HcnGeneratorList.add(b); });
+        successfullyAddedNewBodies.forEach(b -> {
+            HcnGeneratorList.add(b);
+            RecorderList.placeNewBodies(b);
+        });
         if (ActivityCenter.isDbMode()) {
             MatrixExtensionActivity mea = ActivityCenter.getLastMatrixExtensionActivity();
             mea.setCreatedActiveBodyCount(successfullyAddedNewBodies.size());
