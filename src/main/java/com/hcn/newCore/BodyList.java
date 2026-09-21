@@ -190,7 +190,6 @@ public class BodyList implements Iterable<Body> {
         dominatedSuperiorBodies.forEach(b -> { HcnGeneratorList.remove(b); });
         successfullyAddedNewBodies.forEach(b -> {
             HcnGeneratorList.add(b);
-            RecorderList.placeNewBodies(b);
         });
         if (ActivityCenter.isDbMode()) {
             MatrixExtensionActivity mea = ActivityCenter.getLastMatrixExtensionActivity();

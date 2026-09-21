@@ -316,17 +316,17 @@ public class MatrixDeserializer {
         Matrix.lastTransition = (TransitionNode) matrixNodeMap.get(lastTransitionId);
 
         Matrix matrix = Matrix.builder()
-                .nextLapi(lapiMap.get(nextLapiPrime))
-                .lowestLapi(lapiMap.get(lowestLapiPrime))
-                .highestLapi(lapiMap.get(highestLapiPrime))
+                //.nextLapi(lapiMap.get(nextLapiPrime))
+                //.lowestLapi(lapiMap.get(lowestLapiPrime))
+                //.highestLapi(lapiMap.get(highestLapiPrime))
                 .lowestProvedLapiWithinInterval(lowestProvedLapi)
                 .provedCount(provedCount)
-                .provedLimit(new ScientificNumber(provedLimitMantissa, provedLimitExponent))
                 .totalTimeMs(totalTimeMs)
                 .matrixMaintainTimeMs(matrixMaintainTimeMs)
                 .generateHcnListTimeMs(generateHcnListTimeMs)
                 .dbMode(dbMode)
                 .build();
+        Matrix.setProvedLimit(new ScientificNumber(provedLimitMantissa, provedLimitExponent));
 
         if (dbMode) {
             Integer lastFirstHcn = dbTemplate.queryForObject("SELECT first_hcn FROM interval ORDER BY lapi DESC LIMIT 1", Integer.class);
@@ -357,7 +357,7 @@ public class MatrixDeserializer {
                     .hcnList(referenceIntervalHcns)
                     .build();
             ri.setReferenceInterval(ri);
-            matrix.setReferenceInterval(ri);
+            Interval.setGlobalReferenceInterval(ri);
         }
 
         HcnGeneratorList.initialize(Matrix.lastTransition.getBodyList().getSmallestBody());

@@ -126,12 +126,13 @@ public class ScientificNumber implements Comparable<ScientificNumber> {
         
         // Try to represent as long if exponent is small enough
         if (exponent >= 0 && exponent <= 18) {
-            long value = Math.round(mantissa * Math.pow(10, exponent));
-            String longForm = String.valueOf(value);
-            
-            // Use long form if it's not longer than scientific form
-            if (longForm.length() <= scientificLength) {
-                return longForm;
+            double raw = mantissa * Math.pow(10, exponent);
+            long value = (long) raw;
+            if (raw == value) {
+                String longForm = String.valueOf(value);
+                if (longForm.length() <= scientificLength) {
+                    return longForm;
+                }
             }
         }
         

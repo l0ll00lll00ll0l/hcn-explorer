@@ -45,7 +45,6 @@
             </div>
             <span th:if="${!@activityCenter.isProving()}" style="font-size: 11px; color: #555;">
                 | proved: <b th:text="${matrix.provedCount}"></b>
-                | nextLapi: <b th:text="${matrix.nextLapi != null ? matrix.nextLapi.prime.index + ' (' + matrix.nextLapi.prime.intValue + ')' : 'n/a'}"></b>
                 | limit: <b th:text="${matrix.provedLimit}"></b>
                 | total: <b th:text="${matrix.totalTimeMs} + 'ms'"></b>
                 | hcnList: <b th:text="${matrix.generateHcnListTimeMs} + 'ms'"></b>

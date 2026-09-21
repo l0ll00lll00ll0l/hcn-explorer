@@ -47,13 +47,11 @@ public class RecorderList {
 
     public static String print() {
         StringBuilder sb = new StringBuilder();
-        if (firstRecorder.getGeneratedHcns().size() > 1) {
-            sb.append("firstrecorder: "+ firstRecorder.getGeneratedHcns().get(firstRecorder.getGeneratedHcns().size() - 2) +"[\n");
-        } else {
-            sb.append("firstrecorder: "+ firstRecorder.getGeneratedHcns().get(firstRecorder.getGeneratedHcns().size() - 1) +"[\n");
-        }
+
+            sb.append("firstrecorder: "+ firstRecorder.getLastGeneratedHcn() +"[\n");
+
         sb.append("lastregorder:"+ lastRecorder.getLastGeneratedHcn() +"\n");
-        sb.append("firstrecorder next: "+ firstRecorder.getLastGeneratedHcn() +"[\n");
+        //sb.append("firstrecorder next: "+ firstRecorder.getLastGeneratedHcn() +"[\n");
         sb.append("size: "+ size +"[\n");
         sb.append("RecordeList: [\n");
         Body current = firstRecorder;
@@ -67,108 +65,119 @@ public class RecorderList {
         return sb.toString();
     }
 
-    /*
-    public static void placeNewActiveBody(Hcn newRecorderHcn) {
+    private static int findBiggerPray(Hcn newRecorderHcn) {
+        //log.debug(" newRecordHcn factor is BIGGER than currentRecorder");
+        Body prayCandidate = Matrix.getCurrentRecorder();
+        Integer lastHcnLapiDiff = 0;
+        boolean prayFound = false;
 
+        while (!prayFound) {
+            ScientificNumber relativeFactor = getRelativeFactorForWalker(prayCandidate, lastHcnLapiDiff);
 
-        log.debug("placeNewActiveBody newRecorderHcn={}", newRecorderHcn);
-
-        Body referenceBody = firstRecorder;
-        while (referenceBody.getNextRecorder() != null && referenceBody.getNextRecorder().getLastGeneratedHcn().getValue().isSmallerThan(newRecorderHcn.getValue())) {
-            referenceBody = referenceBody.getNextRecorder();
+            if (relativeFactor.isNotSmallerThan(newRecorderHcn.getFactor())) {
+                //log.debug("  relativeFactor bigger: {}", relativeFactor);
+                prayFound = true;
+            } else {
+                //log.debug("  relativeFactoris still smaller: {}", relativeFactor);
+                prayCandidate = prayCandidate.getNextRecorder();
+                if (prayCandidate.getLastGeneratedHcn().getValue().isSmallerThan(prayCandidate.getPreviousRecorder().getLastGeneratedHcn().getValue())) {
+                    lastHcnLapiDiff ++;
+                    //log.debug("  lastHcnLapiDiff needs to be raised: {}", lastHcnLapiDiff);
+                }
+            }
         }
-
-        if (newRecorderHcn.getFactor().isBiggerThan(referenceBody.getLastGeneratedHcn().getFactor())) {
-            newRecorderBodyPlacement(referenceBody, newRecorderHcn);
-        } else {
-            findPrayForHunterBody(newRecorderHcn);
-        }
+        newRecorderHcn.getBody().setPrayBody(prayCandidate);
+        //log.debug("{} -> prayBody2: {}", newRecorderHcn, walker.getLastGeneratedHcn());
+        return lastHcnLapiDiff;
     }
 
+    private static int findSmallerPray(Hcn newRecorderHcn) {
+        //log.debug("newRecordHcn factor is SMALLER than currentRecorder");
 
-     */
+        Body walker = Matrix.getCurrentRecorder();
+        Integer lastHcnLapiDiff = 0;
+        boolean prayFound = false;
+        Body lastHcnLapiDiffLowerTrigger = null;
+
+        while (!prayFound) {
+            ScientificNumber relativeFactor = getRelativeFactorForWalker(walker, lastHcnLapiDiff);
+
+            if (relativeFactor.isSmallerThan(newRecorderHcn.getFactor())) {
+                //log.debug("  relativeFactor smaller: {}", relativeFactor);
+                prayFound = true;
+            } else {
+                //log.debug("  relativeFactoris still bigger: {}", relativeFactor);
+                walker = walker.getPreviousRecorder();
+                if (walker.getLastGeneratedHcn().getValue().isBiggerThan(walker.getNextRecorder().getLastGeneratedHcn().getValue())) {
+                    lastHcnLapiDiff --;
+                    lastHcnLapiDiffLowerTrigger = walker;
+                    //log.debug("  lastHcnLapiDiff needs to be lowered: {}, lastHcnLapiDiffLowerTrigger: {}", lastHcnLapiDiff, lastHcnLapiDiffLowerTrigger);
+                }
+            }
+        }
+        newRecorderHcn.getBody().setPrayBody(walker.getNextRecorder());
+        if (lastHcnLapiDiffLowerTrigger != null) {
+            if (lastHcnLapiDiffLowerTrigger.equals(walker)) {
+                return lastHcnLapiDiff + 1;
+            }
+        }
+        //log.debug("{} -> prayBody3: {}", newRecorderHcn, walker.getNextRecorder().getLastGeneratedHcn());
+        return lastHcnLapiDiff;
+    }
+
+    private static ScientificNumber getRelativeFactorForWalker(Body walker, Integer lastHcnLapiDiff) {
+        ScientificNumber relativeFactorMultiplier = new ScientificNumber(Math.pow(2, lastHcnLapiDiff), 0);
+        //log.debug("  relativeFactorMultiplier: {}", relativeFactorMultiplier);
+        ScientificNumber relativeFactor = walker.getLastGeneratedHcn().getFactor().multiply(relativeFactorMultiplier);
+        return relativeFactor;
+    }
 
     public static void findPrayForHunterBody(Hcn newRecorderHcn) {
-        log.debug(" findPrayForHunterBody newRecorderHcn: {}", newRecorderHcn);
-        if (newRecorderHcn.getLapi().getHigherLapi() != null) {
-            Body prayCandidate = newRecorderHcn.getLapi().getHigherLapi().getWalker().getSmallerHcnGenerator();
-            //log.debug("1findPrayForHunterBody prayCandidate={}", prayCandidate.getHcnForLapi(newRecorderHcn.getLapi().getHigherLapi()));
 
-            while (prayCandidate != null && prayCandidate.getHcnForLapi(newRecorderHcn.getLapi().getHigherLapi()).getFactor().isBiggerThan(newRecorderHcn.getFactor())) {
-                prayCandidate = prayCandidate.getSmallerHcnGenerator();
-            }
+        //log.debug("");
+        //log.debug("{} -> prayBody", newRecorderHcn);
+        //log.debug("getCurrentRecorder: {}", Matrix.getCurrentRecorder().getLastGeneratedHcn());
+        //log.debug("getProvedLimit: {}", Matrix.getProvedLimit());
+        //log.debug("getTargetValue: {}", Matrix.getTargetValue());
+        //log.debug(RecorderList.print());
 
-            if (prayCandidate != null) {
-                Hcn prayHcn = prayCandidate.getHcnForLapi(newRecorderHcn.getLapi().getHigherLapi());
-                //log.debug("findPrayFor HunterBody: {} prayHcn={}", newRecorderHcn, prayHcn);
-                if (prayHcn.getFactor().isSmallerThan(newRecorderHcn.getFactor())) {
-                    prayCandidate = prayCandidate.getLargerHcnGenerator();
-                }
-                log.debug(" findPrayFor HunterBody: {} prayCandidate={}", newRecorderHcn, prayCandidate.getHcnForLapi(newRecorderHcn.getLapi().getHigherLapi()));
+        int lastHcnLapiDiff = 0;
 
-                newRecorderHcn.getBody().setPrayBody(prayCandidate);
-                prayCandidate.getHunters().add(newRecorderHcn.getBody());
-
-
-            } else {
-                log.debug(" findPrayFor HunterBody: {} NOT FOUND",newRecorderHcn);
-            }
-
-        }
-    }
-
-
-/*
-    public static void placeBodyAfterPraySkip(Hcn generatedHcn, Body potentialPrayProviderBody) {
-
-        log.debug("placeBodyAfterPraySkip: {} , potentialPrayProviderBody={}", generatedHcn, potentialPrayProviderBody);
-        if (potentialPrayProviderBody.getHcnForLapi(generatedHcn.getLapi().getHigherLapi()).getValue().isBiggerThan(generatedHcn.getValue())) {
-            log.debug("placeBodyAfterPraySkip: {} > {} -> place before", potentialPrayProviderBody.getHcnForLapi(generatedHcn.getLapi().getHigherLapi()).getValue(), generatedHcn.getValue());
+        if (newRecorderHcn.getFactor().isBiggerThan(Matrix.getCurrentRecorder().getLastGeneratedHcn().getFactor())) {
+            lastHcnLapiDiff = findBiggerPray(newRecorderHcn);
+        } else if (newRecorderHcn.getFactor().isSmallerThan(Matrix.getCurrentRecorder().getLastGeneratedHcn().getFactor())) {
+            lastHcnLapiDiff = findSmallerPray(newRecorderHcn);
         } else {
-            log.debug("Potential pray provider identified: {}", potentialPrayProviderBody);
-            if (generatedHcn.getFactor().isBiggerThan(potentialPrayProviderBody.getHcnForLapi(generatedHcn.getLapi().getHigherLapi()).getValue())) {
-                newRecorderBodyPlacement(potentialPrayProviderBody, generatedHcn);
-            } else {
-                log.debug("skiped pray was bigger factor, pray body has to be identified");
-            }
+            newRecorderHcn.getBody().setPrayBody(Matrix.getCurrentRecorder());
+            //log.debug("newRecordHcn factor EQUALS to currentRecorder");
+            //log.debug("{} -> prayBody4: {}", newRecorderHcn, Matrix.getCurrentRecorder().getLastGeneratedHcn());
         }
-    }
+        //log.debug(" ---------- ");
+        //log.debug("");
 
-
- */
-    public static void prayHunted(Hcn generatedHcn) {
-        Hcn prayHcn = generatedHcn.getBody().getPrayBody().getHcnForLapi(generatedHcn.getLapi().getHigherLapi());
-
-        if (prayHcn.getBody().isRecorder()) {
-            log.debug(" Pray hunted: {} RECORDER pray: {}", generatedHcn, prayHcn);
-            addNewRecordWithPrayBody(generatedHcn);
-
-            if (generatedHcn.getFactor().isNotSmallerThan(prayHcn.getFactor())) {
-                killBody(prayHcn.getBody());
-            }
-            generatedHcn.matrixMaintainCheck();
-        } else {
-            log.debug(" Pray hunted: {} ACTIVE NON-RECORDER pray: {}", generatedHcn, prayHcn);
-        }
-    }
-
-    private static void addNewRecordWithPrayBody(Hcn generatedHcn) {
-
-        log.debug("  addNewRecordWithPrayBody generatedHcn={}", generatedHcn);
-        Body prayBody = generatedHcn.getBody().getPrayBody();
-        Hcn potentialNextHcn = firstRecorder.getNextRecorder().getLastGeneratedHcn();
-        while (potentialNextHcn.getValue().isSmallerThan(generatedHcn.getValue())) {
-            potentialNextHcn = potentialNextHcn.getBody().getNextRecorder().getLastGeneratedHcn();
-        }
-        Hcn referenceHcn = potentialNextHcn.getBody().getPreviousRecorder().getLastGeneratedHcn();
-        addNewRecord(referenceHcn, generatedHcn, potentialNextHcn);
-
-        prayBody.getHunters().remove(generatedHcn.getBody());
-        generatedHcn.getBody().setPrayBody(null);
+        //log.debug("{} -> prayBody: {}", newRecorderHcn, newRecorderHcn.getBody().getPrayBody().getLastGeneratedHcn());
+        //log.debug("newHcnindex: " + newRecorderHcn.getLapiIndex());
+        //log.debug("prayindex: " + newRecorderHcn.getBody().getPrayBody().getLastGeneratedHcn().getLapiIndex());
+        //log.debug("lastHcnLapiDiff: " + lastHcnLapiDiff);
+        newRecorderHcn.getBody().getPrayBody().getHunters().add(newRecorderHcn.getBody());
+        int prayLapiDiffToStore = newRecorderHcn.getBody().getPrayBody().getLastGeneratedHcn().getLapiIndex() - newRecorderHcn.getLapiIndex() + lastHcnLapiDiff;
+        //log.debug("prayLapiDiffToStore: " + prayLapiDiffToStore);
+        newRecorderHcn.getBody().setPrayLapiDistance(prayLapiDiffToStore);
     }
 
     public static void killBody(Body bodyToDelete) {
-        log.debug("  killBody bodyToDelete={}", bodyToDelete);
+        //log.debug("  killBody bodyToDelete={}", bodyToDelete);
+        //log.debug("deleted body {} has hunters: {}", bodyToDelete, bodyToDelete.getHunters());
+
+        if (Lapi.getHighestLapi().getWalker().equals(bodyToDelete)) {
+            //log.debug("    remove body={}: is highestLapiWlaker", bodyToDelete);
+            Lapi.highestLapiWalkerDeleted();
+        }
+
+        if (Matrix.getCurrentRecorder().equals(bodyToDelete)) {
+            Matrix.resetDeletedCurrentRecorder();
+        }
+
         Body prev = bodyToDelete.getPreviousRecorder();
         Body next = bodyToDelete.getNextRecorder();
 
@@ -182,11 +191,6 @@ public class RecorderList {
             prev.setNextRecorder(firstRecorder);
         }
 
-        if (!bodyToDelete.getHunters().isEmpty()) {
-            bodyToDelete.getHunters().forEach(hunter -> hunter.setPrayBody(null));
-        }
-        bodyToDelete.getHunters().clear();
-
         prev.setNextRecorder(next);
         next.setPreviousRecorder(prev);
 
@@ -196,124 +200,66 @@ public class RecorderList {
         bodyToDelete.setFirstDominatedHcn(bodyToDelete.getLastGeneratedHcn());
         HcnGeneratorList.remove(bodyToDelete);
         bodyToDelete.deactivate();
-        //log.debug("    remove body={}: size={}", bodyToDelete.getLastGeneratedHcn(), size);
-        //log.debug(RecorderList.print());
+
     }
 
-    public static void placeBodyWithoutPray(Hcn generatedHcn) {
-        log.debug("  placeBodyWithoutPray generatedHcn={}", generatedHcn);
-        Hcn potentialNextHcn = firstRecorder.getNextRecorder().getLastGeneratedHcn();
-        while (potentialNextHcn.getValue().isSmallerThan(generatedHcn.getValue())) {
-            potentialNextHcn = potentialNextHcn.getBody().getNextRecorder().getLastGeneratedHcn();
-        }
-        Hcn referenceHcn = potentialNextHcn.getBody().getPreviousRecorder().getLastGeneratedHcn();
-        log.debug("  placeBodyWithoutPray referenceBody={}, generatedHcn: {}, nextHcn? {}", referenceHcn, generatedHcn, potentialNextHcn);
-        
-        if (probablyNotNeededCheckButYetToProve(referenceHcn, generatedHcn, potentialNextHcn)) {
-            addNewRecord(referenceHcn, generatedHcn, potentialNextHcn);
-        } else {
-            log.error("  BODY WITHOUT PRAYBODY IS NOT RECORDER referenceBody={}, generatedHcn: {}, nextHcn? {}", referenceHcn, generatedHcn, potentialNextHcn);
-        }
-        //log.debug(RecorderList.print());
-    }
+    public static void addNewRecord(Hcn generatedHcn, boolean isPrayLapiDiffValid) {
 
-    private static void addNewRecord(Hcn referenceHcn, Hcn generatedHcn, Hcn potentialNextHcn) {
-        log.debug("  addNewRecord referenceBody={}, generatedHcn: {}, nextHcn? {}", referenceHcn, generatedHcn, potentialNextHcn);
+        Body prayBody = generatedHcn.getBody().getPrayBody();
+        Body referenceBody = prayBody.getPreviousRecorder();
+
+        //log.debug("  addNewRecord referenceBody={}, generatedHcn: {}, nextHcn? {}", referenceHcn, generatedHcn, potentialNextHcn);
         generatedHcn.matrixMaintainCheck();
-        potentialNextHcn.getBody().setPreviousRecorder(generatedHcn.getBody());
-        generatedHcn.getBody().setNextRecorder(potentialNextHcn.getBody());
+        prayBody.setPreviousRecorder(generatedHcn.getBody());
+        generatedHcn.getBody().setNextRecorder(prayBody);
 
-        referenceHcn.getBody().setNextRecorder(generatedHcn.getBody());
-        generatedHcn.getBody().setPreviousRecorder(referenceHcn.getBody());
-        if (lastRecorder.equals(referenceHcn.getBody())) {
+        referenceBody.setNextRecorder(generatedHcn.getBody());
+        generatedHcn.getBody().setPreviousRecorder(referenceBody);
+        if (lastRecorder.equals(referenceBody)) {
             lastRecorder = generatedHcn.getBody();
         }
         size++;
 
+        generatedHcn.getBody().getPrayBody().getHunters().remove(generatedHcn.getBody());
+        generatedHcn.getBody().setPrayBody(null);
+
+        takeOverHuntersFromNextRecorder(generatedHcn, isPrayLapiDiffValid);
     }
 
-    public static void addNewRecorder(Body prevBody, Body newBody, Body nextBody) {
-        log.debug("  addNewRecord referenceBody={}, newBody: {}, nextHcn? {}", prevBody, newBody, nextBody);
-        newBody.matrixMaintainCheck();
-        nextBody.setPreviousRecorder(newBody);
-        newBody.setNextRecorder(nextBody);
+    private static void takeOverHuntersFromNextRecorder(Hcn generatedHcn, boolean isPrayLapiDiffValid) {
 
-        prevBody.setNextRecorder(newBody);
-        newBody.setPreviousRecorder(prevBody);
-        if (lastRecorder.equals(prevBody)) {
-            lastRecorder = newBody;
+        Body huntedBody = generatedHcn.getBody().getNextRecorder();
+
+        final int relativeNextRecorderLapiDiff = isPrayLapiDiffValid ? 0 : 1;
+        ScientificNumber nextHcnFactor = getRelativeFactorForWalker(generatedHcn.getBody().getNextRecorder(), relativeNextRecorderLapiDiff);
+
+        if (!huntedBody.getLastGeneratedHcn().getBody().getHunters().isEmpty()) {
+            log.debug("takeOverHuntersFromNextRecorder {}", generatedHcn);
+            log.debug(" isPrayLapiDiffValid: {}", isPrayLapiDiffValid);
+            log.debug(" generatedHcn: {}", generatedHcn.getFactor());
+            log.debug(" nextHcnFactor: {}", nextHcnFactor);
         }
-        size++;
 
-    }
-
-    private static boolean probablyNotNeededCheckButYetToProve(Hcn referenceHcn, Hcn generatedHcn, Hcn potentialNextHcn) {
-        boolean areValuesOk = referenceHcn.getValue().isSmallerThan(generatedHcn.getValue()) && generatedHcn.getValue().isSmallerThan(potentialNextHcn.getValue());
-        boolean areFactorsOk = referenceHcn.getFactor().isSmallerThan(generatedHcn.getFactor()) && generatedHcn.getFactor().isSmallerThan(potentialNextHcn.getFactor());
-        return areValuesOk && areFactorsOk;
-    }
-
-    public static void placeNewBodies(Body newActiveBody) {
-        log.debug(" - Created new body: {}", newActiveBody);
-        Lapi firstHcnLapi = newActiveBody.getPrevActiveBody().getLastGeneratedHcn().getLapi();
-        Hcn firstHcn = newActiveBody.generateHcn(firstHcnLapi);
-        if (bodiesWaitingToJoin.isEmpty()) {
-            bodiesWaitingToJoin.add(newActiveBody);
-        } else {
-            int firstNotSmaller = -1;
-            for (int i = 0; i < bodiesWaitingToJoin.size(); i++) {
-                log.debug("i={} factor={}", i, bodiesWaitingToJoin.get(i).getLastGeneratedHcn().getFactor());
-                if (bodiesWaitingToJoin.get(i).getLastGeneratedHcn().getFactor().isNotSmallerThan(firstHcn.getFactor())) {
-                    firstNotSmaller = i;
-                    log.debug("firstNotSmaller={}", firstNotSmaller);
-                    break;
-                }
-            }
-
-            if (firstNotSmaller == -1) {
-                log.debug("appending at end");
-                bodiesWaitingToJoin.add(newActiveBody);
-            } else if (bodiesWaitingToJoin.get(firstNotSmaller).getLastGeneratedHcn().getFactor().isBiggerThan(firstHcn.getFactor())) {
-                log.debug("inserting at {}", firstNotSmaller);
-                bodiesWaitingToJoin.add(firstNotSmaller, newActiveBody);
+        huntedBody.getLastGeneratedHcn().getBody().getHunters().forEach(hunter -> {
+            log.debug("   hunters to check:: {}", hunter.getLastGeneratedHcn());
+            int storedLapiDiff = hunter.getPrayLapiDistance();
+            log.debug("   storedLapiDiff: {}", storedLapiDiff);
+            int actualDiff = huntedBody.getLastGeneratedHcn().getLapiIndex() - hunter.getLastGeneratedHcn().getLapiIndex();
+            log.debug("   actualDiff: {}", actualDiff);
+            int relativeHunterLapiDiff = relativeNextRecorderLapiDiff;
+            if (storedLapiDiff != actualDiff) {
+                log.debug("    VALID lapiDiff");
             } else {
-                log.debug("appending at {}", firstNotSmaller);
-                if (firstHcn.getValue().isSmallerThan(bodiesWaitingToJoin.get(firstNotSmaller).getLastGeneratedHcn().getValue())) {
-                    log.debug("replacing at {}", firstNotSmaller);
-                    bodiesWaitingToJoin.add(firstNotSmaller, newActiveBody);
-                } else {
-                    for (int i = firstNotSmaller + 1; i < bodiesWaitingToJoin.size(); i++) {
-                        log.debug("i={} value={}", i, bodiesWaitingToJoin.get(i).getLastGeneratedHcn().getValue());
-                        if (bodiesWaitingToJoin.get(i).getLastGeneratedHcn().getValue().isBiggerThan(firstHcn.getValue())) {
-                            log.debug("inserting at {}", i - 1);
-                            bodiesWaitingToJoin.add(i - 1, newActiveBody);
-                        }
-                    }
-                }
+                log.debug("    INVALID lapiDiff");
             }
-        }
-    }
-
-    /*
-    public static void newSmallestActiveBodyMaintain() {
-
-        log.debug(" before newSmallestActiveBodyMaintain" + print());
-        log.debug(" hunters={}", firstRecorder.getHunters());
-        Body toRemove = firstRecorder;
-
-        firstRecorder.setFirstDominatedHcn(firstRecorder.getLastGeneratedHcn());
-        HcnGeneratorList.remove(firstRecorder);
-        firstRecorder.deactivate();
-        Body newFirstRecorder = firstRecorder.getNextRecorder();
-        newFirstRecorder.setPreviousRecorder(null);
-        firstRecorder = newFirstRecorder;
-        toRemove.getHunters().forEach(hunter -> {
-            log.debug("hunters={}", hunter.getLastGeneratedHcn());
-            hunter.setPrayBody(null);
-            findPrayForHunterBody(hunter.getLastGeneratedHcn());
         });
-        log.debug(" after newSmallestActiveBodyMaintain" + print());
+
+        if (nextHcnFactor.isNotBiggerThan(generatedHcn.getFactor())) {
+            log.debug(" KillBody required generatedFactor: {}, nextHcnFactor: {}", generatedHcn.getFactor(), nextHcnFactor);
+            killBody(generatedHcn.getBody().getNextRecorder());
+        }
+
+        log.debug(" ---------------------------------------------------------------------------------------------------------------------- ");
     }
 
-     */
 }

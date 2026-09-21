@@ -66,7 +66,7 @@ public class NewCoreController {
                 dbCacheService.setDbName(matrix.getDbName());
                 dbCacheService.setMatrix(matrix);
             }
-            matrix.initialize2();
+            matrix.initialize();
         }
         model.addAttribute("matrix", matrix);
         model.addAttribute("logLevel", currentLogLevel);
@@ -280,7 +280,7 @@ public class NewCoreController {
         if (!ActivityCenter.isProving()) {
             ActivityCenter.setProving(true);
             dbCacheService.clear();
-            new Thread(() -> matrix.proveNextRecorder()).start();
+            new Thread(() -> matrix.proveNextLapi()).start();
         }
         return "{\"started\":true}";
     }
@@ -419,19 +419,13 @@ public class NewCoreController {
         }
     }
 
-    public Hcn getDisplayHcn(Body body, boolean isFirst) {
-        List<Hcn> hcns = body.getGeneratedHcns();
-        if (isFirst && hcns.size() >= 2) return hcns.get(hcns.size() - 2);
-        return hcns.isEmpty() ? null : hcns.get(hcns.size() - 1);
-    }
 
     public Interval getCurrentInterval() {
-        return Matrix.getCurrentInterval();
+        return Interval.getCurrentInterval();
     }
 
     public ScientificNumber getCurrentIntervalTargetValue() {
-        Interval ci = Matrix.getCurrentInterval();
-        return ci != null ? ci.getTargetValue() : null;
+        return Matrix.getTargetValue();
     }
 
     public List<Body> getRecorderList() {
@@ -450,10 +444,13 @@ public class NewCoreController {
 
     public List<Lapi> getLapiChain() {
         List<Lapi> chain = new ArrayList<>();
+        /*
         if (matrix.getNextLapi() != null) {
             chain.add(matrix.getNextLapi());
         }
-        Lapi current = matrix.getHighestLapi();
+
+         */
+        Lapi current = Lapi.getHighestLapi();
         while (current != null) {
             chain.add(current);
             current = current.getLowerLapi();

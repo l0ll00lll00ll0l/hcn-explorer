@@ -47,75 +47,108 @@ public class Lapi {
         return nextLapi;
     }
 
-    public Lapi deleteLapi() {
-        //hcnList.clear();
-        log.debug("deleteLapi {}", prime.getIndex());
-        higherLapi.setLowerLapi(null);
-        Lapi newLowLapi = higherLapi;
-        this.setHigherLapi(null);
-        return newLowLapi;
+    public static void highestLapiWalkerDeleted() {
+        //log.debug(" NEW CHECK");
+        //log.debug(" provedLimit= {}", Matrix.getProvedLimit());
+        //log.debug(" targetValue= {}", Matrix.getTargetValue());
+        //log.debug(" highestLapi.determineNextHcnValue()= {}", highestLapi.determineNextHcnValue());
+
+        if (highestLapi.determineNextHcnValue().isBiggerThan(Matrix.getTargetValue())) {
+            highestLapi = highestLapi.getLowerLapi();
+            highestLapi.setHigherLapi(null);
+        }
     }
 
-    public void hcnGenerationPhase(ScientificNumber provedLimit) {
-        //log.debug("generateHcnList for prime " + prime.getIndex());
-        if (walker == null || walker.isDeactivated() || walker.getLargerHcnGenerator() == null) {
-            walker = restoreWalker(provedLimit);
+    public static void deleteLapisUnder() {
+        //log.debug("DeletingLapi Under {}", Interval.getCurrentInterval().getLowestRecorderLapi());
+
+        while (lowestLapi.prime.getIndex() < Interval.getCurrentInterval().getLowestRecorderLapi()) {
+            //log.debug(" deleting lowestLapi= {}", lowestLapi.getPrime().getIndex());
+            lowestLapi = lowestLapi.getHigherLapi();
+            lowestLapi.getLowerLapi().setHigherLapi(null);
+            lowestLapi.setLowerLapi(null);
         }
+    }
+
+    private void hcnGenerationPhase() {
+        //log.debug("generateHcnList for prime {}, walker: {}", prime.getIndex(), walker);
+
+        if (walker == null || walker.isDeactivated()) {
+            //log.debug(" Restore required for lapi {}", prime.getIndex());
+            restoreWalker();
+        }
+
         if (walker != null) {
-            //moveWalkerIfNotSuperiorCheck();
             createBaseHcnList();
-            //mergeLowerHcnlist(provedLimit);
         }
-        if (higherLapi != null) {higherLapi.hcnGenerationPhase(provedLimit);}
+
+        if (lowerLapi != null) {
+            lowerLapi.generatedHcns.clear();
+            lowerLapi.hcnGenerationPhase();
+        }
     }
 
-    private Body restoreWalker(ScientificNumber provedLimit) {
-        Body result = null;
-        Body candidate = HcnGeneratorList.getSmallestBody();
-        while (candidate != null) {
-            if (!candidate.isDeactivated() && candidate.getLastGeneratedHcn() != null && candidate.getLastGeneratedHcn().getLapiIndex() == prime.getIndex()) {
-                result = candidate;
-            }
-            candidate = candidate.getNextActiveBody();
-        }
-        if (result == null) return null;
-        while (result.getLastGeneratedHcn().getValue().isNotBiggerThan(provedLimit)) {
-            if (!result.equals(HcnGeneratorList.getSmallestBody())) {
-                //System.out.println("1 " + result);
-            }
+    public static void generateHcnsUntilTargetValue() {
 
-            if (result.isNonDeactivated()) {
-                //System.out.println("2 " + result);
-            }
-            Body next = result.getNextActiveBody();
-            if (next == null) return null;
-            result = next;
-            if (result.getLastGeneratedHcn() == null || result.getLastGeneratedHcn().getLapiIndex() != prime.getIndex()) {
-                result.generateHcn(this);
-            }
+        Prime nextPrime = highestLapi.getPrime().getNextPrime();
+        ScientificNumber nextLapiEnterValue = nextPrime.getValue().multiply(highestLapi.valueMultiplier).multiply(HcnGeneratorList.getSmallestBody().getValue());
+        //log.debug("nextLapiEnterValue {}", nextLapiEnterValue);
+        if (nextLapiEnterValue.isNotBiggerThan(Matrix.getTargetValue())) {
+            highestLapi.setHigherLapi(Lapi.builder().prime(nextPrime).lowerLapi(highestLapi).walker(HcnGeneratorList.getSmallestBody())
+                    .valueMultiplier(highestLapi.valueMultiplier.multiply(nextPrime.getValue()))
+                    .factorMultiplier(highestLapi.getFactorMultiplier().multiply(new ScientificNumber(2.0, 0)))
+                    .build());
+            highestLapi = highestLapi.getHigherLapi();
+            highestLapi.generatedHcns.add(highestLapi.walker.generateHcn(highestLapi));
+        } else {
+            lowestLapi.generatedHcns.clear();
         }
-        return result;
+        highestLapi.hcnGenerationPhase();
+    }
+
+    public void restoreWalker() {
+        if (walker == null) {
+            Body tempWalker = HcnGeneratorList.getLargestBody();
+            ScientificNumber potentialValue = tempWalker.getValue().multiply(valueMultiplier);
+            //log.debug("restore null walker tempwalker: {}, potentialValue: {}", tempWalker, potentialValue);
+            while (potentialValue.isBiggerThan(Matrix.getProvedLimit())) {
+                tempWalker = tempWalker.getSmallerHcnGenerator();
+                potentialValue = tempWalker.getValue().multiply(valueMultiplier);
+                //log.debug(" inner restore null walker tempwalker: {}, potentialValue: {}", tempWalker, potentialValue);
+            }
+            //walker = tempWalker.getLargerHcnGenerator();
+            //log.debug("Wlaker set: {} for provedLimit: {}", walker, Matrix.getProvedLimit());
+        }
     }
 
     private void createBaseHcnList() {
         //log.debug("createBaseHcnList for prime " + prime.getIndex());
-        ScientificNumber targetValue = Matrix.getCurrentInterval().getTargetValue();
-        generatedHcns.clear();
+        ScientificNumber targetValue = Matrix.getTargetValue();
+        if (determineNextHcnValue().isBiggerThan(targetValue)) return;
+
         while (walker != null) {
-            if (!determineNextHcnValue().isNotBiggerThan(targetValue)) break;
-            generatedHcns.add(walker.generateHcn(this));
             walker = walker.getLargerHcnGenerator();
+            generatedHcns.add(walker.generateHcn(this));
+            if (walker.getLargerHcnGenerator() == null) {
+                break;
+            }
+            if (determineNextHcnValue().isBiggerThan(targetValue)) break;
+            //log.debug("1 Walker is: {}", walker);
         }
-        //log.debug(RecorderList.print());
+        //log.debug("Walker is: {}", walker);
     }
 
     private ScientificNumber determineNextHcnValue() {
-        return walker.getValue().multiply(valueMultiplier);
+        return walker.getLargerHcnGenerator().getValue().multiply(valueMultiplier);
     }
 
-    public void huntingPhase() {
+    public static void huntingPhase() {
+        highestLapi.hunting();
+    }
+
+    private void hunting() {
         generatedHcns.forEach(hcn -> hcn.getBody().hunt(hcn));
-        if (higherLapi != null) {higherLapi.huntingPhase();}
+        if (lowerLapi != null) {lowerLapi.hunting();}
     }
     /*
     private void moveWalkerIfNotSuperiorCheck() {

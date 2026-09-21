@@ -33,8 +33,8 @@ public class MatrixSerializer {
         resetHcnGeneratorHcns(matrix);
 
         reassignMatrixObjects(matrix);
-        reassignLapiBodiesAndHcns(matrix.getLowestLapi());
-        reassignRefIntervalBodiesAndHcns(matrix.getReferenceInterval());
+        reassignLapiBodiesAndHcns(Lapi.getLowestLapi());
+        reassignRefIntervalBodiesAndHcns(Interval.getGlobalReferenceInterval());
     }
 
     private void reassignRefIntervalBodiesAndHcns(Interval referenceInterval) {
@@ -94,8 +94,8 @@ public class MatrixSerializer {
     }
 
     private void resetRefIntervalBodiesAndHcns(Matrix matrix) {
-        if (matrix.getReferenceInterval() != null) {
-            for (Hcn hcn : matrix.getReferenceInterval().getHcnList()) {
+        if (Interval.getGlobalReferenceInterval() != null) {
+            for (Hcn hcn : Interval.getGlobalReferenceInterval().getHcnList()) {
                 hcn.getBody().setTempId(null);
                 resetBodyHcnTempIds(hcn.getBody());
             }
@@ -105,7 +105,7 @@ public class MatrixSerializer {
     private void resetLapiBodiesAndHcns(Matrix matrix) {
         // Since orphan bodies can be in interval hcnlist or lapi hcnlists
         // we need to make sure their tempIds are null, also resetting all previous tempids
-        Lapi currentLapi = matrix.getHighestLapi();
+        Lapi currentLapi = Lapi.getHighestLapi();
         while (currentLapi != null) {
             /*
             for (Hcn hcn : currentLapi.getHcnList()){
@@ -193,7 +193,7 @@ public class MatrixSerializer {
             }
             currentNode = currentNode.getPrevMatrixNode();
         }
-
+/*
         if (matrix.getNextLapi() != null) {
             Prime np = matrix.getNextLapi().getPrime();
             if (!insertedPrimeIndexes.contains(np.getIndex())) {
@@ -202,8 +202,10 @@ public class MatrixSerializer {
                 sb.append(String.format("(%d, %d, %s, %d, NULL)", np.getIndex(), np.getIntValue(), np.getValue().getMantissa(), np.getValue().getExponent()));
             }
         }
-        Lapi currentLapi = matrix.getLowestLapi();
-        while (currentLapi != matrix.getNextLapi()) {
+
+ */
+        Lapi currentLapi = Lapi.getLowestLapi();
+        while (currentLapi != null) {
             if (!insertedPrimeIndexes.contains(currentLapi.getPrime().getIndex())) {
                 if (!first) sb.append(", ");
                 first = false;
@@ -222,6 +224,7 @@ public class MatrixSerializer {
     public String buildLapiInsert(Matrix matrix) {
         StringBuilder sb = new StringBuilder("INSERT INTO tmp_lapi (prime, lower_lapi, higher_lapi, walker, value_multiplier_mantissa, value_multiplier_exponent, factor_multiplier_mantissa, factor_multiplier_exponent) VALUES ");
         boolean first = true;
+        /*
         if (matrix.getNextLapi() != null) {
             first = false;
             Lapi nl = matrix.getNextLapi();
@@ -235,7 +238,9 @@ public class MatrixSerializer {
                     nl.getFactorMultiplier() != null ? nl.getFactorMultiplier().getMantissa() : "NULL",
                     nl.getFactorMultiplier() != null ? nl.getFactorMultiplier().getExponent() : "NULL"));
         }
-        Lapi lapi = matrix.getLowestLapi();
+
+         */
+        Lapi lapi = Lapi.getLowestLapi();
         while (lapi != null) {
             if (!first) sb.append(", ");
             first = false;
@@ -256,7 +261,7 @@ public class MatrixSerializer {
     public String buildLapiHcnInsert(Matrix matrix) {
         StringBuilder sb = new StringBuilder("INSERT INTO tmp_lapi_hcn (lapi_prime, list_position, hcn) VALUES ");
         boolean first = true;
-        if (matrix.getNextLapi() != null) {
+        //if (matrix.getNextLapi() != null) {
             /*
             for (int i = 0; i < matrix.getNextLapi().getHcnList().size(); i++) {
                 Hcn hcn = matrix.getNextLapi().getHcnList().get(i);
@@ -266,8 +271,8 @@ public class MatrixSerializer {
             }
 
              */
-        }
-        Lapi lapi = matrix.getLowestLapi();
+        //}
+        Lapi lapi = Lapi.getLowestLapi();
         while (lapi != null) {
             /*
             for (int i = 0; i < lapi.getHcnList().size(); i++) {
@@ -370,7 +375,7 @@ public class MatrixSerializer {
     }
 
     public String buildReferenceIntervalHcnInsert(Matrix matrix) {
-        Interval ri = matrix.getReferenceInterval();
+        Interval ri = Interval.getGlobalReferenceInterval();
         if (ri == null || ri.getHcnList().isEmpty()) return null;
         StringBuilder sb = new StringBuilder("INSERT INTO tmp_reference_interval_hcn (list_position, hcn) VALUES ");
         List<Hcn> hcnList = ri.getHcnList();
@@ -385,9 +390,9 @@ public class MatrixSerializer {
     public String buildMatrixInsert(Matrix matrix) {
         return String.format("INSERT INTO tmp_matrix (last_transition, next_lapi, lowest_lapi, highest_lapi, lowest_proved_lapi_within_interval, proved_count, proved_limit_mantissa, proved_limit_exponent, total_time_ms, matrix_maintain_time_ms, generate_hcn_list_time_ms, db_mode, total_nanos, total_matrix_nanos, reference_interval_lapi, reference_interval_value_mantissa, reference_interval_value_exponent, reference_interval_factor_mantissa, reference_interval_factor_exponent) VALUES (%d, %s, %s, %s, %d, %d, %s, %d, %d, %d, %d, %b, %d, %d, %s, %s, %s, %s, %s)",
                 Matrix.lastTransition.getTempId(),
-                matrix.getNextLapi() != null ? matrix.getNextLapi().getPrime().getIndex() : "NULL",
-                matrix.getLowestLapi() != null ? matrix.getLowestLapi().getPrime().getIndex() : "NULL",
-                matrix.getHighestLapi() != null ? matrix.getHighestLapi().getPrime().getIndex() : "NULL",
+                "NULL",
+                Lapi.getLowestLapi() != null ? Lapi.getLowestLapi().getPrime().getIndex() : "NULL",
+                Lapi.getHighestLapi() != null ? Lapi.getHighestLapi().getPrime().getIndex() : "NULL",
                 matrix.getLowestProvedLapiWithinInterval(),
                 matrix.getProvedCount(),
                 matrix.getProvedLimit().getMantissa(),
@@ -398,10 +403,10 @@ public class MatrixSerializer {
                 matrix.isDbMode(),
                 ActivityCenter.getTotalNanos(),
                 ActivityCenter.getTotalMatrixNanos(),
-                matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getLapi() : "NULL",
-                matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getValue().getMantissa() : "NULL",
-                matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getValue().getExponent() : "NULL",
-                matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getFactor().getMantissa() : "NULL",
-                matrix.getReferenceInterval() != null ? matrix.getReferenceInterval().getFactor().getExponent() : "NULL");
+                Interval.getGlobalReferenceInterval() != null ? Interval.getGlobalReferenceInterval().getLapi() : "NULL",
+                Interval.getGlobalReferenceInterval() != null ? Interval.getGlobalReferenceInterval().getValue().getMantissa() : "NULL",
+                Interval.getGlobalReferenceInterval() != null ? Interval.getGlobalReferenceInterval().getValue().getExponent() : "NULL",
+                Interval.getGlobalReferenceInterval() != null ? Interval.getGlobalReferenceInterval().getFactor().getMantissa() : "NULL",
+                Interval.getGlobalReferenceInterval() != null ? Interval.getGlobalReferenceInterval().getFactor().getExponent() : "NULL");
     }
 }

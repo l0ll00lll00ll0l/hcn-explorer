@@ -6,18 +6,18 @@
         <thead><tr><th>lapi</th><th>value</th><th>factor</th><th>referenced</th><th>referenceInterval</th></tr></thead>
         <tbody>
             <tr>
-                <td th:text="${matrix.referenceInterval.lapi}"></td>
-                <td th:text="${matrix.referenceInterval.value}"></td>
-                <td th:text="${matrix.referenceInterval.factor}"></td>
-                <td th:text="${matrix.referenceInterval.referenced}"></td>
-                <td th:text="${matrix.referenceInterval.referenceInterval != null ? matrix.referenceInterval.referenceInterval.lapi : ''}"></td>
+                <td th:text="${T(com.hcn.newCore.Interval).globalReferenceInterval.lapi}"></td>
+                <td th:text="${T(com.hcn.newCore.Interval).globalReferenceInterval.value}"></td>
+                <td th:text="${T(com.hcn.newCore.Interval).globalReferenceInterval.factor}"></td>
+                <td th:text="${T(com.hcn.newCore.Interval).globalReferenceInterval.referenced}"></td>
+                <td th:text="${T(com.hcn.newCore.Interval).globalReferenceInterval.referenceInterval != null ? T(com.hcn.newCore.Interval).globalReferenceInterval.referenceInterval.lapi : ''}"></td>
             </tr>
         </tbody>
     </table>
     <table class="level-table">
         <thead><tr><th>#</th><th>dbId</th><th>lapi</th><th>value</th><th>factor</th><th>body</th></tr></thead>
         <tbody>
-            <tr th:each="hcn, hIter : ${matrix.referenceInterval.hcnList}">
+            <tr th:each="hcn, hIter : ${T(com.hcn.newCore.Interval).globalReferenceInterval.hcnList}">
                 <td th:text="${hIter.index}"></td>
                 <td th:text="${hcn.body?.dbId}"></td>
                 <td th:text="${hcn.lapiIndex}"></td>

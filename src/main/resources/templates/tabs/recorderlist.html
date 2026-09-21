@@ -39,6 +39,7 @@
                         <th>Factor</th>
                         <th>Lapi</th>
                         <th>Pray</th>
+                        <th>PrayLapiDist</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -49,6 +50,7 @@
                         <td th:text="${hunter.lastGeneratedHcn?.factor}"></td>
                         <td th:text="${hunter.lastGeneratedHcn?.lapiIndex}"></td>
                         <td th:text="${@newCoreController.guiString(hunter.prayBody)}"></td>
+                        <td th:text="${hunter.prayLapiDistance}"></td>
                     </tr>
                 </tbody>
             </table>

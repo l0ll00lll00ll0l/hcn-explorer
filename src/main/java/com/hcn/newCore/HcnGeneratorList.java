@@ -48,6 +48,12 @@ public class HcnGeneratorList {
     }
 
     public static void remove(Body body) {
+
+        if (body.getPrayBody() != null) {
+            body.getPrayBody().getHunters().remove(body);
+            body.setPrayBody(null);
+        }
+
         Body prev = body.getSmallerHcnGenerator();
         Body next = body.getLargerHcnGenerator();
 
@@ -60,6 +66,14 @@ public class HcnGeneratorList {
         body.setSmallerHcnGenerator(null);
         body.setLargerHcnGenerator(null);
         size--;
+
+        if (!body.getHunters().isEmpty()) {
+            body.getHunters().forEach(hunter -> {
+                hunter.setPrayBody(null);
+                RecorderList.findPrayForHunterBody(hunter.getLastGeneratedHcn());
+            });
+            body.getHunters().clear();
+        }
         //log.debug("remove body={}: size={}", body, size);
     }
 }

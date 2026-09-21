@@ -16,10 +16,10 @@
                 <td th:text="${bIter.index}"></td>
                 <td th:if="${matrix.dbMode}" th:text="${body.dbId}"></td>
                 <td th:text="${@newCoreController.guiString(body)}"></td>
-                <td th:text="${body.firstHcn != null ? body.firstHcn.lapi + ' v=' + body.firstHcn.value + ' f=' + body.firstHcn.factor : ''}"></td>
-                <td th:text="${body.firstSuperiorHcn != null ? body.firstSuperiorHcn.lapi + ' v=' + body.firstSuperiorHcn.value + ' f=' + body.firstSuperiorHcn.factor : ''}"></td>
-                <td th:text="${body.lastGeneratedHcn != null ? body.lastGeneratedHcn.lapi + ' v=' + body.lastGeneratedHcn.value + ' f=' + body.lastGeneratedHcn.factor : ''}"></td>
-                <td th:text="${body.firstDominatedHcn != null ? body.firstDominatedHcn.lapi + ' v=' + body.firstDominatedHcn.value + ' f=' + body.firstDominatedHcn.factor : ''}"></td>
+                <td th:text="${body.firstHcn != null ? body.firstHcn.lapiIndex + ' v=' + body.firstHcn.value + ' f=' + body.firstHcn.factor : ''}"></td>
+                <td th:text="${body.firstSuperiorHcn != null ? body.firstSuperiorHcn.lapiIndex + ' v=' + body.firstSuperiorHcn.value + ' f=' + body.firstSuperiorHcn.factor : ''}"></td>
+                <td th:text="${body.lastGeneratedHcn != null ? body.lastGeneratedHcn.lapiIndex + ' v=' + body.lastGeneratedHcn.value + ' f=' + body.lastGeneratedHcn.factor : ''}"></td>
+                <td th:text="${body.firstDominatedHcn != null ? body.firstDominatedHcn.lapiIndex + ' v=' + body.firstDominatedHcn.value + ' f=' + body.firstDominatedHcn.factor : ''}"></td>
             </tr>
         </tbody>
         <tbody id="hcngen-activelist" style="display:none;">
@@ -28,10 +28,10 @@
                 <td th:text="${bIter.index}"></td>
                 <td th:if="${matrix.dbMode}" th:text="${body.dbId}"></td>
                 <td th:text="${@newCoreController.guiString(body)}"></td>
-                <td th:text="${body.firstHcn != null ? body.firstHcn.lapi + ' v=' + body.firstHcn.value + ' f=' + body.firstHcn.factor : ''}"></td>
-                <td th:text="${body.firstSuperiorHcn != null ? body.firstSuperiorHcn.lapi + ' v=' + body.firstSuperiorHcn.value + ' f=' + body.firstSuperiorHcn.factor : ''}"></td>
-                <td th:text="${body.lastGeneratedHcn != null ? body.lastGeneratedHcn.lapi + ' v=' + body.lastGeneratedHcn.value + ' f=' + body.lastGeneratedHcn.factor : ''}"></td>
-                <td th:text="${body.firstDominatedHcn != null ? body.firstDominatedHcn.lapi + ' v=' + body.firstDominatedHcn.value + ' f=' + body.firstDominatedHcn.factor : ''}"></td>
+                <td th:text="${body.firstHcn != null ? body.firstHcn.lapiIndex + ' v=' + body.firstHcn.value + ' f=' + body.firstHcn.factor : ''}"></td>
+                <td th:text="${body.firstSuperiorHcn != null ? body.firstSuperiorHcn.lapiIndex + ' v=' + body.firstSuperiorHcn.value + ' f=' + body.firstSuperiorHcn.factor : ''}"></td>
+                <td th:text="${body.lastGeneratedHcn != null ? body.lastGeneratedHcn.lapiIndex + ' v=' + body.lastGeneratedHcn.value + ' f=' + body.lastGeneratedHcn.factor : ''}"></td>
+                <td th:text="${body.firstDominatedHcn != null ? body.firstDominatedHcn.lapiIndex + ' v=' + body.firstDominatedHcn.value + ' f=' + body.firstDominatedHcn.factor : ''}"></td>
             </tr>
         </tbody>
     </table>
