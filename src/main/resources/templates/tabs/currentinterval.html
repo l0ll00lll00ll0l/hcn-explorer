@@ -5,12 +5,10 @@
     <div th:if="${@newCoreController.getCurrentInterval() == null}" style="font-size: 11px; color: #999;">No current interval</div>
     <div th:if="${@newCoreController.getCurrentInterval() != null}">
         <table class="level-table" style="width: auto; margin-bottom: 12px;">
-            <thead><tr><th>lapi</th><th>value</th><th>factor</th><th>referenced</th><th>referenceInterval</th></tr></thead>
+            <thead><tr><th>lapi</th><th>referenced</th><th>referenceInterval</th></tr></thead>
             <tbody>
                 <tr th:with="ci=${@newCoreController.getCurrentInterval()}">
                     <td th:text="${ci.lapi}"></td>
-                    <td th:text="${ci.value}"></td>
-                    <td th:text="${ci.factor}"></td>
                     <td th:text="${ci.referenced}"></td>
                     <td th:text="${ci.referenceInterval != null ? ci.referenceInterval.lapi : ''}"></td>
                 </tr>

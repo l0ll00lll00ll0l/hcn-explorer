@@ -72,7 +72,10 @@ public class TransitionNode extends MatrixNode{
         Prime newPrime;
         if (nextMatrixNode == null) {
             newPrime = PrimeCenter.getPrime(getLastPrime().getIndex() + 1);
-            Lapi.getLowestLapi().recalculateMultipliers(newPrime);
+            //Lapi.getLowestLapi().recalculateMultipliers(newPrime);
+            log.debug("prime: {}", Prime.print());
+            Prime.recalculateAllMultipliers(newPrime);
+            log.debug("prime: {}", Prime.print());
         } else {
             newPrime = ((TransitionNode) nextMatrixNode).releaseFirstIndex();
         }

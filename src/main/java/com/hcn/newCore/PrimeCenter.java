@@ -29,7 +29,11 @@ public class PrimeCenter {
 
         while (largestPrime.getIndex() < targetIndex) {
             if (isPrime(candidate)) {
-                largestPrime.setNextPrime(Prime.builder().index(largestPrime.getIndex() + 1).intValue(candidate).value(new ScientificNumber(candidate, 0)).previousPrime(largestPrime).nextPrime(null).build());
+                ScientificNumber value = new ScientificNumber(candidate, 0);
+                largestPrime.setNextPrime(Prime.builder().index(largestPrime.getIndex() + 1).intValue(candidate)
+                        .value(value).previousPrime(largestPrime).nextPrime(null)
+                        .valueMultiplier(largestPrime.getValueMultiplier().multiply(value))
+                        .factorMultiplier(largestPrime.getFactorMultiplier().multiply(new ScientificNumber(2, 0))).build());
                 largestPrime = largestPrime.getNextPrime();
             }
             candidate += 2;
@@ -43,5 +47,9 @@ public class PrimeCenter {
             divisor = divisor.getNextPrime();
         }
         return true;
+    }
+
+    public static Prime getFirstPrime() {
+        return firstPrime;
     }
 }

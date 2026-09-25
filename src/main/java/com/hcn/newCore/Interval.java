@@ -17,12 +17,13 @@ public class Interval {
     private static Interval currentInterval;
     private static Interval globalReferenceInterval;
     private int lapi;
-    private ScientificNumber value;
-    private ScientificNumber factor;
+    private Prime prime;
     private List<Hcn> hcnList;
     private Interval referenceInterval;
     private int activeBodyCount;
     private int lowestRecorderLapi;
+    private Body potentialNextIntervalStarter;
+    private Body lastBaseIntervalBody;
 
     public static Interval getCurrentInterval() {
         return currentInterval;
@@ -44,6 +45,10 @@ public class Interval {
         return referenceInterval != null && referenceInterval != this;
     }
 
+    public static void processCurrentInterval() {
+
+    }
+
     public void referenceCheck() {
         if (globalReferenceInterval.getHcnList().size() != hcnList.size()) {
             this.referenceInterval = this;
@@ -58,100 +63,24 @@ public class Interval {
         this.referenceInterval = globalReferenceInterval;
     }
 
-
-    public boolean postHcnGenerateMaintainFoundNextLapi() {
-
-        Hcn targetHcn = RecorderList.getFirstRecorder().getLastGeneratedHcn();
-        //log.debug("preHcnGenerateMaintain 1 {}", hcnList);
-        Body bodyToProcess;
-
-        if (hcnList.size() == 1) {
-            if (hcnList.get(hcnList.size() - 1).getBody().equals(HcnGeneratorList.getSmallestBody())) {
-                bodyToProcess = hcnList.get(hcnList.size() - 1).getBody().getNextRecorder();
-            } else {
-                bodyToProcess = RecorderList.getFirstRecorder();
-            }
-        } else {
-            bodyToProcess = hcnList.get(hcnList.size() - 1).getBody().getNextRecorder();
-        }
-
-        finalizeLastGeneratedHcn(bodyToProcess);
-        bodyToProcess = bodyToProcess.getNextRecorder();
-
-        while (!bodyToProcess.equals(RecorderList.getFirstRecorder())) {
-            if (finalizeLastGeneratedHcn(bodyToProcess)) {
-                //log.debug("postHcnGenerateMaintain 1, NextLapiFound: {}", hcnList);
-                if (!RecorderList.getFirstRecorder().equals(HcnGeneratorList.getSmallestBody())) {
-                    //log.debug("NEED TO ADJUST FIRSTRECORDER 1 ({}) SMALLESTGEN: {}", RecorderList.getFirstRecorder(), HcnGeneratorList.getSmallestBody());
-                    RecorderList.setFirstRecorder(HcnGeneratorList.getSmallestBody());
-                    RecorderList.setLastRecorder(HcnGeneratorList.getSmallestBody().getPreviousRecorder());
-                    //log.debug(RecorderList.print());
-                }
-                return true;
-            }
-            bodyToProcess = bodyToProcess.getNextRecorder();
-        }
-
-        if (targetHcn.getFactor().isBiggerThan(hcnList.get(hcnList.size() - 1).getFactor())) {
-            hcnList.add(targetHcn);
-            //log.debug("postHcnGenerateMaintain 2, NextLapiFound: {}", hcnList);
-            return true;
-        } else {
-            //log.debug("postHcnGenerateMaintain, NextLapi NOT Found: {}", hcnList);
-            if (!RecorderList.getFirstRecorder().equals(HcnGeneratorList.getSmallestBody())) {
-                //log.debug("NEED TO ADJUST FIRSTRECORDER 2 ({}) SMALLESTGEN: {}", RecorderList.getFirstRecorder(), HcnGeneratorList.getSmallestBody());
-            }
-            return false;
-        }
-    }
-
-    private boolean finalizeLastGeneratedHcn(Body currentRecorder) {
-        Hcn recorder = currentRecorder.getLastGeneratedHcn();
-        //log.debug(" recorder {}", recorder);
-        hcnList.add(recorder);
-        int recorderLapi = recorder.getLapi().getPrime().getIndex();
-        if (recorderLapi < lowestRecorderLapi) {
-            lowestRecorderLapi = recorderLapi;
-        }
-        if (recorderLapi == lapi + 1) {
-            return true;
-        }
-        return false;
-    }
-
-    public static void populateHcnList() {
-        //log.debug("populate: currentRecorder= {} {}", Matrix.getCurrentRecorder(), RecorderList.print());
-        Body walker = Matrix.getCurrentRecorder().getNextRecorder();
-        addWalkerHcnToHcnList(walker);
-        //log.debug(" populateHcnList mandatory add {}", walker.getLastGeneratedHcn());
-        walker = walker.getNextRecorder();
-        while (walker.getLastGeneratedHcn().getFactor().isBiggerThan(walker.getPreviousRecorder().getLastGeneratedHcn().getFactor())) {
-
-            addWalkerHcnToHcnList(walker);
-            //log.debug(" populateHcnList conditional  add {}", walker.getLastGeneratedHcn());
-            walker = walker.getNextRecorder();
-        }
-        Matrix.setCurrentRecorder(walker.getPreviousRecorder());
-        //log.debug(" setCurrentRecorder after populate {}", Matrix.getCurrentRecorder());
-    }
-
-    private static void addWalkerHcnToHcnList(Body walker) {
-        int recorderLapi = walker.getLastGeneratedHcn().getLapiIndex();
-        if (recorderLapi > currentInterval.lapi) {
+    public static void addRecorderHcn(Hcn recorderHcn) {
+        if (currentInterval.prime.getIndex() < recorderHcn.getLastActivePrime().getIndex()) {
             initializeNewCurrentLapi();
         }
-
-        if (recorderLapi < currentInterval.lowestRecorderLapi) {
-            currentInterval.lowestRecorderLapi = recorderLapi;
+        if (recorderHcn.getLastActivePrime().getIndex() < currentInterval.lowestRecorderLapi) {
+            currentInterval.lowestRecorderLapi = recorderHcn.getLastActivePrime().getIndex();
         }
-        currentInterval.hcnList.add(walker.getLastGeneratedHcn());
+        currentInterval.hcnList.add(recorderHcn);
     }
 
     private static void initializeNewCurrentLapi() {
         //log.debug("initializeNewCurrentLapi");
         int prevLapi = currentInterval.lapi;
+        Prime newPrime = currentInterval.prime.getNextPrime();
         currentInterval.referenceCheck();
-        Lapi.deleteLapisUnder();
-        currentInterval = Interval.builder().lapi(prevLapi + 1).hcnList(new ArrayList<>()).lowestRecorderLapi(prevLapi + 1).build();
+        //Lapi.deleteLapisUnder();
+        //Prime.deleteHcnProducerPrimeUnder();
+        currentInterval = Interval.builder().prime(newPrime).hcnList(new ArrayList<>()).lowestRecorderLapi(prevLapi + 1).potentialNextIntervalStarter(HcnGeneratorList.getSmallestBody()).build();
     }
+
 }

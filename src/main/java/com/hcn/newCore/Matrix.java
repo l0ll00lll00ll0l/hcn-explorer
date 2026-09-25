@@ -19,7 +19,6 @@ public class Matrix {
     public static TransitionNode lastTransition;
     private static ScientificNumber targetValue;
     private static ScientificNumber provedLimit;
-    private static Body currentRecorder;
     private int lowestProvedLapiWithinInterval;
     private int provedCount;
     private final PrimeCenter lapiPrimeCenter = new PrimeCenter();
@@ -39,7 +38,7 @@ public class Matrix {
     public void initialize() {
         PrimeCenter.initialize();
         ApiNode p0 = ApiNode.builder().prevMatrixNode(null).build();
-        p0.getIndexes().add(PrimeCenter.getPrime(0));
+        p0.getIndexes().add(PrimeCenter.getFirstPrime());
         BodyNode pip01 = BodyNode.builder().parentNode(p0).bodyNodeId(1).proved(true)
                 .value(new ScientificNumber(2,0))
                 .factor(new ScientificNumber(2, 0)).build();
@@ -55,7 +54,7 @@ public class Matrix {
 
         lastTransition = TransitionNode.builder()
                 .transitionFrom(2).transitionTo(1).build();
-        lastTransition.indexes.add(PrimeCenter.getPrime(1));
+        lastTransition.indexes.add(PrimeCenter.getFirstPrime().getNextPrime());
         BodyNode t1 = BodyNode.builder().parentNode(lastTransition).bodyNodeId(1)
                 .value(new ScientificNumber(1, 0))
                 .factor(new ScientificNumber(1, 0)).proved(true).build();
@@ -139,144 +138,100 @@ public class Matrix {
         b11.setNextRecorder(b21);
         b21.setPreviousRecorder(b11);
         b21.setNextRecorder(b11);
+        b11.setIntervalLapiDistance(0);
+        b21.setIntervalLapiDistance(0);
 
-        RecorderList.initialize(b11, b21, 2);
+        RecorderList.initialize(b11, 2);
 
-        Lapi.setLowestLapi(Lapi.builder().prime(lapiPrimeCenter.getPrime(0)).walker(b21)
-                .valueMultiplier(new ScientificNumber((double) 1 / 3, 0))
-                .factorMultiplier(new ScientificNumber(0.5, 0))
-                .build());
-        Lapi.setHighestLapi(Lapi.builder().prime(lapiPrimeCenter.getPrime(1)).walker(b11)
-                .valueMultiplier(new ScientificNumber(1, 0))
-                .factorMultiplier(new ScientificNumber(1, 0)).lowerLapi(Lapi.getLowestLapi())
-                .build());
-        Lapi.getLowestLapi().setHigherLapi(Lapi.getHighestLapi());
+        PrimeCenter.getFirstPrime().setValueMultiplier(new ScientificNumber((double) 1 / 3, 0));
+        PrimeCenter.getFirstPrime().setFactorMultiplier(new ScientificNumber(0.5, 0));
+        PrimeCenter.getFirstPrime().getNextPrime().setValueMultiplier(new ScientificNumber(1, 0));
+        PrimeCenter.getFirstPrime().getNextPrime().setFactorMultiplier(new ScientificNumber(1, 0));
+        Prime.getHcnProducerPrimes().add(PrimeCenter.getFirstPrime().getNextPrime());
+        Prime.getHcnProducerPrimes().add(PrimeCenter.getFirstPrime());
 
-        Hcn hcn1 = Hcn.builder().body(b11).lapi(Lapi.getLowestLapi()).value(new ScientificNumber(2, 0))
+        Hcn hcn1 = Hcn.builder().body(b11).lastActivePrime(PrimeCenter.getFirstPrime()).value(new ScientificNumber(2, 0))
                 .factor(new ScientificNumber(2, 0)).build();
-        Hcn hcn2 = Hcn.builder().body(b21).lapi(Lapi.getLowestLapi()).value(new ScientificNumber(4, 0))
+        Hcn hcn2 = Hcn.builder().body(b21).lastActivePrime(PrimeCenter.getFirstPrime()).value(new ScientificNumber(4, 0))
                 .factor(new ScientificNumber(3, 0)).build();
-        Hcn hcn11 = Hcn.builder().body(b11).lapi(Lapi.getHighestLapi()).value(new ScientificNumber(6, 0))
+        Hcn hcn31 = Hcn.builder().body(b31).lastActivePrime(PrimeCenter.getFirstPrime()).value(new ScientificNumber(8, 0))
                 .factor(new ScientificNumber(4, 0)).build();
+        Hcn hcn11 = Hcn.builder().body(b11).lastActivePrime(PrimeCenter.getFirstPrime().getNextPrime()).value(new ScientificNumber(6, 0))
+                .factor(new ScientificNumber(4, 0)).build();
+        Hcn hcn22 = Hcn.builder().body(b31).lastActivePrime(PrimeCenter.getFirstPrime()).value(new ScientificNumber(12, 0))
+                .factor(new ScientificNumber(4.5, 0)).build();
+        Hcn hcn32 = Hcn.builder().body(b31).lastActivePrime(PrimeCenter.getFirstPrime()).value(new ScientificNumber(26, 0))
+                .factor(new ScientificNumber(6, 0)).build();
 
         b11.setFirstHcn(hcn1);
-        b11.setFirstSuperiorHcn(hcn1);
         b11.setLastGeneratedHcn(hcn11);
+        b11.setFirstSuperiorHcn(hcn1);
 
         b21.setFirstHcn(hcn2);
         b21.setFirstSuperiorHcn(hcn2);
         b21.setLastGeneratedHcn(hcn2);
 
+        b31.setFirstHcn(hcn31);
+        b31.setLastGeneratedHcn(hcn31);
+
+        b22.setFirstHcn(hcn22);
+        //b22.setLastGeneratedHcn(hcn22);
+
+        b32.setFirstHcn(hcn32);
+        //b32.setLastGeneratedHcn(hcn32);
+        //b31.setLastGeneratedHcn(hcn31);
+
         //force lapi0 deletion
         lowestProvedLapiWithinInterval = 1;
         provedCount = 2;
         provedLimit = new ScientificNumber(6, 0);
-        Interval.setGlobalReferenceInterval(Interval.builder().lapi(0).value(hcn1.getValue()).factor(hcn1.getFactor()).hcnList(List.of(hcn1, hcn2)).build());
+        Interval.setGlobalReferenceInterval(Interval.builder().lapi(0).prime(PrimeCenter.getFirstPrime()).hcnList(List.of(hcn1, hcn2)).build());
         Interval.getGlobalReferenceInterval().setReferenceInterval(Interval.getGlobalReferenceInterval());
-        Interval.setCurrentInterval(Interval.builder().lapi(1).value(hcn11.getValue()).factor(hcn11.getFactor()).hcnList(new ArrayList<>(List.of(hcn11))).lowestRecorderLapi(1).build());
-        currentRecorder = b11;
+        Interval.setCurrentInterval(Interval.builder().lapi(1).prime(PrimeCenter.getFirstPrime().getNextPrime()).hcnList(new ArrayList<>(List.of(hcn11))).lowestRecorderLapi(1).potentialNextIntervalStarter(b11).build());
+        RecorderList.setCurrentRecorder(b11);
 
         if (dbMode) {
             dbInsertService.submit(Interval.getGlobalReferenceInterval());
         }
-    }
 
-    /*
-    public void proveLapi(int count) {
-        long start = System.currentTimeMillis();
-        ActivityCenter.initialize(nextLapi.getPrime().getIndex(), dbMode);
-        for (int i = 0; i < count; i++) {
-            proveNextLapi();
-            ActivityCenter.setProveProgress(i + 1);
-            ActivityCenter.setCurrentLapi(highestLapi.getPrime().getIndex());
-            if (dbMode && dbInsertService.isQueueAbovePauseLimit()) {
-                ActivityCenter.finishMatrixMainActivity(highestLapi.getPrime().getIndex());
-                while (!dbInsertService.isQueueBelowResumeLimit()) {
-                    try { Thread.sleep(10); } catch (InterruptedException e) { Thread.currentThread().interrupt(); return; }
-                }
-                ActivityCenter.resume(highestLapi.getPrime().getIndex());
-            }
-        }
-        ActivityCenter.finishMatrixMainActivity(highestLapi.getPrime().getIndex());
-        if (dbMode) {
-            try {
-                dbInsertService.finalFlush(highestLapi.getPrime().getIndex());
-                ActivityCenter.completeRun();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-        totalTimeMs += System.currentTimeMillis() - start;
-        ActivityCenter.setProving(false);
-    }
+        b31.setPrayBody(b11);
+        b31.setPrayLapiDistance(1);
+        b11.getHunters().add(b31);
 
-     */
+        b22.setPrayBody(b21);
+        b22.setPrayLapiDistance(1);
+        b21.getHunters().add(b22);
+
+        b32.setPrayBody(b21);
+        b32.setPrayLapiDistance(1);
+        b21.getHunters().add(b32);
+    }
 
     public void proveNextLapi() {
         //log.debug("********************************* START NEXT LAPI *********************************");
-        maintainLapiGroups();
-        determineTargetValue();
+        //maintainLapiGroups();
+        //determineTargetValue();
+
+        Interval currentInterval = Interval.getCurrentInterval();
+        if (currentInterval.getPotentialNextIntervalStarter().equals(RecorderList.getCurrentRecorder().getNextRecorder())) {
+            currentInterval.setLastBaseIntervalBody(RecorderList.getCurrentRecorder());
+            Prime.addNextHcnProducer();
+        } else {
+
+        }
+        RecorderList.generateHcns();
+        /*
         //log.debug("HCN Generation Phase // targetValue {}", targetValue);
-        Lapi.generateHcnsUntilTargetValue();
-        Lapi.huntingPhase();
-        Interval.populateHcnList();
-        deactivateMaintain();
-        provedLimit = targetValue;
+        //Lapi.generateHcnsUntilTargetValue();
+        //Lapi.huntingPhase();
+
+         */
+        //Interval.populateHcnList();
+        //deactivateMaintain();
+        //provedLimit = targetValue;
         ActivityCenter.setProving(false);
         //maintainProvedHcns();
         //log.debug("");
-    }
-
-    private void maintainLapiGroups() {
-
-        /*
-        // involve nextlapi for upcoming hcn generation
-        highestLapi = nextLapi;
-
-        // delete dead lapis
-        while (referenceInterval.getLowestRecorderLapi() > lowestLapi.getPrime().getIndex()) {
-            lowestLapi = lowestLapi.deleteLapi();
-        }
-
-        Prime newPrime = lapiPrimeCenter.getPrime(highestLapi.getPrime().getIndex() + 1);
-        nextLapi = Lapi.builder().prime(newPrime).lowerLapi(highestLapi)
-                .walker(HcnGeneratorList.getSmallestBody())
-                .valueMultiplier(highestLapi.getValueMultiplier().multiply(newPrime.getValue()))
-                .factorMultiplier(highestLapi.getFactorMultiplier().multiply(new ScientificNumber(2, 0))).build();
-        Hcn nextIntervalStarter = highestLapi.getWalker().getPrevActiveBody().getHcnForLapi(highestLapi);
-        currentInterval = Interval.builder().lapi(highestLapi.getPrime().getIndex()).hcnList(new ArrayList<>(List.of(nextIntervalStarter))).lowestRecorderLapi(highestLapi.getPrime().getIndex()).build();
-        highestLapi.setHigherLapi(nextLapi);
-
-         */
-    }
-
-
-    private void createHcnsUntilTargetValue() {
-
-
-        /*
-        boolean candidateIsSuperior;
-        int counter = 0;
-        do {
-            counter++;
-            boolean nextLapiFound = extendLapiHcnListsUntilTarget();
-            //log.debug("nextLapiFound: {}", nextLapiFound);
-            candidateIsSuperior = true;
-
-
-            if (!nextLapiFound) {
-                candidateIsSuperior = false;
-                currentInterval.setTargetValue(determineTargetValue());
-                //log.debug("targetValue updated to: {}", currentInterval.getTargetValue());
-            }
-
-            if (counter > 5) {
-                candidateIsSuperior = true;
-            }
-            //RecorderList.print();
-        } while (!candidateIsSuperior);
-
-         */
     }
 
     private void deactivateMaintain() {
@@ -287,69 +242,6 @@ public class Matrix {
             potentialApiNode.transitionNodeTriggerCheck();
             potentialApiNode = potentialApiNode.prevMatrixNode;
         }
-    }
-
-    /*
-    private boolean extendLapiHcnListsUntilTarget() {
-        //log.debug("HCN Generation Phase: {}", Interval.getCurrentInterval().getLapi());
-        Prime prevLastMatrixIndex = lastTransition.getLastPrime();
-        //Lapi.getLowestLapi().hcnGenerationPhase();
-        //log.debug("");
-        //log.debug("Hunting Phase: {}", Interval.getCurrentInterval().getLapi());
-        Lapi.getLowestLapi().huntingPhase();
-        //log.debug("");
-        //log.debug(RecorderList.print());
-
-        boolean nextLapiFound = Interval.getCurrentInterval().postHcnGenerateMaintainFoundNextLapi();
-        //log.debug("");
-        if (!nextLapiFound) {
-            //nextLapi.setWalker(HcnGeneratorList.getSmallestBody());
-            deactivateMaintain();
-            //log.debug("firstBodyDeleted");
-        }
-
-        Prime currentLastMatrixIndex = lastTransition.getLastPrime();
-        if (prevLastMatrixIndex != currentLastMatrixIndex) {
-            Lapi.getLowestLapi().recalculateMultipliers(currentLastMatrixIndex);
-        }
-
-        provedLimit = targetValue;
-
-        return nextLapiFound;
-    }
-
-
-     */
-
-    /*
-    private void maintainProvedHcns() {
-        //remove as first member left there intentionally from previous interval to keep superior factor value to compare
-
-        provedCount = provedCount + currentInterval.getHcnList().size();
-        currentInterval.setValue(currentInterval.getHcnList().get(0).getValue());
-        currentInterval.setFactor(currentInterval.getHcnList().get(0).getFactor());
-        currentInterval.setActiveBodyCount(HcnGeneratorList.getSize());
-        globalReferenceInterval = currentInterval.referenceCheck(globalReferenceInterval);
-
-        if (dbMode) {
-            dbInsertService.submit(currentInterval);
-        }
-    }
-
-
-     */
-
-    private void determineTargetValue() {
-        if (Lapi.getLowestLapi().getWalker() == null) {
-            //log.debug("lowest lapi is null for lapi: {}", Lapi.getLowestLapi().getPrime().getIndex());
-            Lapi.getLowestLapi().restoreWalker();
-        } else if (!Lapi.getLowestLapi().getWalker().isActive()) {
-            //log.debug("lowest lapi is deactivated for lapi: {}", Lapi.getLowestLapi().getPrime().getIndex());
-            Lapi.getLowestLapi().restoreWalker();
-        }
-        targetValue = Lapi.getLowestLapi().getWalker().getValue().multiply(Lapi.getLowestLapi().getHigherLapi().getValueMultiplier());
-        //log.debug("targetValue = {}, walker: {}", targetValue, Lapi.getLowestLapi().getWalker());
-        //return HcnGeneratorList.getSmallestBody().getValue().multiply(nextLapi.getValueMultiplier());
     }
 
     public static ScientificNumber getTargetValue() {
@@ -364,17 +256,4 @@ public class Matrix {
         provedLimit = proved;
     }
 
-    public static Body getCurrentRecorder() {
-        return currentRecorder;
-    }
-
-    public static void setCurrentRecorder(Body currentRecorder) {
-        Matrix.currentRecorder = currentRecorder;
-    }
-
-    public static void resetDeletedCurrentRecorder() {
-        //log.debug("resetDeletedCurrentRecorder currentRecorder={}", currentRecorder);
-        //log.debug("recorderlist: {}", RecorderList.print());
-        currentRecorder = currentRecorder.getPreviousRecorder();
-    }
 }

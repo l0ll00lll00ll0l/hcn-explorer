@@ -346,14 +346,8 @@ public class MatrixDeserializer {
 
         Integer refLapi = (Integer) row.get("reference_interval_lapi");
         if (refLapi != null) {
-            Double riValueMantissa = (Double) row.get("reference_interval_value_mantissa");
-            Long riValueExponent = (Long) row.get("reference_interval_value_exponent");
-            Double riFactorMantissa = (Double) row.get("reference_interval_factor_mantissa");
-            Long riFactorExponent = (Long) row.get("reference_interval_factor_exponent");
             Interval ri = Interval.builder()
                     .lapi(refLapi)
-                    .value(new ScientificNumber(riValueMantissa, riValueExponent))
-                    .factor(new ScientificNumber(riFactorMantissa, riFactorExponent))
                     .hcnList(referenceIntervalHcns)
                     .build();
             ri.setReferenceInterval(ri);

@@ -240,10 +240,6 @@ public class DbInsertService {
     private void appendInterval(Interval interval, int firstHcnId) {
         if (intervalCount > 0) intervalBuffer.append(",");
         intervalBuffer.append("(").append(interval.getLapi())
-                .append(",").append(interval.getValue().getMantissa())
-                .append(",").append(interval.getValue().getExponent())
-                .append(",").append(interval.getFactor().getMantissa())
-                .append(",").append(interval.getFactor().getExponent())
                 .append(",").append(firstHcnId)
                 .append(",").append(interval.getHcnList().size())
                 .append(",").append(interval.getReferenceInterval().getLapi())

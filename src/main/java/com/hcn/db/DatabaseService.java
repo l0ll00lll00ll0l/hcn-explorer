@@ -176,11 +176,7 @@ public class DatabaseService {
                     db_mode BOOLEAN,
                     total_nanos BIGINT,
                     total_matrix_nanos BIGINT,
-                    reference_interval_lapi INT,
-                    reference_interval_value_mantissa DOUBLE PRECISION,
-                    reference_interval_value_exponent BIGINT,
-                    reference_interval_factor_mantissa DOUBLE PRECISION,
-                    reference_interval_factor_exponent BIGINT
+                    reference_interval_lapi INT
                 )
                 """);
     }
@@ -206,10 +202,6 @@ public class DatabaseService {
         dbTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS interval (
                     lapi INT PRIMARY KEY,
-                    value_mantissa DOUBLE PRECISION,
-                    value_exponent BIGINT,
-                    factor_mantissa DOUBLE PRECISION,
-                    factor_exponent BIGINT,
                     first_hcn INT,
                     size INT,
                     reference_interval INT,

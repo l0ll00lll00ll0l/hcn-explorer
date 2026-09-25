@@ -3,12 +3,10 @@
 <body>
 <div th:fragment="content">
     <table class="level-table" style="width: auto; margin-bottom: 12px;">
-        <thead><tr><th>lapi</th><th>value</th><th>factor</th><th>referenced</th><th>referenceInterval</th></tr></thead>
+        <thead><tr><th>lapi</th><th>referenced</th><th>referenceInterval</th></tr></thead>
         <tbody>
             <tr>
                 <td th:text="${T(com.hcn.newCore.Interval).globalReferenceInterval.lapi}"></td>
-                <td th:text="${T(com.hcn.newCore.Interval).globalReferenceInterval.value}"></td>
-                <td th:text="${T(com.hcn.newCore.Interval).globalReferenceInterval.factor}"></td>
                 <td th:text="${T(com.hcn.newCore.Interval).globalReferenceInterval.referenced}"></td>
                 <td th:text="${T(com.hcn.newCore.Interval).globalReferenceInterval.referenceInterval != null ? T(com.hcn.newCore.Interval).globalReferenceInterval.referenceInterval.lapi : ''}"></td>
             </tr>

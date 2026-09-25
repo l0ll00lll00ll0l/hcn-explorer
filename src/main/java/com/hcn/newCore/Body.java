@@ -10,8 +10,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
 
 @Getter @Setter @Builder @Slf4j
 public class Body implements Comparable<Body>{
@@ -33,7 +31,7 @@ public class Body implements Comparable<Body>{
     private Body previousRecorder;
     private Body nextRecorder;
     private Body prayBody;
-    private int prayLapiDistance;
+    private Integer prayLapiDistance;
     private final List<Body> hunters = new ArrayList<>();
     @Builder.Default
     private Hcn lastGeneratedHcn = null;
@@ -46,6 +44,7 @@ public class Body implements Comparable<Body>{
     @Builder.Default
     private boolean deactivated = false;
     private DbBody dbBody;
+    private int intervalLapiDistance;
 
     public boolean isDeleted() {
         return smallerBody == null && largerBody == null;
@@ -69,6 +68,15 @@ public class Body implements Comparable<Body>{
         Body candidate = smallerBody;
         while (candidate != null && candidate.deactivated) {candidate = candidate.smallerBody;}
         return candidate;
+    }
+
+    public Hcn getCurrentHcn() {
+        if (isRecorder()) {
+            return generateHcn(Prime.getPrimeByLapiDistance(intervalLapiDistance));
+        } else {
+            int intervalLapiDistance = prayBody.intervalLapiDistance + prayLapiDistance;
+            return generateHcn(Prime.getPrimeByLapiDistance(intervalLapiDistance));
+        }
     }
 
     public int getActiveHcnGeneratorCount() {
@@ -167,76 +175,21 @@ public class Body implements Comparable<Body>{
         if (parent != null) { parent.matrixMaintainCheck(); }
     }
 
-    public Hcn generateHcn(Lapi lapi) {
-        lastGeneratedHcn = Hcn.builder().body(this).lapi(lapi).value(getValue().multiply(lapi.getValueMultiplier()))
-                .factor(getFactor().multiply(lapi.getFactorMultiplier())).build();
+    public Hcn generateHcn(Prime prime) {
+        return  Hcn.builder().body(this).lastActivePrime(prime).value(getHcnValue(prime)).factor(getHcnFactor(prime)).build();
         //log.debug("Generating Hcn for Body {} with lapi {}", lastGeneratedHcn, lapi.getPrime().getIndex());
-
-        if (firstHcn == null) {
-            firstHcn = lastGeneratedHcn;
-        }
-
-        return lastGeneratedHcn;
     }
 
-    public Hcn generateNextHcn() {
-        Lapi nextLapi = lastGeneratedHcn.getLapi().getHigherLapi();
-        if (nextLapi == null) {
-            nextLapi = Lapi.createNextLapi();
-        }
-        lastGeneratedHcn = Hcn.builder().body(this).lapi(nextLapi).value(getValue().multiply(nextLapi.getValueMultiplier()))
-                .factor(getFactor().multiply(nextLapi.getFactorMultiplier())).build();
-        //log.debug("Generating Hcn for Body {} with lapi {}", lastGeneratedHcn, nextLapi.getPrime().getIndex());
-        if (firstHcn == null) {
-            firstHcn = lastGeneratedHcn;
-        }
-        return lastGeneratedHcn;
+    public ScientificNumber getHcnFactor(Prime prime) {
+        //log.debug("     factor: {}", factor);
+        //log.debug("     prime.getFactorMultiplier(): {}", prime.getFactorMultiplier());
+        return factor.multiply(prime.getFactorMultiplier());
     }
 
-    public void hunt(Hcn generatedHcn) {
-
-        if (firstHcn.equals(generatedHcn)) {
-            //log.debug("{} First activation", generatedHcn);
-            RecorderList.findPrayForHunterBody(generatedHcn);
-        }
-
-            if (prayBody != null) {
-                Hcn targetHcn = prayBody.lastGeneratedHcn;
-                int prayLapiDiff = targetHcn.getLapiIndex() - lastGeneratedHcn.getLapiIndex();
-                boolean isPrayLapiDiffValid = prayLapiDiff == prayLapiDistance;
-                //log.debug("{} lastGeneratedHcn.getLapiIndex() = {}, targetHcn.getLapiIndex() = {}", lastGeneratedHcn.getLapiIndex(), prayLapiDiff, targetHcn.getLapiIndex());
-                if (isPrayLapiDiffValid) {
-                    //log.debug("{} PrayLapiDiff is valid", generatedHcn);
-                    if (generatedHcn.getValue().isSmallerThan(targetHcn.getValue())) {
-                        //log.debug("{} moving ahead of pray: {}", generatedHcn, targetHcn);
-                        RecorderList.addNewRecord(generatedHcn, isPrayLapiDiffValid);
-                    } else {
-                        //log.debug("{} staying behind pray: {}", generatedHcn, targetHcn);
-                    }
-                } else {
-
-                    if (prayLapiDiff < prayLapiDistance) {
-                        //log.debug(" For {} and {} PrayLapiDiff is invalid, prayLapiDiff={}, prayLapiDistance={} HUNTED", generatedHcn, targetHcn, prayLapiDiff, prayLapiDistance);
-                        RecorderList.addNewRecord(generatedHcn, isPrayLapiDiffValid);
-                    } else {
-                        //log.debug("{} staying behind pray: {}, prayLapiDiff={}, prayLapiDistance={}", generatedHcn, targetHcn, prayLapiDiff, prayLapiDistance);
-                    }
-                }
-            } else {
-                if (isRecorder()) {
-                    //log.debug("{} No action for recorder body with null pray", generatedHcn);
-                } else {
-                    if (deactivated) {
-                        //log.debug("{} No action for deactivated recorder body", generatedHcn);
-                    } else {
-                        log.error("  BODY WITHOUT PRAYBODY IS NOT RECORDER generatedHcn={}", generatedHcn);
-
-                        //RecorderList.placeBodyWithoutPray(generatedHcn);
-                    }
-                }
-            }
-        //log.debug("");
+    public ScientificNumber getHcnValue(Prime prime) {
+        return value.multiply(prime.getValueMultiplier());
     }
+
 
     public boolean isRecorder() {
         return nextRecorder != null || previousRecorder != null ;

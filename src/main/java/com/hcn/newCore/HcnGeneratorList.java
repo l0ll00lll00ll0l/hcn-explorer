@@ -44,6 +44,7 @@ public class HcnGeneratorList {
         if (next != null) next.setSmallerHcnGenerator(body);
         else largestBody = body;
         size++;
+        RecorderList.findPray(body);
         //log.debug("add body={}: size={}", body, size);
     }
 
@@ -70,10 +71,9 @@ public class HcnGeneratorList {
         if (!body.getHunters().isEmpty()) {
             body.getHunters().forEach(hunter -> {
                 hunter.setPrayBody(null);
-                RecorderList.findPrayForHunterBody(hunter.getLastGeneratedHcn());
+                RecorderList.findPray(hunter);
             });
             body.getHunters().clear();
         }
-        //log.debug("remove body={}: size={}", body, size);
     }
 }
