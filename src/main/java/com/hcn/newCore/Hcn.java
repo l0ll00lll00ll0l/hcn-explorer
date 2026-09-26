@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class Hcn {
     private final Body body;
-    private Lapi lapi;
     private Prime lastActivePrime;
     private ScientificNumber value;
     private ScientificNumber factor;

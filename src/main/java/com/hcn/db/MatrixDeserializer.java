@@ -20,7 +20,7 @@ public class MatrixDeserializer {
     private final Map<Integer, BodyNode> bodyNodeMap = new HashMap<>();
     private final Map<Integer, Body> bodyMap = new HashMap<>();
     private final Map<Integer, Hcn> hcnMap = new HashMap<>();
-    private final Map<Integer, Lapi> lapiMap = new HashMap<>();
+    //private final Map<Integer, Lapi> lapiMap = new HashMap<>();
 
     public MatrixDeserializer(JdbcTemplate dbTemplate, DbInsertService dbInsertService) {
         this.dbTemplate = dbTemplate;
@@ -157,6 +157,7 @@ public class MatrixDeserializer {
     }
 
     private void loadLapis() {
+        /*
         dbTemplate.query("SELECT * FROM tmp_lapi", rs -> {
             int primeIndex = rs.getInt("prime");
             Integer walkerId = (Integer) rs.getObject("walker");
@@ -173,6 +174,8 @@ public class MatrixDeserializer {
                     .build();
             lapiMap.put(primeIndex, lapi);
         });
+
+         */
     }
 
     private List<Hcn> referenceIntervalHcns = new ArrayList<>();
@@ -253,10 +256,11 @@ public class MatrixDeserializer {
     }
 
     private void wireHcnReferences() {
-        hcnLapiIndexMap.forEach((id, lapiIndex) -> hcnMap.get(id).setLapi(lapiMap.get(lapiIndex)));
+        //hcnLapiIndexMap.forEach((id, lapiIndex) -> hcnMap.get(id).setLapi(lapiMap.get(lapiIndex)));
     }
 
     private void wireLapiReferences() {
+        /*
         dbTemplate.query("SELECT * FROM tmp_lapi", rs -> {
             int primeIndex = rs.getInt("prime");
             Integer lowerPrime = (Integer) rs.getObject("lower_lapi");
@@ -266,6 +270,7 @@ public class MatrixDeserializer {
             lapi.setLowerLapi(lowerPrime != null ? lapiMap.get(lowerPrime) : null);
             lapi.setHigherLapi(higherPrime != null ? lapiMap.get(higherPrime) : null);
         });
+         */
     }
 
     private void buildOffsprings() {

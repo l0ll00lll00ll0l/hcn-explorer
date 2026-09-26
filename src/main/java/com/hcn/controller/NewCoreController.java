@@ -442,22 +442,6 @@ public class NewCoreController {
         return RecorderList.getBodiesWaitingToJoin();
     }
 
-    public List<Lapi> getLapiChain() {
-        List<Lapi> chain = new ArrayList<>();
-        /*
-        if (matrix.getNextLapi() != null) {
-            chain.add(matrix.getNextLapi());
-        }
-
-         */
-        Lapi current = Lapi.getHighestLapi();
-        while (current != null) {
-            chain.add(current);
-            current = current.getLowerLapi();
-        }
-        return chain;
-    }
-
     public String offspringString(Body body) {
         if (body.getOffsprings().isEmpty()) return "";
         StringBuilder sb = new StringBuilder();
