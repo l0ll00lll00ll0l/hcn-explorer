@@ -10,6 +10,9 @@ import java.util.ArrayList;
 @Getter
 @Setter
 public class Prime {
+    private static final ArrayList<Prime> hcnProducerPrimes = new ArrayList<>();
+    private static Prime largestPrime;
+    private static Prime firstPrime;
     private final int index;
     private final int intValue;
     private final ScientificNumber value;
@@ -17,7 +20,25 @@ public class Prime {
     private Prime nextPrime;
     private ScientificNumber valueMultiplier;
     private ScientificNumber factorMultiplier;
-    private static final ArrayList<Prime> hcnProducerPrimes = new ArrayList<>();
+
+    public static Prime getLowestHcnProducerPrime() {
+        return hcnProducerPrimes.get(hcnProducerPrimes.size() - 1);
+    }
+    public static Prime getHighestHcnProducerPrime() {
+        return hcnProducerPrimes.get(0);
+    }
+    public static ArrayList<Prime> getHcnProducerPrimes() {
+        return hcnProducerPrimes;
+    }
+    public static Prime getFirstPrime() {
+        return firstPrime;
+    }
+
+    public static void initialize() {
+        firstPrime = Prime.builder().index(0).intValue(2).value(new ScientificNumber(2, 0)).previousPrime(null).build();
+        largestPrime = Prime.builder().index(1).intValue(3).value(new ScientificNumber(3, 0)).previousPrime(firstPrime).nextPrime(null).build();
+        firstPrime.setNextPrime(largestPrime);
+    }
 
     @Override
     public String toString() {
@@ -42,9 +63,47 @@ public class Prime {
 
     public Prime calculateNextPrimeIfNeeded() {
         if (nextPrime == null) {
-            nextPrime = PrimeCenter.getPrime(index + 1);
+            nextPrime = getPrime(index + 1);
         }
         return nextPrime;
+    }
+
+    public static Prime getPrime(int primeIndex) {
+        if (primeIndex > largestPrime.getIndex()) {
+            generatePrimesUpTo(primeIndex);
+            return largestPrime;
+        } else {
+            Prime prime = firstPrime;
+            while (prime.getIndex() < primeIndex) {
+                prime = prime.getNextPrime();
+            }
+            return prime;
+        }
+    }
+
+    private static void generatePrimesUpTo(int targetIndex) {
+        int candidate = largestPrime.getIntValue() + 2;
+
+        while (largestPrime.getIndex() < targetIndex) {
+            if (isPrime(candidate)) {
+                ScientificNumber value = new ScientificNumber(candidate, 0);
+                largestPrime.setNextPrime(Prime.builder().index(largestPrime.getIndex() + 1).intValue(candidate)
+                        .value(value).previousPrime(largestPrime).nextPrime(null)
+                        .valueMultiplier(largestPrime.getValueMultiplier().multiply(value))
+                        .factorMultiplier(largestPrime.getFactorMultiplier().multiply(new ScientificNumber(2, 0))).build());
+                largestPrime = largestPrime.getNextPrime();
+            }
+            candidate += 2;
+        }
+    }
+
+    private static boolean isPrime(int n) {
+        Prime divisor = firstPrime;
+        while (divisor != null && divisor.getIntValue() * divisor.getIntValue() <= n) {
+            if (n % divisor.getIntValue() == 0) return false;
+            divisor = divisor.getNextPrime();
+        }
+        return true;
     }
 
     public static void recalculateAllMultipliers(Prime prevLastMatrixIndex) {
@@ -54,28 +113,6 @@ public class Prime {
             walker.factorMultiplier = walker.factorMultiplier.divide(new ScientificNumber(2, 0));
             walker = walker.nextPrime;
         }
-    }
-
-    public static Prime getLowestHcnProducerPrime() {
-        return hcnProducerPrimes.get(hcnProducerPrimes.size() - 1);
-    }
-
-    public static Prime getHighestHcnProducerPrime() {
-        return hcnProducerPrimes.get(0);
-    }
-
-
-    public static void deleteHcnProducerPrimeUnder() {
-        //log.debug("DeletingLapi Under {}", Interval.getCurrentInterval().getLowestRecorderLapi());
-
-        while (getLowestHcnProducerPrime().getIndex() < Interval.getCurrentInterval().getLowestRecorderLapi()) {
-            //log.debug(" deleting lowestLapi= {}", lowestLapi.getPrime().getIndex());
-            hcnProducerPrimes.remove(getLowestHcnProducerPrime());
-        }
-    }
-
-    public static ArrayList<Prime> getHcnProducerPrimes() {
-        return hcnProducerPrimes;
     }
 
     public static void addNextHcnProducer() {

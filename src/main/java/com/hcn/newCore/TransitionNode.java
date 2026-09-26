@@ -46,7 +46,7 @@ public class TransitionNode extends MatrixNode{
     public ScientificNumber getSmallestPossibleExtension() {
         Prime nextprime;
         if (nextMatrixNode == null) {
-            nextprime = PrimeCenter.getPrime(bodyNodes.lastKey() + 1);
+            nextprime = Prime.getPrime(bodyNodes.lastKey() + 1);
         } else {
             nextprime = nextMatrixNode.indexes.get(0);
         }
@@ -71,11 +71,8 @@ public class TransitionNode extends MatrixNode{
     public void extensionCheck() {
         Prime newPrime;
         if (nextMatrixNode == null) {
-            newPrime = PrimeCenter.getPrime(getLastPrime().getIndex() + 1);
-            //Lapi.getLowestLapi().recalculateMultipliers(newPrime);
-            log.debug("prime: {}", Prime.print());
+            newPrime = Prime.getPrime(getLastPrime().getIndex() + 1);
             Prime.recalculateAllMultipliers(newPrime);
-            log.debug("prime: {}", Prime.print());
         } else {
             newPrime = ((TransitionNode) nextMatrixNode).releaseFirstIndex();
         }

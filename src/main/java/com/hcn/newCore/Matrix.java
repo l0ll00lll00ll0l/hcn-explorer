@@ -21,7 +21,6 @@ public class Matrix {
     private static ScientificNumber provedLimit;
     private int lowestProvedLapiWithinInterval;
     private int provedCount;
-    private final PrimeCenter lapiPrimeCenter = new PrimeCenter();
     @Builder.Default
     private String dbName = null;
     private boolean dbMode;
@@ -36,9 +35,9 @@ public class Matrix {
     private long generateHcnListTimeMs = 0;
 
     public void initialize() {
-        PrimeCenter.initialize();
+        Prime.initialize();
         ApiNode p0 = ApiNode.builder().prevMatrixNode(null).build();
-        p0.getIndexes().add(PrimeCenter.getFirstPrime());
+        p0.getIndexes().add(Prime.getFirstPrime());
         BodyNode pip01 = BodyNode.builder().parentNode(p0).bodyNodeId(1).proved(true)
                 .value(new ScientificNumber(2,0))
                 .factor(new ScientificNumber(2, 0)).build();
@@ -54,7 +53,7 @@ public class Matrix {
 
         lastTransition = TransitionNode.builder()
                 .transitionFrom(2).transitionTo(1).build();
-        lastTransition.indexes.add(PrimeCenter.getFirstPrime().getNextPrime());
+        lastTransition.indexes.add(Prime.getFirstPrime().getNextPrime());
         BodyNode t1 = BodyNode.builder().parentNode(lastTransition).bodyNodeId(1)
                 .value(new ScientificNumber(1, 0))
                 .factor(new ScientificNumber(1, 0)).proved(true).build();
@@ -143,24 +142,24 @@ public class Matrix {
 
         RecorderList.initialize(b11, 2);
 
-        PrimeCenter.getFirstPrime().setValueMultiplier(new ScientificNumber((double) 1 / 3, 0));
-        PrimeCenter.getFirstPrime().setFactorMultiplier(new ScientificNumber(0.5, 0));
-        PrimeCenter.getFirstPrime().getNextPrime().setValueMultiplier(new ScientificNumber(1, 0));
-        PrimeCenter.getFirstPrime().getNextPrime().setFactorMultiplier(new ScientificNumber(1, 0));
-        Prime.getHcnProducerPrimes().add(PrimeCenter.getFirstPrime().getNextPrime());
-        Prime.getHcnProducerPrimes().add(PrimeCenter.getFirstPrime());
+        Prime.getFirstPrime().setValueMultiplier(new ScientificNumber((double) 1 / 3, 0));
+        Prime.getFirstPrime().setFactorMultiplier(new ScientificNumber(0.5, 0));
+        Prime.getFirstPrime().getNextPrime().setValueMultiplier(new ScientificNumber(1, 0));
+        Prime.getFirstPrime().getNextPrime().setFactorMultiplier(new ScientificNumber(1, 0));
+        Prime.getHcnProducerPrimes().add(Prime.getFirstPrime().getNextPrime());
+        Prime.getHcnProducerPrimes().add(Prime.getFirstPrime());
 
-        Hcn hcn1 = Hcn.builder().body(b11).lastActivePrime(PrimeCenter.getFirstPrime()).value(new ScientificNumber(2, 0))
+        Hcn hcn1 = Hcn.builder().body(b11).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(2, 0))
                 .factor(new ScientificNumber(2, 0)).build();
-        Hcn hcn2 = Hcn.builder().body(b21).lastActivePrime(PrimeCenter.getFirstPrime()).value(new ScientificNumber(4, 0))
+        Hcn hcn2 = Hcn.builder().body(b21).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(4, 0))
                 .factor(new ScientificNumber(3, 0)).build();
-        Hcn hcn31 = Hcn.builder().body(b31).lastActivePrime(PrimeCenter.getFirstPrime()).value(new ScientificNumber(8, 0))
+        Hcn hcn31 = Hcn.builder().body(b31).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(8, 0))
                 .factor(new ScientificNumber(4, 0)).build();
-        Hcn hcn11 = Hcn.builder().body(b11).lastActivePrime(PrimeCenter.getFirstPrime().getNextPrime()).value(new ScientificNumber(6, 0))
+        Hcn hcn11 = Hcn.builder().body(b11).lastActivePrime(Prime.getFirstPrime().getNextPrime()).value(new ScientificNumber(6, 0))
                 .factor(new ScientificNumber(4, 0)).build();
-        Hcn hcn22 = Hcn.builder().body(b31).lastActivePrime(PrimeCenter.getFirstPrime()).value(new ScientificNumber(12, 0))
+        Hcn hcn22 = Hcn.builder().body(b31).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(12, 0))
                 .factor(new ScientificNumber(4.5, 0)).build();
-        Hcn hcn32 = Hcn.builder().body(b31).lastActivePrime(PrimeCenter.getFirstPrime()).value(new ScientificNumber(26, 0))
+        Hcn hcn32 = Hcn.builder().body(b31).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(26, 0))
                 .factor(new ScientificNumber(6, 0)).build();
 
         b11.setFirstHcn(hcn1);
@@ -185,9 +184,9 @@ public class Matrix {
         lowestProvedLapiWithinInterval = 1;
         provedCount = 2;
         provedLimit = new ScientificNumber(6, 0);
-        Interval.setGlobalReferenceInterval(Interval.builder().lapi(0).prime(PrimeCenter.getFirstPrime()).hcnList(List.of(hcn1, hcn2)).build());
+        Interval.setGlobalReferenceInterval(Interval.builder().lapi(0).prime(Prime.getFirstPrime()).hcnList(List.of(hcn1, hcn2)).build());
         Interval.getGlobalReferenceInterval().setReferenceInterval(Interval.getGlobalReferenceInterval());
-        Interval.setCurrentInterval(Interval.builder().lapi(1).prime(PrimeCenter.getFirstPrime().getNextPrime()).hcnList(new ArrayList<>(List.of(hcn11))).lowestRecorderLapi(1).potentialNextIntervalStarter(b11).build());
+        Interval.setCurrentInterval(Interval.builder().lapi(1).prime(Prime.getFirstPrime().getNextPrime()).hcnList(new ArrayList<>(List.of(hcn11))).lowestRecorderLapi(1).potentialNextIntervalStarter(b11).build());
         RecorderList.setCurrentRecorder(b11);
 
         if (dbMode) {

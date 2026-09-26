@@ -13,8 +13,8 @@ public class MatrixDeserializer {
 
     private final JdbcTemplate dbTemplate;
     private final DbInsertService dbInsertService;
-    private PrimeCenter lapiPrimeCenter;
-    private PrimeCenter matrixPrimeCenter;
+    //private PrimeCenter lapiPrimeCenter;
+    //private PrimeCenter matrixPrimeCenter;
 
     private final Map<Integer, MatrixNode> matrixNodeMap = new HashMap<>();
     private final Map<Integer, BodyNode> bodyNodeMap = new HashMap<>();
@@ -28,7 +28,7 @@ public class MatrixDeserializer {
     }
 
     public Matrix load() {
-        loadPrimeCenters();
+        //loadPrimeCenters();
         loadMatrixNodes();
         loadBodyNodes();
         loadBodies();
@@ -46,6 +46,7 @@ public class MatrixDeserializer {
         return buildMatrix();
     }
 
+    /*
     private void loadPrimeCenters() {
         int nextLapiPrimeIndex = dbTemplate.queryForObject(
                 "SELECT next_lapi FROM tmp_matrix", Integer.class);
@@ -60,6 +61,8 @@ public class MatrixDeserializer {
         matrixPrimeCenter.getPrime(maxMatrixPrimeIndex);
     }
 
+
+     */
     private void loadMatrixNodes() {
         int lastTransitionId = dbTemplate.queryForObject(
                 "SELECT last_transition FROM tmp_matrix", Integer.class);
@@ -199,7 +202,7 @@ public class MatrixDeserializer {
         dbTemplate.query("SELECT * FROM tmp_prime WHERE matrix_node_id IS NOT NULL ORDER BY matrix_node_id, index", rs -> {
             int primeIndex = rs.getInt("index");
             int matrixNodeId = rs.getInt("matrix_node_id");
-            matrixNodeMap.get(matrixNodeId).getIndexes().add(matrixPrimeCenter.getPrime(primeIndex));
+            matrixNodeMap.get(matrixNodeId).getIndexes().add(Prime.getPrime(primeIndex));
         });
 
         // Wire prev/next and bodyList

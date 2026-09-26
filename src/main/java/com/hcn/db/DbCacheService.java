@@ -3,7 +3,7 @@ package com.hcn.db;
 import com.hcn.event.MatrixExtensionActivity;
 import com.hcn.newCore.Body;
 import com.hcn.newCore.Matrix;
-import com.hcn.newCore.PrimeCenter;
+import com.hcn.newCore.Prime;
 import com.hcn.newCore.ScientificNumber;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -23,7 +23,6 @@ public class DbCacheService {
     private Matrix matrix;
     private final Map<Integer, DbInterval> intervalCache = new HashMap<>();
     private final Map<Integer, DbBody> bodyCache = new LinkedHashMap<>();
-    private final PrimeCenter primeCenter = new PrimeCenter();
     private final List<DbBody> bodyOrder = new ArrayList<>();
     private int activeBodyCount = 0;
     private final List<DbInterval> intervalOrder = new ArrayList<>();
@@ -174,7 +173,7 @@ public class DbCacheService {
             int referencePower = referenceIndexes.get(currentReferenceKey);
             int hcnPower = hcnIndexes.get(currentHcnKey);
             if (referencePower != hcnPower) {
-                valueMultiplier = valueMultiplier.multiply(new ScientificNumber(Math.pow(primeCenter.getPrime(currentIndex).getIntValue(), hcnPower - referencePower), 0));
+                valueMultiplier = valueMultiplier.multiply(new ScientificNumber(Math.pow(Prime.getPrime(currentIndex).getIntValue(), hcnPower - referencePower), 0));
                 factorMultiplier = factorMultiplier.multiply(new ScientificNumber((double) (hcnPower + 1) / (referencePower + 1), 0));
                 currentIndex++;
             } else {
