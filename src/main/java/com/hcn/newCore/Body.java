@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.hcn.db.DbBody;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -79,6 +80,14 @@ public class Body implements Comparable<Body>{
         }
     }
 
+    public ScientificNumber getCurrentFactor() {
+        if (isRecorder()) {
+            return getHcnFactor(Prime.getPrimeByLapiDistance(intervalLapiDistance));
+        } else {
+            return getHcnFactor(Prime.getPrimeByLapiDistance(intervalLapiDistance)).divide(new ScientificNumber(Math.pow(2, prayLapiDistance), 0));
+        }
+    }
+
     public int getActiveHcnGeneratorCount() {
         if (bodyNode == null) {
             log.error("getActiveHcnGeneratorCount called on body with null bodyNode: value={} factor={} deactivated={} parent={}", value, factor, deactivated, parent);
@@ -103,7 +112,6 @@ public class Body implements Comparable<Body>{
         bodyNode.getParentNode().needsDeactivateMaintain = true;
 
         if (parent != null) {
-            //log.debug("deactivate parent offspring remove: {}", parent);
             parent.offsprings.remove(this);
             if (parent.offsprings.isEmpty()) {
                 parent.deactivate();
@@ -118,13 +126,11 @@ public class Body implements Comparable<Body>{
         if (deactivated) {
             bodyNode.getDeactivatedBodies().remove(this);
             if (parent != null) {
-                //log.debug("deletedDuringExtension parent deactivatedOffsprings remove: {}", parent);
                 parent.deactivatedOffsprings.remove(this);
             }
         } else {
             bodyNode.getActiveBodies().remove(this);
             if (parent != null) {
-                //log.debug("deletedDuringExtension parent offspring remove: {}", parent);
                 parent.offsprings.remove(this);
                 if (!parent.isDeleted() && parent.offsprings.isEmpty()) {
                     parent.deactivate();
@@ -139,13 +145,11 @@ public class Body implements Comparable<Body>{
         if (deactivated) {
             bodyNode.getDeactivatedBodies().remove(this);
             if (parent != null) {
-                //log.debug("deleteDuringBodyListMaintain parent deactivatedOffsprings remove: {}", parent);
                 parent.deactivatedOffsprings.remove(this);
             }
         } else {
             bodyNode.getActiveBodies().remove(this);
             if (parent != null) {
-                //log.debug("deleteDuringBodyListMaintain parent offsprings remove: {}", parent);
                 parent.offsprings.remove(this);
                 if (!parent.isDeleted() && parent.offsprings.isEmpty()) {
                     parent.deactivate();
@@ -177,12 +181,36 @@ public class Body implements Comparable<Body>{
 
     public Hcn generateHcn(Prime prime) {
         return  Hcn.builder().body(this).lastActivePrime(prime).value(getHcnValue(prime)).factor(getHcnFactor(prime)).build();
-        //log.debug("Generating Hcn for Body {} with lapi {}", lastGeneratedHcn, lapi.getPrime().getIndex());
+    }
+
+    public Hcn generateRecorderHcn() {
+        int requestedHighestLapiDiff = intervalLapiDistance;
+        if (RecorderList.isCurrentRecorderFirstRecorder()) {
+            requestedHighestLapiDiff--;
+        }
+        Prime hcnProducerPrime = Prime.getPrimeByLapiDistance(requestedHighestLapiDiff);
+        return Hcn.builder().body(this).lastActivePrime(hcnProducerPrime).value(getHcnValue(hcnProducerPrime)).factor(getHcnFactor(hcnProducerPrime)).build();
+    }
+
+    public List<Hcn> generateSmallerHunterHcns(Hcn recorderHcn) {
+        final int requiredIntervalDistance = intervalLapiDistance - (RecorderList.isCurrentRecorderFirstRecorder() ? 1 : 0);
+
+        ArrayList<Hcn> smallerHcns = new ArrayList<>();
+        hunters.forEach(hunterBody -> {
+            Prime hcnProducerPrime = Prime.getPrimeByLapiDistance(requiredIntervalDistance + hunterBody.getPrayLapiDistance());
+            Hcn hunterHcn = Hcn.builder().body(hunterBody).lastActivePrime(hcnProducerPrime).value(hunterBody.getHcnValue(hcnProducerPrime)).factor(hunterBody.getHcnFactor(hcnProducerPrime)).build();
+            if (hunterHcn.getValue().isSmallerThan(recorderHcn.getValue())) {
+                smallerHcns.add(hunterHcn);
+            }
+        });
+        smallerHcns.sort(Comparator.comparing(Hcn::getValue));
+        smallerHcns.forEach(hcn -> {
+            hunters.remove(hcn.getBody());
+        });
+        return smallerHcns;
     }
 
     public ScientificNumber getHcnFactor(Prime prime) {
-        //log.debug("     factor: {}", factor);
-        //log.debug("     prime.getFactorMultiplier(): {}", prime.getFactorMultiplier());
         return factor.multiply(prime.getFactorMultiplier());
     }
 

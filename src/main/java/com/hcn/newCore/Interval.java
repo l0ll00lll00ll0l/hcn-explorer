@@ -24,6 +24,7 @@ public class Interval {
     private int lowestRecorderLapi;
     private Body potentialNextIntervalStarter;
     private Body lastBaseIntervalBody;
+    private List<Body> postBaseBodyList = null;
 
     public static Interval getCurrentInterval() {
         return currentInterval;
@@ -47,6 +48,47 @@ public class Interval {
 
     public static void processCurrentInterval() {
 
+        Interval currentInterval = Interval.getCurrentInterval();
+        while (currentInterval.equals(Interval.getCurrentInterval())) {
+            RecorderList.setCurrentRecorder(RecorderList.getCurrentRecorder().getNextRecorder());
+            processCurrentRecorder();
+        }
+    }
+
+    private static void processCurrentRecorder() {
+
+        Hcn recorderHcn = RecorderList.getCurrentRecorder().generateRecorderHcn();
+        List<Hcn> smallerHcns = RecorderList.getCurrentRecorder().generateSmallerHunterHcns(recorderHcn);
+
+        if (!smallerHcns.isEmpty()) {
+            RecorderList.addNewRecord(smallerHcns.get(0));
+
+            for (int i = 1; i < smallerHcns.size(); i++) {
+                Hcn candidate = smallerHcns.get(i);
+                Hcn referenceHcn = smallerHcns.get(i - 1);
+
+                if (candidate.getFactor().isBiggerThan(referenceHcn.getFactor())) {
+                    RecorderList.addNewRecord(candidate);
+                } else {
+                    if (candidate.getLapiIndex() > referenceHcn.getLapiIndex()) {
+                        referenceHcn.getBody().getHunters().add(candidate.getBody());
+                        candidate.getBody().setPrayBody(referenceHcn.getBody());
+                        //TODO set prayLapiDistance is missing
+                        log.warn("NEEDS TO BE IMPLEMENTED, HERE candidate SHOULD be pray for referencebody");
+                    } else {
+                        log.warn("NEEDS TO BE IMPLEMENTED, HERE candidate SHOULD BE DEACTIVATED");
+                    }
+                }
+            }
+            if (recorderHcn.getFactor().isNotBiggerThan(smallerHcns.get(smallerHcns.size() - 1).getFactor())) {
+                RecorderList.killCurrentRecorder();
+            } else {
+                addRecorderHcn(recorderHcn);
+            }
+        }
+        else {
+            addRecorderHcn(recorderHcn);
+        }
     }
 
     public void referenceCheck() {
@@ -64,23 +106,19 @@ public class Interval {
     }
 
     public static void addRecorderHcn(Hcn recorderHcn) {
-        if (currentInterval.prime.getIndex() < recorderHcn.getLastActivePrime().getIndex()) {
+        if (recorderHcn.getBody().equals(RecorderList.getFirstRecorder())) {
             initializeNewCurrentLapi();
-        }
-        if (recorderHcn.getLastActivePrime().getIndex() < currentInterval.lowestRecorderLapi) {
-            currentInterval.lowestRecorderLapi = recorderHcn.getLastActivePrime().getIndex();
         }
         currentInterval.hcnList.add(recorderHcn);
     }
 
     private static void initializeNewCurrentLapi() {
-        //log.debug("initializeNewCurrentLapi");
         int prevLapi = currentInterval.lapi;
-        Prime newPrime = currentInterval.prime.getNextPrime();
+        Prime.addNextHcnProducer();
         currentInterval.referenceCheck();
-        //Lapi.deleteLapisUnder();
-        //Prime.deleteHcnProducerPrimeUnder();
-        currentInterval = Interval.builder().prime(newPrime).hcnList(new ArrayList<>()).lowestRecorderLapi(prevLapi + 1).potentialNextIntervalStarter(HcnGeneratorList.getSmallestBody()).build();
+        currentInterval = Interval.builder().prime(Prime.getHighestHcnProducerPrime())
+                .hcnList(new ArrayList<>()).lowestRecorderLapi(prevLapi + 1)
+                .potentialNextIntervalStarter(HcnGeneratorList.getSmallestBody()).build();
     }
 
 }

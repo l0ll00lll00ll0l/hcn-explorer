@@ -48,14 +48,11 @@ public class Prime {
     }
 
     public static void recalculateAllMultipliers(Prime prevLastMatrixIndex) {
-        System.out.println(" pp: " + prevLastMatrixIndex.getIntValue());
         Prime walker = getLowestHcnProducerPrime();
-        System.out.println(" walker: " + walker);
         while (walker != null) {
             walker.valueMultiplier = walker.valueMultiplier.divide(prevLastMatrixIndex.getValue());
             walker.factorMultiplier = walker.factorMultiplier.divide(new ScientificNumber(2, 0));
             walker = walker.nextPrime;
-            System.out.println(" walker: " + walker);
         }
     }
 
@@ -87,7 +84,16 @@ public class Prime {
 
     public static Prime getPrimeByLapiDistance(int lapiDistance) {
         if (lapiDistance > -1) {
-            return hcnProducerPrimes.get(lapiDistance);
+            if (lapiDistance < hcnProducerPrimes.size()) {
+                return hcnProducerPrimes.get(lapiDistance);
+            } else {
+                Prime walker = getHighestHcnProducerPrime();
+                for (int i = 0; i < lapiDistance; i++) {
+                    walker = walker.getPreviousPrime();
+                }
+                return walker;
+            }
+
         } else {
             Prime walker = getHighestHcnProducerPrime();
             for (int i = 0; i > lapiDistance; i--) {

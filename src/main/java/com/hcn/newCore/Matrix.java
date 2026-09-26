@@ -212,14 +212,7 @@ public class Matrix {
         //maintainLapiGroups();
         //determineTargetValue();
 
-        Interval currentInterval = Interval.getCurrentInterval();
-        if (currentInterval.getPotentialNextIntervalStarter().equals(RecorderList.getCurrentRecorder().getNextRecorder())) {
-            currentInterval.setLastBaseIntervalBody(RecorderList.getCurrentRecorder());
-            Prime.addNextHcnProducer();
-        } else {
-
-        }
-        RecorderList.generateHcns();
+        Interval.processCurrentInterval();
         /*
         //log.debug("HCN Generation Phase // targetValue {}", targetValue);
         //Lapi.generateHcnsUntilTargetValue();
