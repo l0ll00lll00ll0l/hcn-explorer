@@ -150,7 +150,7 @@ public class MatrixDeserializer {
             long factorExponent = rs.getLong("factor_exponent");
 
             Hcn hcn = Hcn.builder()
-                    .body(bodyMap.get(bodyId))
+                    //.body(bodyMap.get(bodyId))
                     .value(new ScientificNumber(valueMantissa, valueExponent))
                     .factor(new ScientificNumber(factorMantissa, factorExponent))
                     .build();
@@ -248,12 +248,15 @@ public class MatrixDeserializer {
             body.setParent(parentId != null ? bodyMap.get(parentId) : null);
             body.setSmallerBody(smallerId != null ? bodyMap.get(smallerId) : null);
             body.setLargerBody(largerId != null ? bodyMap.get(largerId) : null);
+            /*
             body.setSmallerHcnGenerator(smallerActiveId != null ? bodyMap.get(smallerActiveId) : null);
             body.setLargerHcnGenerator(largerActiveId != null ? bodyMap.get(largerActiveId) : null);
             body.setLastGeneratedHcn(lastGenHcnId != null ? hcnMap.get(lastGenHcnId) : null);
             body.setFirstHcn(firstHcnId != null ? hcnMap.get(firstHcnId) : null);
             body.setFirstSuperiorHcn(firstSuperiorHcnId != null ? hcnMap.get(firstSuperiorHcnId) : null);
             body.setFirstDominatedHcn(firstDominatedHcnId != null ? hcnMap.get(firstDominatedHcnId) : null);
+
+             */
             body.setDbId(dbId);
         });
     }
@@ -362,7 +365,7 @@ public class MatrixDeserializer {
             Interval.setGlobalReferenceInterval(ri);
         }
 
-        HcnGeneratorList.initialize(Matrix.lastTransition.getBodyList().getSmallestBody());
+        //HcnGeneratorList.initialize(Matrix.lastTransition.getBodyList().getSmallestBody());
         return matrix;
     }
 }

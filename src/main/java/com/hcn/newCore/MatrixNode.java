@@ -86,7 +86,7 @@ public abstract class MatrixNode {
         if (nextMatrixNode != null) {
             nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());
         } else {
-            bodyList.maintainHcnGeneratorList();
+            bodyList.maintainRecorderList();
         }
 
     }
@@ -118,7 +118,7 @@ public abstract class MatrixNode {
         if (nextMatrixNode != null) {
             nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());
         } else {
-            bodyList.maintainHcnGeneratorList();
+            bodyList.maintainRecorderList();
         }
         ActivityCenter.finishMatrixExtensionActivity();
     }

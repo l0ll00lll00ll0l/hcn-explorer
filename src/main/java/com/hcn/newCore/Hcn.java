@@ -10,7 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 @Builder
 @Slf4j
 public class Hcn {
-    private final Body body;
+    private final RecorderBody recorderBody;
     private Prime lastActivePrime;
     private ScientificNumber value;
     private ScientificNumber factor;
@@ -21,17 +21,10 @@ public class Hcn {
         return lastActivePrime.getIndex();
     }
 
-    public void matrixMaintainCheck() {
-
-            body.setFirstSuperiorHcn(this);
-            body.matrixMaintainCheck();
-
-    }
-
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        body.buildChain(sb);
+        recorderBody.getBody().buildChain(sb);
         return "{" + sb +
                 " | " + getLapiIndex() +
                 " | v: " + value +

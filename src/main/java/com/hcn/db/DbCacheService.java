@@ -294,9 +294,12 @@ public class DbCacheService {
         Body walker = Matrix.lastTransition.getBodyList().getSmallestBody();
         while (walker != null) {
             DbBody dbBody = walker.getDbBody();
+            /*
             dbBody.setFirstHcnLapi(walker.getFirstHcn() != null ? walker.getFirstHcn().getLapiIndex() : null);
             dbBody.setFirstSuperiorHcnLapi(walker.getFirstSuperiorHcn() != null ? walker.getFirstSuperiorHcn().getLapiIndex() : null);
             dbBody.setFirstDominatedHcnLapi(walker.getFirstDominatedHcn() != null ? walker.getFirstDominatedHcn().getLapiIndex() : null);
+
+             */
             bodyOrder.add(dbBody);
             activeBodyCount++;
             if (walker.getDbId() != null) bodyCache.put(walker.getDbId(), dbBody);

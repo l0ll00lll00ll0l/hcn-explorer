@@ -114,33 +114,13 @@ public class Matrix {
         b32.setSmallerBody(b22);
         b32.setLargerBody(null);
 
-        b11.setSmallerHcnGenerator(null);
-        b11.setLargerHcnGenerator(b21);
-        b21.setSmallerHcnGenerator(b11);
-        b21.setLargerHcnGenerator(b31);
-        b31.setSmallerHcnGenerator(b21);
-        b31.setLargerHcnGenerator(b22);
-        b22.setSmallerHcnGenerator(b31);
-        b22.setLargerHcnGenerator(b32);
-        b32.setSmallerHcnGenerator(b22);
-        b32.setLargerHcnGenerator(null);
-
         lastTransition.setBodyList(BodyList.builder().smallestBody(b11).largestBody(b32).size(5).build());
-        HcnGeneratorList.initialize(b11);
+
         b01.getOffsprings().add(b11);
         b02.getOffsprings().add(b21);
         b03.getOffsprings().add(b31);
         b02.getOffsprings().add(b22);
         b03.getOffsprings().add(b32);
-
-        b11.setPreviousRecorder(b21);
-        b11.setNextRecorder(b21);
-        b21.setPreviousRecorder(b11);
-        b21.setNextRecorder(b11);
-        b11.setIntervalLapiDistance(0);
-        b21.setIntervalLapiDistance(0);
-
-        RecorderList.initialize(b11, 2);
 
         Prime.getFirstPrime().setValueMultiplier(new ScientificNumber((double) 1 / 3, 0));
         Prime.getFirstPrime().setFactorMultiplier(new ScientificNumber(0.5, 0));
@@ -149,36 +129,22 @@ public class Matrix {
         Prime.getHcnProducerPrimes().add(Prime.getFirstPrime().getNextPrime());
         Prime.getHcnProducerPrimes().add(Prime.getFirstPrime());
 
-        Hcn hcn1 = Hcn.builder().body(b11).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(2, 0))
+        RecorderBody firstRecorder = RecorderBody.builder().body(b11).intervalLapiDistance(0).firstSuperiorHcn(0).build();
+        RecorderBody lastRecorder = RecorderBody.builder().body(b21).intervalLapiDistance(0).firstSuperiorHcn(0).build();
+        b11.setRecorderBody(firstRecorder);
+        b21.setRecorderBody(lastRecorder);
+        firstRecorder.setNextRecorder(lastRecorder);
+        lastRecorder.setPreviousRecorder(firstRecorder);
+        firstRecorder.setPreviousRecorder(lastRecorder);
+        lastRecorder.setNextRecorder(firstRecorder);
+        RecorderList.initialize(firstRecorder, 2);
+
+        Hcn hcn1 = Hcn.builder().recorderBody(firstRecorder).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(2, 0))
                 .factor(new ScientificNumber(2, 0)).build();
-        Hcn hcn2 = Hcn.builder().body(b21).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(4, 0))
+        Hcn hcn2 = Hcn.builder().recorderBody(lastRecorder).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(4, 0))
                 .factor(new ScientificNumber(3, 0)).build();
-        Hcn hcn31 = Hcn.builder().body(b31).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(8, 0))
+        Hcn hcn11 = Hcn.builder().recorderBody(firstRecorder).lastActivePrime(Prime.getFirstPrime().getNextPrime()).value(new ScientificNumber(6, 0))
                 .factor(new ScientificNumber(4, 0)).build();
-        Hcn hcn11 = Hcn.builder().body(b11).lastActivePrime(Prime.getFirstPrime().getNextPrime()).value(new ScientificNumber(6, 0))
-                .factor(new ScientificNumber(4, 0)).build();
-        Hcn hcn22 = Hcn.builder().body(b31).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(12, 0))
-                .factor(new ScientificNumber(4.5, 0)).build();
-        Hcn hcn32 = Hcn.builder().body(b31).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(26, 0))
-                .factor(new ScientificNumber(6, 0)).build();
-
-        b11.setFirstHcn(hcn1);
-        b11.setLastGeneratedHcn(hcn11);
-        b11.setFirstSuperiorHcn(hcn1);
-
-        b21.setFirstHcn(hcn2);
-        b21.setFirstSuperiorHcn(hcn2);
-        b21.setLastGeneratedHcn(hcn2);
-
-        b31.setFirstHcn(hcn31);
-        b31.setLastGeneratedHcn(hcn31);
-
-        b22.setFirstHcn(hcn22);
-        //b22.setLastGeneratedHcn(hcn22);
-
-        b32.setFirstHcn(hcn32);
-        //b32.setLastGeneratedHcn(hcn32);
-        //b31.setLastGeneratedHcn(hcn31);
 
         //force lapi0 deletion
         lowestProvedLapiWithinInterval = 1;
@@ -186,44 +152,29 @@ public class Matrix {
         provedLimit = new ScientificNumber(6, 0);
         Interval.setGlobalReferenceInterval(Interval.builder().lapi(0).prime(Prime.getFirstPrime()).hcnList(List.of(hcn1, hcn2)).build());
         Interval.getGlobalReferenceInterval().setReferenceInterval(Interval.getGlobalReferenceInterval());
-        Interval.setCurrentInterval(Interval.builder().lapi(1).prime(Prime.getFirstPrime().getNextPrime()).hcnList(new ArrayList<>(List.of(hcn11))).lowestRecorderLapi(1).potentialNextIntervalStarter(b11).build());
-        RecorderList.setCurrentRecorder(b11);
+        Interval.setCurrentInterval(Interval.builder().lapi(1).prime(Prime.getFirstPrime().getNextPrime()).hcnList(new ArrayList<>(List.of(hcn11))).lowestRecorderLapi(1).build());
+        RecorderList.setCurrentRecorder(firstRecorder);
 
         if (dbMode) {
             dbInsertService.submit(Interval.getGlobalReferenceInterval());
         }
 
-        b31.setPrayBody(b11);
-        b31.setPrayLapiDistance(1);
-        b11.getHunters().add(b31);
+        HunterBody h31 = HunterBody.builder().body(b31).prayBody(firstRecorder).prayLapiDistance(1).build();
+        b31.setHunterBody(h31);
+        firstRecorder.getHunters().add(h31);
 
-        b22.setPrayBody(b21);
-        b22.setPrayLapiDistance(1);
-        b21.getHunters().add(b22);
+        HunterBody h22 = HunterBody.builder().body(b22).prayBody(lastRecorder).prayLapiDistance(1).build();
+        b22.setHunterBody(h22);
+        lastRecorder.getHunters().add(h22);
 
-        b32.setPrayBody(b21);
-        b32.setPrayLapiDistance(1);
-        b21.getHunters().add(b32);
+        HunterBody h32 = HunterBody.builder().body(b32).prayBody(lastRecorder).prayLapiDistance(1).build();
+        b32.setHunterBody(h32);
+        lastRecorder.getHunters().add(h32);
     }
 
     public void proveNextLapi() {
-        //log.debug("********************************* START NEXT LAPI *********************************");
-        //maintainLapiGroups();
-        //determineTargetValue();
-
         Interval.processCurrentInterval();
-        /*
-        //log.debug("HCN Generation Phase // targetValue {}", targetValue);
-        //Lapi.generateHcnsUntilTargetValue();
-        //Lapi.huntingPhase();
-
-         */
-        //Interval.populateHcnList();
-        //deactivateMaintain();
-        //provedLimit = targetValue;
         ActivityCenter.setProving(false);
-        //maintainProvedHcns();
-        //log.debug("");
     }
 
     private void deactivateMaintain() {

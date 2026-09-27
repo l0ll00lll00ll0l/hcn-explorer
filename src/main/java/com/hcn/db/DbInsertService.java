@@ -208,10 +208,13 @@ public class DbInsertService {
     private void process(Interval interval) {
         int firstHcnId = hcnIdCounter + 1;
         if (!interval.isReferenced()) {
+            /*
             interval.getHcnList().forEach(hcn -> {
                 if (hcn.getBody().getDbId() == null) appendBody(hcn.getBody());
                 appendHcn(hcn);
             });
+
+             */
         } else {
             hcnIdCounter += interval.getHcnList().size();
         }
@@ -231,7 +234,7 @@ public class DbInsertService {
     private void appendHcn(Hcn hcn) {
         if (hcnCount > 0) hcnBuffer.append(",");
         hcnBuffer.append("(").append(++hcnIdCounter)
-                .append(",").append(hcn.getBody().getDbId())
+                //.append(",").append(hcn.getBody().getDbId())
                 .append(",").append(hcn.getLapiIndex())
                 .append(")");
         hcnCount++;
@@ -331,6 +334,7 @@ public class DbInsertService {
     }
 
     private void appendBodyLifecycle(Body body) {
+        /*
         if (bodyLifecycleCount > 0) bodyLifecycleBuffer.append(",");
         Integer firstHcnLapi           = body.getFirstHcn()           != null ? body.getFirstHcn().getLapiIndex()           : null;
         Integer firstSuperiorHcnLapi   = body.getFirstSuperiorHcn()   != null ? body.getFirstSuperiorHcn().getLapiIndex()   : null;
@@ -341,6 +345,8 @@ public class DbInsertService {
                 .append(",").append(firstDominatedHcnLapi != null ? firstDominatedHcnLapi : "NULL")
                 .append(")");
         bodyLifecycleCount++;
+
+         */
     }
 
     private void flushBodyLifecycle() {

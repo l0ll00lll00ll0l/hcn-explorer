@@ -186,10 +186,14 @@ public class BodyList implements Iterable<Body> {
         };
     }
 
-    public void maintainHcnGeneratorList() {
-        dominatedSuperiorBodies.forEach(b -> { HcnGeneratorList.remove(b); });
-        successfullyAddedNewBodies.forEach(b -> {
-            HcnGeneratorList.add(b);
+    public void maintainRecorderList() {
+        dominatedSuperiorBodies.forEach(hunterBodiesToRemove -> {
+            RecorderList.deleteHunterBody(hunterBodiesToRemove.getHunterBody());
+        });
+        successfullyAddedNewBodies.forEach(newHunterBody -> {
+            HunterBody hunterBody = HunterBody.builder().body(newHunterBody).build();
+            newHunterBody.setHunterBody(hunterBody);
+            RecorderList.findPray(hunterBody);
         });
         if (ActivityCenter.isDbMode()) {
             MatrixExtensionActivity mea = ActivityCenter.getLastMatrixExtensionActivity();

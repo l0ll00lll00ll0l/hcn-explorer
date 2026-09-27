@@ -54,10 +54,13 @@ public class MatrixSerializer {
  */
     private void assignHcnIdsAndDeletedBodyIds(List<Hcn> hcnList) {
         for (Hcn hcn : hcnList) {
+            /*
             if (hcn.getBody().getTempId() == null) {
                 hcn.getBody().setTempId(++bodyTempId);
                 collectedDeletedBodies.add(hcn.getBody());
             }
+
+             */
             if (hcn.getTempId() == null) {
                 hcn.setTempId(++hcnTempId);
                 collectedHcns.add(hcn);
@@ -96,10 +99,13 @@ public class MatrixSerializer {
 
     private void resetRefIntervalBodiesAndHcns(Matrix matrix) {
         if (Interval.getGlobalReferenceInterval() != null) {
+            /*
             for (Hcn hcn : Interval.getGlobalReferenceInterval().getHcnList()) {
                 hcn.getBody().setTempId(null);
                 resetBodyHcnTempIds(hcn.getBody());
             }
+
+             */
         }
     }
 
@@ -122,6 +128,7 @@ public class MatrixSerializer {
     }
 
     private void assignBodyAndHcnIds(Body body) {
+        /*
         body.setTempId(++bodyTempId);
         collectedMatrixBodies.add(body);
 
@@ -143,9 +150,12 @@ public class MatrixSerializer {
             body.getFirstDominatedHcn().setTempId(++hcnTempId);
             collectedHcns.add(body.getFirstDominatedHcn());
         }
+
+         */
     }
 
     private void resetBodyHcnTempIds(Body body) {
+        /*
         if (body.getLastGeneratedHcn() != null) body.getLastGeneratedHcn().setTempId(null);
         if (body.getFirstHcn() != null) body.getFirstHcn().setTempId(null);
         if (body.getFirstSuperiorHcn() != null) body.getFirstSuperiorHcn().setTempId(null);
@@ -175,6 +185,8 @@ public class MatrixSerializer {
                     transTo != null ? transTo : "NULL"));
         }
         return sb.toString();
+
+         */
     }
 
     public String buildPrimeInsert(Matrix matrix) {
@@ -332,6 +344,7 @@ public class MatrixSerializer {
     }
 
     private void appendBodyValues(StringBuilder sb, Body current) {
+        /*
         sb.append(String.format("(%d, %d, %s, %d, %s, %d, %s, %b, %s, %s, %s, %s, %s, %s, %s, %s, %b, %s)",
                 current.getTempId(),
                 current.getBodyNode().getTempId(),
@@ -351,6 +364,8 @@ public class MatrixSerializer {
                 current.getFirstDominatedHcn() != null ? current.getFirstDominatedHcn().getTempId() : "NULL",
                 current.isDeactivated(),
                 current.getDbId() != null ? current.getDbId() : "NULL"));
+
+         */
     }
 
     private void appendDeletedBodyValues(StringBuilder sb, Body current) {
@@ -372,7 +387,7 @@ public class MatrixSerializer {
             if (i > 0) sb.append(", ");
             sb.append(String.format("(%d, %d, %d, %s, %d, %s, %d)",
                     hcn.getTempId(),
-                    hcn.getBody().getTempId(),
+                    //hcn.getBody().getTempId(),
                     hcn.getLapiIndex(),
                     hcn.getValue().getMantissa(),
                     hcn.getValue().getExponent(),

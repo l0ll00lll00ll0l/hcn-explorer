@@ -231,7 +231,7 @@ public class NewCoreController {
             MatrixSerializer serializer = new MatrixSerializer();
             serializer.assignTempIds(matrix);
             JdbcTemplate dbTemplate = databaseService.createTemplateForDb(matrix.getDbName());
-            dbTemplate.execute(serializer.buildMatrixNodeInsert());
+            //dbTemplate.execute(serializer.buildMatrixNodeInsert());
             dbTemplate.execute(serializer.buildPrimeInsert(matrix));
             dbTemplate.execute(serializer.buildLapiInsert(matrix));
             String lapiHcnInsert = serializer.buildLapiHcnInsert(matrix);
@@ -392,7 +392,7 @@ public class NewCoreController {
         }
         while (current != null) {
             bodies.add(current);
-            current = current.getLargerHcnGenerator();
+            current = current.getNextActiveBody();
         }
         return bodies;
     }
@@ -428,18 +428,14 @@ public class NewCoreController {
         return Matrix.getTargetValue();
     }
 
-    public List<Body> getRecorderList() {
-        List<Body> result = new ArrayList<>();
-        Body current = RecorderList.getFirstRecorder();
+    public List<RecorderBody> getRecorderList() {
+        List<RecorderBody> result = new ArrayList<>();
+        RecorderBody current = RecorderList.getFirstRecorder();
         for (int i = 0; i < RecorderList.getSize(); i++) {
             result.add(current);
             current = current.getNextRecorder();
         }
         return result;
-    }
-
-    public List<Body> getBodiesWaitingToJoin() {
-        return RecorderList.getBodiesWaitingToJoin();
     }
 
     public String offspringString(Body body) {
