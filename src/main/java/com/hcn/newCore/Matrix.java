@@ -129,8 +129,8 @@ public class Matrix {
         Prime.getHcnProducerPrimes().add(Prime.getFirstPrime().getNextPrime());
         Prime.getHcnProducerPrimes().add(Prime.getFirstPrime());
 
-        RecorderBody firstRecorder = RecorderBody.builder().body(b11).intervalLapiDistance(0).firstSuperiorHcn(0).build();
-        RecorderBody lastRecorder = RecorderBody.builder().body(b21).intervalLapiDistance(0).firstSuperiorHcn(0).build();
+        RecorderBody firstRecorder = RecorderBody.builder().body(b11).intervalLapiDistance(0).build();
+        RecorderBody lastRecorder = RecorderBody.builder().body(b21).intervalLapiDistance(0).build();
         b11.setRecorderBody(firstRecorder);
         b21.setRecorderBody(lastRecorder);
         firstRecorder.setNextRecorder(lastRecorder);
@@ -139,12 +139,15 @@ public class Matrix {
         lastRecorder.setNextRecorder(firstRecorder);
         RecorderList.initialize(firstRecorder, 2);
 
-        Hcn hcn1 = Hcn.builder().recorderBody(firstRecorder).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(2, 0))
+        Hcn hcn1 = Hcn.builder().hcnGenerator(firstRecorder).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(2, 0))
                 .factor(new ScientificNumber(2, 0)).build();
-        Hcn hcn2 = Hcn.builder().recorderBody(lastRecorder).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(4, 0))
+        Hcn hcn2 = Hcn.builder().hcnGenerator(lastRecorder).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(4, 0))
                 .factor(new ScientificNumber(3, 0)).build();
-        Hcn hcn11 = Hcn.builder().recorderBody(firstRecorder).lastActivePrime(Prime.getFirstPrime().getNextPrime()).value(new ScientificNumber(6, 0))
+        Hcn hcn11 = Hcn.builder().hcnGenerator(firstRecorder).lastActivePrime(Prime.getFirstPrime().getNextPrime()).value(new ScientificNumber(6, 0))
                 .factor(new ScientificNumber(4, 0)).build();
+
+        firstRecorder.setFirstSuperiorHcn(hcn1);
+        lastRecorder.setFirstSuperiorHcn(hcn2);
 
         //force lapi0 deletion
         lowestProvedLapiWithinInterval = 1;
@@ -159,15 +162,15 @@ public class Matrix {
             dbInsertService.submit(Interval.getGlobalReferenceInterval());
         }
 
-        HunterBody h31 = HunterBody.builder().body(b31).prayBody(firstRecorder).prayLapiDistance(1).build();
+        HunterBody h31 = HunterBody.builder().body(b31).prayBody(firstRecorder).intervalLapiDistance(1).build();
         b31.setHunterBody(h31);
         firstRecorder.getHunters().add(h31);
 
-        HunterBody h22 = HunterBody.builder().body(b22).prayBody(lastRecorder).prayLapiDistance(1).build();
+        HunterBody h22 = HunterBody.builder().body(b22).prayBody(lastRecorder).intervalLapiDistance(1).build();
         b22.setHunterBody(h22);
         lastRecorder.getHunters().add(h22);
 
-        HunterBody h32 = HunterBody.builder().body(b32).prayBody(lastRecorder).prayLapiDistance(1).build();
+        HunterBody h32 = HunterBody.builder().body(b32).prayBody(lastRecorder).intervalLapiDistance(1).build();
         b32.setHunterBody(h32);
         lastRecorder.getHunters().add(h32);
     }

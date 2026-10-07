@@ -49,55 +49,45 @@ public class Interval {
     public static void processCurrentInterval() {
         Interval currentInterval = Interval.getCurrentInterval();
         while (currentInterval.equals(Interval.getCurrentInterval())) {
-            RecorderList.setCurrentRecorder(RecorderList.getCurrentRecorder().getNextRecorder());
-            processCurrentRecorder();
-        }
-    }
+            RecorderBody previousRecorder = RecorderList.getCurrentRecorder();
+            RecorderBody currentRecorder = previousRecorder.getNextRecorder();
+            RecorderList.setCurrentRecorder(currentRecorder);
+            Hcn recorderHcn = currentRecorder.getProcessingHcn();
+            List<Hcn> passingHcns = currentRecorder.getPassingHcns(recorderHcn);
+            Hcn previouslyAddedHcn = null;
 
-    private static void processCurrentRecorder() {
+            if (!passingHcns.isEmpty()) {
+                log.debug("passingHcns: {}", passingHcns);
 
-        Hcn recorderHcn = RecorderList.getCurrentRecorder().generateRecorderHcn();
-        List<HunterHcn> passingHunters = RecorderList.getCurrentRecorder().generateSmallerHunterHcns(recorderHcn);
-        log.debug("passingHunters: {}", passingHunters);
-
-        if (!passingHunters.isEmpty()) {
-            RecorderBody newRecorder = RecorderList.addNewRecord(passingHunters.get(0));
-            Hcn newHcn = Hcn.builder().recorderBody(newRecorder).value(passingHunters.get(0).getValue())
-                    .factor(passingHunters.get(0).getFactor()).lastActivePrime(passingHunters.get(0).getLastActivePrime()).build();
-            addRecorderHcn(newHcn);
-
-            for (int i = 1; i < passingHunters.size(); i++) {
-                HunterHcn candidateHcn = passingHunters.get(i);
-                HunterHcn referenceHcn = passingHunters.get(i - 1);
-
-                log.debug("candidateHcn: {}, referenceHcn: {}", candidateHcn.getFactor(), referenceHcn.getFactor());
-                if (candidateHcn.getFactor().isBiggerThan(referenceHcn.getFactor())) {
-                    RecorderBody recorderBody = RecorderList.addNewRecord(passingHunters.get(i));
-                    Hcn hcn = Hcn.builder().recorderBody(recorderBody).value(passingHunters.get(i).getValue())
-                            .factor(passingHunters.get(i).getFactor()).lastActivePrime(passingHunters.get(i).getLastActivePrime()).build();
-                    addRecorderHcn(hcn);
-                } else {
-                    if (passingHunters.get(i).getHunterBody().getPrayLapiDistance() > passingHunters.get(i - 1).getHunterBody().getPrayLapiDistance()) {
-                        //referenceHcn.getBody().getHunters().add(candidate.getBody());
-                        //candidate.getBody().setPrayBody(referenceHcn.getBody());
-                        //TODO set prayLapiDistance is missing
-                        log.warn("NEEDS TO BE IMPLEMENTED, HERE candidate SHOULD be pray for referencebody");
+                for (Hcn passingHcn : passingHcns) {
+                    if (previouslyAddedHcn == null) {
+                        addRecorderHcn(RecorderList.addNewRecord(passingHcn));
+                        previouslyAddedHcn = passingHcn;
                     } else {
-                        log.warn("NEEDS TO BE IMPLEMENTED, HERE candidate SHOULD BE DEACTIVATED");
+                        if (passingHcn.getFactor().isBiggerThan(previouslyAddedHcn.getFactor())) {
+                            log.debug("FACTOR IS BIGGER - adding new recorder");
+                            addRecorderHcn(RecorderList.addNewRecord(passingHcn));
+                            previouslyAddedHcn = passingHcn;
+                        } else {
+                            log.debug("FACTOR IS SMALLER - setting pray body");
+                            HunterBody hunterBody = passingHcn.getHcnGenerator().getBody().getHunterBody();
+                            hunterBody.setPrayBody(previouslyAddedHcn.getHcnGenerator().getBody().getRecorderBody());
+                            if (RecorderList.isCurrentRecorderFirstRecorder()) {
+                                hunterBody.setIntervalLapiDistance(hunterBody.getIntervalLapiDistance() - 1);
+                            }
+                            previouslyAddedHcn.getHcnGenerator().getBody().getRecorderBody().getHunters().add(hunterBody);
+                        }
                     }
                 }
-            }
-
-            //log.debug("RecorderList.getCurrentRecorder().getRecorderHcnValue(): {}, passingHunters.get(passingHunters.size() - 1).getProcessingHcnFactor()): {}",
-              //      RecorderList.getCurrentRecorder().getRecorderHcnValue(), passingHunters.get(passingHunters.size() - 1).getValue());
-            if (recorderHcn.getFactor().isNotBiggerThan(passingHunters.get(passingHunters.size() - 1).getFactor())) {
-                RecorderList.killCurrentRecorder();
+                if (recorderHcn.getFactor().isNotBiggerThan(previouslyAddedHcn.getFactor())) {
+                    RecorderList.killCurrentRecorder();
+                } else {
+                    addRecorderHcn(recorderHcn);
+                }
             } else {
                 addRecorderHcn(recorderHcn);
             }
-        }
-        else {
-            addRecorderHcn(recorderHcn);
+            //processCurrentRecorder();
         }
     }
 
@@ -108,7 +98,7 @@ public class Interval {
             globalReferenceInterval = this;
         }
         for (int i = 0; i < hcnList.size(); i++) {
-            if (!globalReferenceInterval.getHcnList().get(i).getRecorderBody().equals(hcnList.get(i).getRecorderBody())) {
+            if (!globalReferenceInterval.getHcnList().get(i).getHcnGenerator().equals(hcnList.get(i).getHcnGenerator())) {
                 this.referenceInterval = this;
                 globalReferenceInterval = this;
             }
@@ -118,7 +108,7 @@ public class Interval {
 
     public static void addRecorderHcn(Hcn recorderHcn) {
         //Hcn recorderHcn = recorderBody.generateRecorderHcn();
-        if (recorderHcn.getRecorderBody().equals(RecorderList.getFirstRecorder())) {
+        if (recorderHcn.getHcnGenerator().equals(RecorderList.getFirstRecorder())) {
             initializeNewCurrentLapi();
         }
         currentInterval.hcnList.add(recorderHcn);

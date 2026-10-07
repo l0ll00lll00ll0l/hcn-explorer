@@ -19,11 +19,11 @@
             <tbody>
                 <tr th:each="hcn, hIter : ${@newCoreController.getCurrentInterval().hcnList}">
                     <td th:text="${hIter.index}"></td>
-                    <td th:text="${hcn.recorderBody.body?.dbId}"></td>
+                    <td th:text="${hcn.hcnGenerator.body?.dbId}"></td>
                     <td th:text="${hcn.lapiIndex}"></td>
                     <td th:text="${hcn.value}"></td>
                     <td th:text="${hcn.factor}"></td>
-                    <td th:text="${@newCoreController.guiString(hcn.recorderBody.body)}"></td>
+                    <td th:text="${@newCoreController.guiString(hcn.hcnGenerator.body)}"></td>
                 </tr>
             </tbody>
         </table>

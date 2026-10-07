@@ -9,8 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 @Setter
 @Builder
 @Slf4j
-public class Hcn {
-    private final RecorderBody recorderBody;
+public class Hcn implements Comparable<Hcn> {
+    private HcnGenerator hcnGenerator;
     private Prime lastActivePrime;
     private ScientificNumber value;
     private ScientificNumber factor;
@@ -24,11 +24,16 @@ public class Hcn {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        recorderBody.getBody().buildChain(sb);
+        hcnGenerator.getBody().buildChain(sb);
         return "{" + sb +
                 " | " + getLapiIndex() +
                 " | v: " + value +
                 ", f: " + factor +
                 '}';
+    }
+
+    @Override
+    public int compareTo(Hcn other) {
+        return this.value.compareTo(other.value);
     }
 }

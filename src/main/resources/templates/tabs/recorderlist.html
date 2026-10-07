@@ -39,20 +39,20 @@
                         <th>Body</th>
                         <th>Value</th>
                         <th>Factor</th>
-                        <th>Lapi Distance</th>
+                        <th>Lapi</th>
                         <th>Pray</th>
-                        <th>PrayLapiDist</th>
+                        <th>IntervalLapiDist</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr th:each="hunter : ${rb.hunters}"
                         th:style="${hunter.body.deactivated ? 'background:#ff9999;' : ''}">
                         <td th:text="${@newCoreController.guiString(hunter.body)}"></td>
-                        <td th:text="${hunter.getCurrentHunterHcn.value}"></td>
-                        <td th:text="${hunter.getCurrentHunterHcn.factor}"></td>
-                        <td th:text="${hunter.getCurrentHunterHcn.lastActivePrime.index}"></td>
+                        <td th:text="${hunter.currentHcn.value}"></td>
+                        <td th:text="${hunter.currentHcn.factor}"></td>
+                        <td th:text="${hunter.currentHcn.lapiIndex}"></td>
                         <td th:text="${@newCoreController.guiString(hunter.prayBody?.body)}"></td>
-                        <td th:text="${hunter.prayLapiDistance}"></td>
+                        <td th:text="${hunter.intervalLapiDistance}"></td>
                     </tr>
                 </tbody>
             </table>
