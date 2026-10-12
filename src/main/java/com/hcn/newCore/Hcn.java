@@ -16,6 +16,8 @@ public class Hcn implements Comparable<Hcn> {
     private ScientificNumber factor;
     @Builder.Default
     private Integer tempId = null;
+    //@Builder.Default
+    private HcnStatus hcnStatus;
 
     public int getLapiIndex() {
         return lastActivePrime.getIndex();
@@ -25,11 +27,15 @@ public class Hcn implements Comparable<Hcn> {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         hcnGenerator.getBody().buildChain(sb);
-        return "{" + sb +
-                " | " + getLapiIndex() +
-                " | v: " + value +
+        String hcnStatus = "N/A";
+        if (this.hcnStatus != null) {
+            hcnStatus = this.hcnStatus.toString();
+        }
+        return sb +
+                " | p[" + getLapiIndex() +
+                "] | v: " + value +
                 ", f: " + factor +
-                '}';
+                " " + hcnStatus;
     }
 
     @Override

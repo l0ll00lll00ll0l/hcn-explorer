@@ -128,6 +128,8 @@ public class Matrix {
         Prime.getFirstPrime().getNextPrime().setFactorMultiplier(new ScientificNumber(1, 0));
         Prime.getHcnProducerPrimes().add(Prime.getFirstPrime().getNextPrime());
         Prime.getHcnProducerPrimes().add(Prime.getFirstPrime());
+        Prime.setCurrentBasePrime(Prime.getFirstPrime().getNextPrime());
+        Prime p2 = Prime.getFirstPrime().getNextPrime().calculateNextPrimeIfNeeded();
 
         RecorderBody firstRecorder = RecorderBody.builder().body(b11).intervalLapiDistance(0).build();
         RecorderBody lastRecorder = RecorderBody.builder().body(b21).intervalLapiDistance(0).build();
@@ -156,27 +158,36 @@ public class Matrix {
         Interval.setGlobalReferenceInterval(Interval.builder().lapi(0).prime(Prime.getFirstPrime()).hcnList(List.of(hcn1, hcn2)).build());
         Interval.getGlobalReferenceInterval().setReferenceInterval(Interval.getGlobalReferenceInterval());
         Interval.setCurrentInterval(Interval.builder().lapi(1).prime(Prime.getFirstPrime().getNextPrime()).hcnList(new ArrayList<>(List.of(hcn11))).lowestRecorderLapi(1).build());
+        Interval.getGlobalReferenceInterval().setPreviousInterval(Interval.getGlobalReferenceInterval());
+        Interval.getGlobalReferenceInterval().setNextInterval(Interval.getCurrentInterval());
+        Interval.getCurrentInterval().setNextInterval(null);
+        Interval.getCurrentInterval().setPreviousInterval(null);
         RecorderList.setCurrentRecorder(firstRecorder);
 
         if (dbMode) {
             dbInsertService.submit(Interval.getGlobalReferenceInterval());
         }
 
-        HunterBody h31 = HunterBody.builder().body(b31).prayBody(firstRecorder).intervalLapiDistance(1).build();
+        HunterBody h31 = HunterBody.builder().body(b31).intervalLapiDistance(1).build();
         b31.setHunterBody(h31);
         firstRecorder.getHunters().add(h31);
 
-        HunterBody h22 = HunterBody.builder().body(b22).prayBody(lastRecorder).intervalLapiDistance(1).build();
-        b22.setHunterBody(h22);
-        lastRecorder.getHunters().add(h22);
+        PassingZone passingZone = new PassingZone(firstRecorder, h31);
+        PassingZone.setGlobalNextPassingZone(passingZone);
+        firstRecorder.setPassingZone(passingZone);
+        //h31.setPassingZone(PassingZone.getGlobalNextPassingZone());
+        //Prime.calculatePassingZone(h31);
 
-        HunterBody h32 = HunterBody.builder().body(b32).prayBody(lastRecorder).intervalLapiDistance(1).build();
-        b32.setHunterBody(h32);
-        lastRecorder.getHunters().add(h32);
+        b22.setHunterBody(HunterBody.builder().body(b22).build());
+        RecorderList.findPray(b22.getHunterBody());
+        b32.setHunterBody(HunterBody.builder().body(b32).build());
+        RecorderList.findPray(b32.getHunterBody());
+
     }
 
     public void proveNextLapi() {
-        Interval.processCurrentInterval();
+        //Interval.processCurrentInterval();
+        PassingZone.processNextPassingZone();
         ActivityCenter.setProving(false);
     }
 

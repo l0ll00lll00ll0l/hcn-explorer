@@ -424,6 +424,26 @@ public class NewCoreController {
         return Interval.getCurrentInterval();
     }
 
+    public List<Interval> getIntervalList() {
+        List<Interval> list = new ArrayList<>();
+        Interval walker = Interval.getGlobalReferenceInterval();
+        while (walker != null) {
+            list.add(walker);
+            walker = walker.getNextInterval();
+        }
+        return list;
+    }
+
+    public List<PassingZone> getPassingZoneList() {
+        List<PassingZone> list = new ArrayList<>();
+        PassingZone walker = PassingZone.getGlobalNextPassingZone();
+        while (walker != null) {
+            list.add(walker);
+            walker = walker.getNextPassingZone();
+        }
+        return list;
+    }
+
     public ScientificNumber getCurrentIntervalTargetValue() {
         return Matrix.getTargetValue();
     }

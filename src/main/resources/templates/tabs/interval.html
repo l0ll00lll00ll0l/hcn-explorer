@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <div class="bodylist-selector">
+        <button class="bodylist-btn" id="subtab-btn-intervals" onclick="selectIntervalSubTab('intervals')">Intervals</button>
+        <button class="bodylist-btn" id="subtab-btn-reference" onclick="selectIntervalSubTab('reference')">Reference</button>
+        <button class="bodylist-btn" id="subtab-btn-current" onclick="selectIntervalSubTab('current')">Current</button>
+    </div>
+
+    <div id="interval-intervals">
+        <table class="level-table">
+            <thead><tr><th>lapi</th><th>prime index</th><th>prime value</th><th>ref prime index</th></tr></thead>
+            <tbody>
+                <tr th:each="interval : ${@newCoreController.getIntervalList()}">
+                    <td th:text="${interval.lapi}"></td>
+                    <td th:text="${interval.prime.index}"></td>
+                    <td th:text="${interval.prime.intValue}"></td>
+                    <td th:text="${interval.referenceInterval != null ? interval.referenceInterval.prime.index : ''}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div id="interval-reference" style="display:none;">
+        <table class="level-table" style="width: auto; margin-bottom: 12px;">
+            <thead><tr><th>lapi</th><th>referenced</th><th>referenceInterval</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td th:text="${T(com.hcn.newCore.Interval).globalReferenceInterval.lapi}"></td>
+                    <td th:text="${T(com.hcn.newCore.Interval).globalReferenceInterval.referenced}"></td>
+                    <td th:text="${T(com.hcn.newCore.Interval).globalReferenceInterval.referenceInterval != null ? T(com.hcn.newCore.Interval).globalReferenceInterval.referenceInterval.lapi : ''}"></td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="level-table">
+            <thead><tr><th>#</th><th>dbId</th><th>lapi</th><th>value</th><th>factor</th><th>body</th></tr></thead>
+            <tbody>
+                <tr th:each="hcn, hIter : ${T(com.hcn.newCore.Interval).globalReferenceInterval.hcnList}">
+                    <td th:text="${hIter.index}"></td>
+                    <td th:text="${hcn.hcnGenerator.body?.dbId}"></td>
+                    <td th:text="${hcn.lapiIndex}"></td>
+                    <td th:text="${hcn.value}"></td>
+                    <td th:text="${hcn.factor}"></td>
+                    <td th:text="${@newCoreController.guiString(hcn.hcnGenerator.body)}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="interval-current" style="display:none;">
+        <div th:if="${@newCoreController.getCurrentInterval() == null}" style="font-size: 11px; color: #999;">No current interval</div>
+        <div th:if="${@newCoreController.getCurrentInterval() != null}">
+            <table class="level-table" style="width: auto; margin-bottom: 12px;">
+                <thead><tr><th>lapi</th><th>referenced</th><th>referenceInterval</th></tr></thead>
+                <tbody>
+                    <tr th:with="ci=${@newCoreController.getCurrentInterval()}">
+                        <td th:text="${ci.lapi}"></td>
+                        <td th:text="${ci.referenced}"></td>
+                        <td th:text="${ci.referenceInterval != null ? ci.referenceInterval.lapi : ''}"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <table class="level-table">
+                <thead><tr><th>#</th><th>dbId</th><th>lapi</th><th>value</th><th>factor</th><th>body</th></tr></thead>
+                <tbody>
+                    <tr th:each="hcn, hIter : ${@newCoreController.getCurrentInterval().hcnList}">
+                        <td th:text="${hIter.index}"></td>
+                        <td th:text="${hcn.hcnGenerator.body?.dbId}"></td>
+                        <td th:text="${hcn.lapiIndex}"></td>
+                        <td th:text="${hcn.value}"></td>
+                        <td th:text="${hcn.factor}"></td>
+                        <td th:text="${@newCoreController.guiString(hcn.hcnGenerator.body)}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        var activeIntervalSubTab = 'intervals';
+        window.selectIntervalSubTab = function(name) {
+            document.getElementById('interval-intervals').style.display = name === 'intervals' ? '' : 'none';
+            document.getElementById('interval-reference').style.display = name === 'reference' ? '' : 'none';
+            document.getElementById('interval-current').style.display = name === 'current' ? '' : 'none';
+            ['intervals', 'reference', 'current'].forEach(function(t) {
+                document.getElementById('subtab-btn-' + t).classList.toggle('active', t === name);
+            });
+            activeIntervalSubTab = name;
+        }
+        selectIntervalSubTab(activeIntervalSubTab);
+    </script>
+</div>
+</body>
+</html>

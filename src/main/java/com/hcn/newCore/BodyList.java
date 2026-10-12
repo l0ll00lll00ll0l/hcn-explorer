@@ -188,7 +188,8 @@ public class BodyList implements Iterable<Body> {
 
     public void maintainRecorderList() {
         dominatedSuperiorBodies.forEach(hunterBodiesToRemove -> {
-            RecorderList.deleteHunterBody(hunterBodiesToRemove.getHunterBody());
+            //log.debug("Deleting hunterBody: {}", hunterBodiesToRemove);
+            hunterBodiesToRemove.getHunterBody().getPassingZone().deleteHunterBodyFromBodyList(hunterBodiesToRemove.getHunterBody());
         });
         successfullyAddedNewBodies.forEach(newHunterBody -> {
             HunterBody hunterBody = HunterBody.builder().body(newHunterBody).build();

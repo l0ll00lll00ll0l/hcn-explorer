@@ -23,6 +23,8 @@ public class Interval {
     private int activeBodyCount;
     private int lowestRecorderLapi;
     private Body lastBaseIntervalBody;
+    private Interval previousInterval;
+    private Interval nextInterval;
     private List<Body> postBaseBodyList = null;
 
     public static Interval getCurrentInterval() {
@@ -41,66 +43,46 @@ public class Interval {
         Interval.globalReferenceInterval = globalReferenceInterval;
     }
 
+    public static Interval getInterval(Prime passingPrayPrime) {
+
+        Interval walker = globalReferenceInterval;
+        Interval previousWalker = null;
+        while (walker != null && walker.getPrime().getIndex() < passingPrayPrime.getIndex()) {
+            previousWalker = walker;
+            walker = walker.getNextInterval();
+        }
+
+        if (walker == null) {
+            Interval newInterval = Interval.builder().prime(passingPrayPrime).hcnList(new ArrayList<>()).previousInterval(previousWalker).nextInterval(null).build();
+            previousWalker.setNextInterval(newInterval);
+            return newInterval;
+        } else {
+            if (walker.getPrime().getIndex() > passingPrayPrime.getIndex()) {
+                Interval newInterval = Interval.builder().prime(passingPrayPrime).hcnList(new ArrayList<>()).previousInterval(previousWalker).nextInterval(walker).build();
+                previousWalker.setNextInterval(newInterval);
+                walker.setPreviousInterval(newInterval);
+                return newInterval;
+            } else {
+                return walker;
+            }
+        }
+    }
+
     public boolean isReferenced() {
         return referenceInterval != null && referenceInterval != this;
     }
 
 
-    public static void processCurrentInterval() {
-        Interval currentInterval = Interval.getCurrentInterval();
-        while (currentInterval.equals(Interval.getCurrentInterval())) {
-            RecorderBody previousRecorder = RecorderList.getCurrentRecorder();
-            RecorderBody currentRecorder = previousRecorder.getNextRecorder();
-            RecorderList.setCurrentRecorder(currentRecorder);
-            Hcn recorderHcn = currentRecorder.getProcessingHcn();
-            List<Hcn> passingHcns = currentRecorder.getPassingHcns(recorderHcn);
-            Hcn previouslyAddedHcn = null;
-
-            if (!passingHcns.isEmpty()) {
-                log.debug("passingHcns: {}", passingHcns);
-
-                for (Hcn passingHcn : passingHcns) {
-                    if (previouslyAddedHcn == null) {
-                        addRecorderHcn(RecorderList.addNewRecord(passingHcn));
-                        previouslyAddedHcn = passingHcn;
-                    } else {
-                        if (passingHcn.getFactor().isBiggerThan(previouslyAddedHcn.getFactor())) {
-                            log.debug("FACTOR IS BIGGER - adding new recorder");
-                            addRecorderHcn(RecorderList.addNewRecord(passingHcn));
-                            previouslyAddedHcn = passingHcn;
-                        } else {
-                            log.debug("FACTOR IS SMALLER - setting pray body");
-                            HunterBody hunterBody = passingHcn.getHcnGenerator().getBody().getHunterBody();
-                            hunterBody.setPrayBody(previouslyAddedHcn.getHcnGenerator().getBody().getRecorderBody());
-                            if (RecorderList.isCurrentRecorderFirstRecorder()) {
-                                hunterBody.setIntervalLapiDistance(hunterBody.getIntervalLapiDistance() - 1);
-                            }
-                            previouslyAddedHcn.getHcnGenerator().getBody().getRecorderBody().getHunters().add(hunterBody);
-                        }
-                    }
-                }
-                if (recorderHcn.getFactor().isNotBiggerThan(previouslyAddedHcn.getFactor())) {
-                    RecorderList.killCurrentRecorder();
-                } else {
-                    addRecorderHcn(recorderHcn);
-                }
-            } else {
-                addRecorderHcn(recorderHcn);
-            }
-            //processCurrentRecorder();
-        }
-    }
-
     public void referenceCheck() {
 
         if (globalReferenceInterval.getHcnList().size() != hcnList.size()) {
             this.referenceInterval = this;
-            globalReferenceInterval = this;
+            setGlobalReferenceInterval(this);
         }
         for (int i = 0; i < hcnList.size(); i++) {
             if (!globalReferenceInterval.getHcnList().get(i).getHcnGenerator().equals(hcnList.get(i).getHcnGenerator())) {
                 this.referenceInterval = this;
-                globalReferenceInterval = this;
+                setGlobalReferenceInterval(this);
             }
         }
         this.referenceInterval = globalReferenceInterval;

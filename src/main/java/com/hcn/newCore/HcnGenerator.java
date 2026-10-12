@@ -11,16 +11,12 @@ public abstract class HcnGenerator {
     protected Body body;
     protected int intervalLapiDistance;
 
-    public abstract ScientificNumber getCurrentHcnFactor();
-    public abstract Hcn getCurrentHcn();
-    public Hcn getProcessingHcn() {
-        int requiredIntervalDistance = intervalLapiDistance - (RecorderList.isCurrentRecorderFirstRecorder() ? 1 : 0);
-        Prime lastActivePrime = Prime.getPrimeByLapiDistance(requiredIntervalDistance);
+    public Hcn getHcn(Prime prime) {
         return Hcn.builder()
                 .hcnGenerator(this)
-                .value(getHcnValue(lastActivePrime))
-                .factor(getHcnFactor(lastActivePrime))
-                .lastActivePrime(lastActivePrime)
+                .value(getHcnValue(prime))
+                .factor(getHcnFactor(prime))
+                .lastActivePrime(prime)
                 .build();
     }
     public ScientificNumber getHcnValue(Prime prime) {

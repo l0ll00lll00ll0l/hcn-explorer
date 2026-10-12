@@ -3,16 +3,19 @@ package com.hcn.newCore;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 
 @Builder
 @Getter
 @Setter
+@Slf4j
 public class Prime {
     private static final ArrayList<Prime> hcnProducerPrimes = new ArrayList<>();
     private static Prime largestPrime;
     private static Prime firstPrime;
+    private static Prime currentBasePrime;
     private final int index;
     private final int intValue;
     private final ScientificNumber value;
@@ -33,6 +36,8 @@ public class Prime {
     public static Prime getFirstPrime() {
         return firstPrime;
     }
+    public static Prime getCurrentBasePrime() {return currentBasePrime;}
+    public static void setCurrentBasePrime(Prime currentBasePrime) {Prime.currentBasePrime = currentBasePrime;}
 
     public static void initialize() {
         firstPrime = Prime.builder().index(0).intValue(2).value(new ScientificNumber(2, 0)).previousPrime(null).build();
@@ -66,6 +71,26 @@ public class Prime {
             nextPrime = getPrime(index + 1);
         }
         return nextPrime;
+    }
+
+    public Prime calculateNextPrimeIfNeeded(int distance) {
+
+        Prime primeWalker = this;
+        for (int i = 0; i < distance; i++) {
+            if (primeWalker.nextPrime == null) {
+                primeWalker.nextPrime = getPrime(index + 1);
+            }
+           primeWalker = primeWalker.nextPrime;
+        }
+        return primeWalker;
+    }
+
+    public Prime getPreviousPrime(int distance) {
+        Prime primeWalker = this;
+        for (int i = 0; i < distance; i++) {
+            primeWalker = primeWalker.getPreviousPrime();
+        }
+        return primeWalker;
     }
 
     public static Prime getPrime(int primeIndex) {

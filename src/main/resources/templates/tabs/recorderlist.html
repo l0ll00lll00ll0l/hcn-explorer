@@ -12,9 +12,6 @@
                 <tr>
                     <th>#</th>
                     <th>Body</th>
-                    <th>Value</th>
-                    <th>Factor</th>
-                    <th>Lapi</th>
                     <th>Pray</th>
                     <th>IntervalLapiDist</th>
                 </tr>
@@ -23,41 +20,46 @@
                 <tr th:style="${rb.body.deactivated ? 'background:#ff9999;' : 'background:#e8f5e9;'}">
                     <td th:text="${bodyStat.index}"></td>
                     <td th:text="${@newCoreController.guiString(rb.body)}"></td>
-                    <td th:text="${rb.currentHcn?.value}"></td>
-                    <td th:text="${rb.currentHcn?.factor}"></td>
-                    <td th:text="${rb.currentHcn?.lapiIndex}"></td>
                     <td th:text="${@newCoreController.guiString(rb.prayBody?.body)}"></td>
                     <td th:text="${rb.intervalLapiDistance}"></td>
                 </tr>
             </tbody>
         </table>
-        <div th:if="${!rb.hunters.isEmpty()}" style="margin: 4px 8px 8px 24px;">
-            <div style="font-size: 10px; color: #666; margin-bottom: 2px;">hunters:</div>
-            <table class="level-table" style="font-size: 11px; width: auto;">
-                <thead>
-                    <tr>
-                        <th>Body</th>
-                        <th>Value</th>
-                        <th>Factor</th>
-                        <th>Lapi</th>
-                        <th>Pray</th>
-                        <th>IntervalLapiDist</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="hunter : ${rb.hunters}"
-                        th:style="${hunter.body.deactivated ? 'background:#ff9999;' : ''}">
-                        <td th:text="${@newCoreController.guiString(hunter.body)}"></td>
-                        <td th:text="${hunter.currentHcn.value}"></td>
-                        <td th:text="${hunter.currentHcn.factor}"></td>
-                        <td th:text="${hunter.currentHcn.lapiIndex}"></td>
-                        <td th:text="${@newCoreController.guiString(hunter.prayBody?.body)}"></td>
-                        <td th:text="${hunter.intervalLapiDistance}"></td>
-                    </tr>
-                </tbody>
-            </table>
+        <div style="display: flex; gap: 12px; align-items: flex-start; margin: 4px 8px 8px 8px;">
+            <div th:if="${rb.passingZone != null}" style="display: flex; gap: 12px; border: 1px solid #aaa; padding: 6px 8px; font-size: 11px;">
+                <div>
+                    <div style="font-weight: bold; margin-bottom: 4px;">passingZone</div>
+                    <div th:each="hcn : ${rb.passingZone.passingZone}" th:text="${hcn.toString()}"></div>
+                </div>
+                <div>
+                    <div style="font-weight: bold; margin-bottom: 4px;">nonPassingHcns</div>
+                    <div th:if="${rb.passingZone.nonPassingHcns.isEmpty()}" style="color: #999;">-</div>
+                    <div th:each="hcn : ${rb.passingZone.nonPassingHcns}" th:text="${hcn.toString()}"></div>
+                </div>
+            </div>
+            <div th:if="${rb.passingZone == null}" style="border: 1px solid #ddd; padding: 6px 8px; font-size: 10px; color: #999; min-width: 160px;">no passingZone</div>
+            <div style="flex: 1;">
+                <div th:if="${!rb.hunters.isEmpty()}">
+                    <div style="font-size: 10px; color: #666; margin-bottom: 2px;">hunters:</div>
+                    <table class="level-table" style="font-size: 11px; width: auto;">
+                        <thead>
+                            <tr>
+                                <th>Body</th>
+                                <th>IntervalLapiDist</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="hunter : ${rb.hunters}"
+                                th:style="${hunter.body.deactivated ? 'background:#ff9999;' : ''}">
+                                <td th:text="${@newCoreController.guiString(hunter.body)}"></td>
+                                <td th:text="${hunter.intervalLapiDistance}"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${rb.hunters.isEmpty()}" style="font-size: 10px; color: #999;">no hunters</div>
+            </div>
         </div>
-        <div th:if="${rb.hunters.isEmpty()}" style="margin: 2px 8px 6px 24px; font-size: 10px; color: #999;">no hunters</div>
     </div>
 
 </div>

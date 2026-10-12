@@ -74,11 +74,10 @@
             <button class="tab-btn" th:classappend="${activeTab == 'bodynodes' ? ' active' : ''}"     onclick="loadTab('bodynodes')">BodyList</button>
             <button class="tab-btn" th:classappend="${activeTab == 'bodynode' ? ' active' : ''}"      onclick="loadTab('bodynode')">BodyNode</button>
             <button class="tab-btn" th:classappend="${activeTab == 'hcngen' ? ' active' : ''}"        onclick="loadTab('hcngen')">Hcn Generation</button>
-            <button class="tab-btn" th:classappend="${activeTab == 'prime' ? ' active' : ''}"          onclick="loadTab('prime')">Prime</button>
+            <button class="tab-btn" th:classappend="${activeTab == 'passingzone' ? ' active' : ''}"          onclick="loadTab('passingzone')">PassingZone</button>
             <button class="tab-btn" th:classappend="${activeTab == 'recorderlist' ? ' active' : ''}"   onclick="loadTab('recorderlist')">RecorderList</button>
             <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'database' ? ' active' : ''}"       onclick="loadTab('database')">Database</button>
-            <button class="tab-btn" th:classappend="${activeTab == 'refinterval' ? ' active' : ''}"    onclick="loadTab('refinterval')">ReferenceInterval</button>
-            <button class="tab-btn" th:classappend="${activeTab == 'currentinterval' ? ' active' : ''}" onclick="loadTab('currentinterval')">CurrentInterval</button>
+            <button class="tab-btn" th:classappend="${activeTab == 'interval' ? ' active' : ''}"       onclick="loadTab('interval')">Interval</button>
             <button th:if="${matrix.dbMode}" class="tab-btn" th:classappend="${activeTab == 'activities' ? ' active' : ''}" onclick="loadTab('activities')">Activities</button>
         </div>
         <div id="tab-content"></div>

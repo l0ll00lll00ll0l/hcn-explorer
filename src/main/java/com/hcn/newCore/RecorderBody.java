@@ -22,69 +22,8 @@ public class RecorderBody extends HcnGenerator{
     private Hcn firstDominatedHcn = null;
     private Hcn firstSuperiorHcn = null;
     private RecorderBody prayBody = null;
+    private PassingZone passingZone = null;
 
-    public ScientificNumber getCurrentHcnFactor() {
-            return getHcnFactor(Prime.getPrimeByLapiDistance(intervalLapiDistance));
-    }
-
-    public Hcn getCurrentHcn() {
-        Prime prime = Prime.getPrimeByLapiDistance(intervalLapiDistance);
-        return Hcn.builder().hcnGenerator(this).lastActivePrime(prime).value(getHcnValue(prime)).factor(getHcnFactor(prime)).build();
-    }
-
-    public List<Hcn> generateSmallerHunterHcns(Hcn recorderHcn) {
-
-        TreeSet<Hcn> sortedHunterHcns = new TreeSet<>();
-        hunters.forEach(hunterBody -> {
-            Hcn hunterHcn = hunterBody.getProcessingHcn();
-
-            if (hunterHcn.getValue().isSmallerThan(recorderHcn.getValue())) {
-                log.debug(" hunterBody ADDED: {}", hunterBody);
-                sortedHunterHcns.add(hunterHcn);
-            }
-        });
-        sortedHunterHcns.forEach(hunterHcn -> hunters.remove(hunterHcn.getHcnGenerator()));
-        return sortedHunterHcns.stream().toList();
-    }
-
-    public List<Hcn> generatePassingRecorderHunters(Hcn recorderHcn) {
-        TreeSet<Hcn> sortedRecorderHcns = new TreeSet<>();
-        log.debug(" recorderHcn: {} | recorderHunters.size(): {}", recorderHcn.getValue().toString(), recorderHunters.size());
-        recorderHunters.forEach(recorderBody -> {
-            if (recorderHcn.getValue().isSmallerThan(recorderHcn.getValue())) {
-                log.debug(" recorderBody ADDED: {} | {}", recorderBody, recorderHcn.getValue().toString());
-                sortedRecorderHcns.add(recorderHcn);
-            } else {
-                log.debug(" recorderBody SKIPPED: {} | {}", recorderBody, recorderHcn.getValue().toString());
-            }
-        });
-        sortedRecorderHcns.forEach(hcn -> recorderHunters.remove(hcn.getHcnGenerator()));
-        return sortedRecorderHcns.stream().toList();
-    }
-
-    public List<Hcn> getPassingHcns(Hcn recorderHcn) {
-        TreeSet<Hcn> sortedHcns = new TreeSet<>();
-        hunters.forEach(hunterBody -> {
-            Hcn hunterHcn = hunterBody.getProcessingHcn();
-            if (hunterHcn.getValue().isSmallerThan(recorderHcn.getValue())) {
-                sortedHcns.add(hunterHcn);
-            }
-        });
-        recorderHunters.forEach(recorderBody -> {
-            Hcn recorderHunterHcn = recorderBody.getProcessingHcn();
-            if (recorderHunterHcn.getValue().isSmallerThan(recorderHcn.getValue())) {
-                sortedHcns.add(recorderHunterHcn);
-            }
-        });
-        sortedHcns.forEach(hcn -> {
-            if (hcn.getHcnGenerator() instanceof RecorderBody) {
-                recorderHunters.remove(hcn.getHcnGenerator());
-            } else {
-                hunters.remove(hcn.getHcnGenerator());
-            }
-        });
-        return sortedHcns.stream().toList();
-    }
 
     @Override
     public String toString() {
