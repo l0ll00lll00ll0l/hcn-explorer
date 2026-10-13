@@ -189,11 +189,11 @@ public class BodyList implements Iterable<Body> {
     public void maintainRecorderList() {
         dominatedSuperiorBodies.forEach(hunterBodiesToRemove -> {
             //log.debug("Deleting hunterBody: {}", hunterBodiesToRemove);
-            hunterBodiesToRemove.getHunterBody().getPassingZone().deleteHunterBodyFromBodyList(hunterBodiesToRemove.getHunterBody());
+            hunterBodiesToRemove.getHcnGenerator().getHunterPassingZone().deleteHunterBodyFromBodyList(hunterBodiesToRemove.getHcnGenerator());
         });
         successfullyAddedNewBodies.forEach(newHunterBody -> {
-            HunterBody hunterBody = HunterBody.builder().body(newHunterBody).build();
-            newHunterBody.setHunterBody(hunterBody);
+            HcnGenerator hunterBody = HcnGenerator.builder().body(newHunterBody).build();
+            newHunterBody.setHcnGenerator(hunterBody);
             RecorderList.findPray(hunterBody);
         });
         if (ActivityCenter.isDbMode()) {

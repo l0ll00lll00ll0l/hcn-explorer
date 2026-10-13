@@ -133,8 +133,8 @@ public class Matrix {
 
         RecorderBody firstRecorder = RecorderBody.builder().body(b11).intervalLapiDistance(0).build();
         RecorderBody lastRecorder = RecorderBody.builder().body(b21).intervalLapiDistance(0).build();
-        b11.setRecorderBody(firstRecorder);
-        b21.setRecorderBody(lastRecorder);
+        b11.setHcnGenerator(firstRecorder);
+        b21.setHcnGenerator(lastRecorder);
         firstRecorder.setNextRecorder(lastRecorder);
         lastRecorder.setPreviousRecorder(firstRecorder);
         firstRecorder.setPreviousRecorder(lastRecorder);
@@ -168,9 +168,9 @@ public class Matrix {
             dbInsertService.submit(Interval.getGlobalReferenceInterval());
         }
 
-        HunterBody h31 = HunterBody.builder().body(b31).intervalLapiDistance(1).build();
-        b31.setHunterBody(h31);
-        firstRecorder.getHunters().add(h31);
+        HcnGenerator h31 = HcnGenerator.builder().body(b31).intervalLapiDistance(1).build();
+        b31.setHcnGenerator(h31);
+        //firstRecorder.getHunters().add(h31);
 
         PassingZone passingZone = new PassingZone(firstRecorder, h31);
         PassingZone.setGlobalNextPassingZone(passingZone);
@@ -178,10 +178,10 @@ public class Matrix {
         //h31.setPassingZone(PassingZone.getGlobalNextPassingZone());
         //Prime.calculatePassingZone(h31);
 
-        b22.setHunterBody(HunterBody.builder().body(b22).build());
-        RecorderList.findPray(b22.getHunterBody());
-        b32.setHunterBody(HunterBody.builder().body(b32).build());
-        RecorderList.findPray(b32.getHunterBody());
+        b22.setHcnGenerator(HcnGenerator.builder().body(b22).build());
+        RecorderList.findPray(b22.getHcnGenerator());
+        b32.setHcnGenerator(HcnGenerator.builder().body(b32).build());
+        RecorderList.findPray(b32.getHcnGenerator());
 
     }
 

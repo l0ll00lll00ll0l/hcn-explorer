@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.hcn.db.DbBody;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,8 +31,7 @@ public class Body implements Comparable<Body>{
     @Builder.Default
     private boolean deactivated = false;
     private DbBody dbBody;
-    private HunterBody hunterBody = null;
-    private RecorderBody recorderBody = null;
+    private HcnGenerator hcnGenerator = null;
 
     public boolean isDeleted() {
         return smallerBody == null && largerBody == null;

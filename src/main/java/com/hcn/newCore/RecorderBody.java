@@ -17,9 +17,7 @@ public class RecorderBody extends HcnGenerator{
 
     private RecorderBody previousRecorder;
     private RecorderBody nextRecorder;
-    private final List<HunterBody> hunters = new ArrayList<>();
     private final List<RecorderBody> recorderHunters = new ArrayList<>();
-    private Hcn firstDominatedHcn = null;
     private Hcn firstSuperiorHcn = null;
     private RecorderBody prayBody = null;
     private PassingZone passingZone = null;

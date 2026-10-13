@@ -38,27 +38,7 @@
                 </div>
             </div>
             <div th:if="${rb.passingZone == null}" style="border: 1px solid #ddd; padding: 6px 8px; font-size: 10px; color: #999; min-width: 160px;">no passingZone</div>
-            <div style="flex: 1;">
-                <div th:if="${!rb.hunters.isEmpty()}">
-                    <div style="font-size: 10px; color: #666; margin-bottom: 2px;">hunters:</div>
-                    <table class="level-table" style="font-size: 11px; width: auto;">
-                        <thead>
-                            <tr>
-                                <th>Body</th>
-                                <th>IntervalLapiDist</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="hunter : ${rb.hunters}"
-                                th:style="${hunter.body.deactivated ? 'background:#ff9999;' : ''}">
-                                <td th:text="${@newCoreController.guiString(hunter.body)}"></td>
-                                <td th:text="${hunter.intervalLapiDistance}"></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div th:if="${rb.hunters.isEmpty()}" style="font-size: 10px; color: #999;">no hunters</div>
-            </div>
+
         </div>
     </div>
 

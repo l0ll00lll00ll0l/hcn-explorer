@@ -42,23 +42,26 @@ public class RecorderList {
         size = count;
     }
 
+    /*
     public static void print() {
         //log.debug("Recorderlist size: {}", size);
         RecorderBody current = firstRecorder;
         int i = 0;
         do {
             //log.debug("Nr {} - {}, intervalLapiDistance {}, factor: {}", i, current, current.getIntervalLapiDistance(), current.getProcessingHcn().getFactor());
-            current.getHunters().forEach(hunter -> {
+            //current.getHunters().forEach(hunter -> {
                 //log.debug("    {} hunter - {}", hunter.getIntervalLapiDistance(), hunter);
-            });
+            //});
             current = current.getNextRecorder();
         } while (current != firstRecorder);
     }
 
-    public static void findPray(HunterBody hunter) {
+     */
+
+    public static void findPray(HcnGenerator hunter) {
 
 
-        HunterBody referenceBody = hunter.getPreviousHunter();
+        HcnGenerator referenceBody = hunter.getPreviousHunter();
 
         //log.debug("-*-*-*-*-*-*-*-*-*-*-*- referenceBody: {}, hunter: {} -*-*-*-*-*-*-*-*-*-*-*- ", referenceBody, hunter);
         //ScientificNumber referenceFactor = referenceBody.getProcessingHcn().getFactor();
@@ -71,7 +74,7 @@ public class RecorderList {
 
         int referenceDistance = referenceBody.getIntervalLapiDistance();
         Hcn referenceHunterHcn = referenceBody.getHunterHcn();
-        Hcn prayHcn = referenceBody.getPassingZone().getPrayHcn();
+        Hcn prayHcn = referenceBody.getHunterPassingZone().getPrayHcn();
         ScientificNumber prayHcnFactor = prayHcn.getFactor();
 
         ScientificNumber referenceBodyFactor = referenceBody.getBody().getFactor();
@@ -80,7 +83,7 @@ public class RecorderList {
         //log.debug("referenceMultiplier: {}", referenceMultiplier);
 
         ScientificNumber hunterFactor = referenceHunterHcn.getFactor().multiply(referenceMultiplier);
-        RecorderBody prayCandidate = referenceBody.getPassingZone().getPrayBody();
+        RecorderBody prayCandidate = referenceBody.getHunterPassingZone().getPrayBody();
         ScientificNumber referencePrayBodyFactor = prayCandidate.getBody().getFactor();
 
         //log.debug("prayCandidate: {}, hunterFactor: {}, prayHcnFactor: {}}", prayCandidate, hunterFactor, prayHcnFactor);
@@ -120,14 +123,14 @@ public class RecorderList {
 
 
         hunter.setIntervalLapiDistance(referenceDistance + baseMultiplier);
-        prayCandidate.getHunters().add(hunter);
+        //prayCandidate.getHunters().add(hunter);
 
         PassingZone passingZone = prayCandidate.getPassingZone();
         if (passingZone == null) {
             prayCandidate.setPassingZone(new PassingZone(prayCandidate, hunter));
-            //log.debug("new passingzone created: {}", prayCandidate.getPassingZone().getPassingZone());
+            log.debug("new passingzone created: {}", prayCandidate.getPassingZone().getPassingZone());
         } else {
-            //log.debug("hunter placed in existing passingzone");
+            log.debug("hunter placed in existing passingzone");
             prayCandidate.getPassingZone().placeHunter(hunter);
         }
         //log.debug("-*-*-*-*-*-*-*-*-*-*-*- hunter: {}, pz: {} -*-*-*-*-*-*-*-*-*-*-*- ", hunter.getHunterHcn(), hunter.getPassingZone().getPrayHcn());
@@ -145,7 +148,7 @@ public class RecorderList {
             RecorderBody potentialFirstRecorder = firstRecorder.getNextRecorder();
             while (potentialFirstRecorder.getIntervalLapiDistance() > 0) {
                 potentialFirstRecorder.setIntervalLapiDistance(potentialFirstRecorder.getIntervalLapiDistance() - 1);
-                potentialFirstRecorder.getPassingZone().decreaseIntervalLapiDistances();
+                potentialFirstRecorder.getHunterPassingZone().decreaseIntervalLapiDistances();
                 potentialFirstRecorder = potentialFirstRecorder.getNextRecorder();
             }
             firstRecorder = potentialFirstRecorder;
@@ -186,9 +189,9 @@ public class RecorderList {
             RecorderBody potentialFirstRecorder = firstRecorder.getNextRecorder();
             while (potentialFirstRecorder.getIntervalLapiDistance() > 0) {
                 potentialFirstRecorder.setIntervalLapiDistance(potentialFirstRecorder.getIntervalLapiDistance() - 1);
-                potentialFirstRecorder.getHunters().forEach(hunter -> {
-                    hunter.setIntervalLapiDistance(hunter.getIntervalLapiDistance() - 1);
-                });
+                //potentialFirstRecorder.getHunters().forEach(hunter -> {
+                    //hunter.setIntervalLapiDistance(hunter.getIntervalLapiDistance() - 1);
+                //});
                 potentialFirstRecorder = potentialFirstRecorder.getNextRecorder();
             }
             firstRecorder = potentialFirstRecorder;
@@ -218,7 +221,7 @@ public class RecorderList {
 
     public static ScientificNumber processActivityHcn(Hcn activityHcn, ScientificNumber previousRecorderFactor) {
         if (activityHcn.getHcnStatus() == HcnStatus.HUNTER_IN_PASSINGZONE) {
-            log.info("act: {}", activityHcn);
+            //log.info("act: {}", activityHcn);
             if (activityHcn.getFactor().isBiggerThan(previousRecorderFactor)) {
                 hunterToRecorder(activityHcn);
                 return activityHcn.getFactor();
@@ -241,20 +244,20 @@ public class RecorderList {
     }
 
     private static void hunterToRecorder(Hcn activityHcn) {
-        HunterBody newRecorder = (HunterBody) activityHcn.getHcnGenerator();
-        RecorderBody nextRecorder = newRecorder.getPassingZone().getPrayBody();
+        HcnGenerator newRecorder = activityHcn.getHcnGenerator();
+        RecorderBody nextRecorder = newRecorder.getHunterPassingZone().getPrayBody();
         RecorderBody prevRecorder = nextRecorder.getPreviousRecorder();
         int intervalLapiDistance = nextRecorder.equals(firstRecorder) ? -1 : 0;
 
         if (intervalLapiDistance == -1) {
-            log.info("intervaldist = -1 at  {}", activityHcn);
+            //log.info("intervaldist = -1 at  {}", activityHcn);
         }
 
         RecorderBody newRecorderBody = RecorderBody.builder().body(newRecorder.getBody())
                 .intervalLapiDistance(intervalLapiDistance + newRecorder.getIntervalLapiDistance())
                 .previousRecorder(prevRecorder).nextRecorder(nextRecorder)
                 .firstSuperiorHcn(activityHcn).build();
-        newRecorder.getBody().setRecorderBody(newRecorderBody);
+        newRecorder.getBody().setHcnGenerator(newRecorderBody);
         activityHcn.setHcnGenerator(newRecorderBody);
         nextRecorder.setPreviousRecorder(newRecorderBody);
         prevRecorder.setNextRecorder(newRecorderBody);
@@ -263,37 +266,37 @@ public class RecorderList {
         newRecorderBody.getBody().matrixMaintainCheck();
 
         List<Hcn> toMove = new ArrayList<>();
-        nextRecorder.getPassingZone().getNonPassingHcns().forEach(nonPassingHcn -> {
+        newRecorder.getHunterPassingZone().getNonPassingHcns().forEach(nonPassingHcn -> {
             if (nonPassingHcn.getFactor().isNotBiggerThan(activityHcn.getFactor())) {
-                log.info("added toMove: {} ", nonPassingHcn);
+                //log.info("added toMove: {} ", nonPassingHcn);
                 toMove.add(nonPassingHcn);
             }
         });
 
         if (!toMove.isEmpty()) {
-            if (intervalLapiDistance == -1) {
-                log.info("itoMove at  {} toMove: {}", activityHcn, toMove);
-            }
-            HunterBody firstHunter = (HunterBody) toMove.get(0).getHcnGenerator();
+
+            HcnGenerator firstHunter = toMove.get(0).getHcnGenerator();
             firstHunter.setIntervalLapiDistance(firstHunter.getIntervalLapiDistance() + intervalLapiDistance);
             newRecorderBody.setPassingZone(new PassingZone(newRecorderBody, firstHunter));
             //firstHunter.setPassingZone(newRecorderBody.getPassingZone());
-            nextRecorder.getPassingZone().getNonPassingHcns().remove(toMove.get(0));
+            newRecorder.getHunterPassingZone().getNonPassingHcns().remove(toMove.get(0));
             toMove.remove(0);
             toMove.forEach(hcnToMove -> {
-                HunterBody hunterToMove = (HunterBody) hcnToMove.getHcnGenerator();
+                HcnGenerator hunterToMove = hcnToMove.getHcnGenerator();
                 //hunterToMove.setPassingZone(newRecorderBody.getPassingZone());
                 hunterToMove.setIntervalLapiDistance(hunterToMove.getIntervalLapiDistance() + intervalLapiDistance);
                 newRecorderBody.getPassingZone().placeHunter(hunterToMove);
-                nextRecorder.getPassingZone().getNonPassingHcns().remove(hcnToMove);
+                newRecorder.getHunterPassingZone().getNonPassingHcns().remove(hcnToMove);
             });
         }
+
+        newRecorder.setHunterPassingZone(null);
     }
 
     public static Hcn addNewRecord(Hcn hunterHcn) {
-
+/*
         if (hunterHcn.getHcnGenerator() instanceof HunterBody) {
-            /*
+
             HunterBody newRecorder = hunterHcn.getHcnGenerator().getBody().getHunterBody();
             RecorderBody prayBody = newRecorder.getPrayBody();
             RecorderBody referenceBody = prayBody.getPreviousRecorder();
@@ -323,15 +326,16 @@ public class RecorderList {
                 //log.debug("RecorderBody {} added to recorderHunters of {}", newRecorderBody, prayCandidate);
             }
 
-             */
-        } else {
-            RecorderBody passingRecorderBody= hunterHcn.getHcnGenerator().getBody().getRecorderBody();
+        } else
+            */
+        {
+            RecorderBody passingRecorderBody= (RecorderBody) hunterHcn.getHcnGenerator().getBody().getHcnGenerator();
             RecorderBody prayBody = passingRecorderBody.getPrayBody();
             RecorderBody referenceBody = prayBody.getPreviousRecorder();
 
             if (prayBody.equals(firstRecorder)) {
                 passingRecorderBody.setIntervalLapiDistance(passingRecorderBody.getIntervalLapiDistance() - 1);
-                passingRecorderBody.getHunters().forEach(hunter -> hunter.setIntervalLapiDistance(hunter.getIntervalLapiDistance() - 1));
+                //passingRecorderBody.getHunters().forEach(hunter -> hunter.setIntervalLapiDistance(hunter.getIntervalLapiDistance() - 1));
             }
 
             prayBody.setNextRecorder(passingRecorderBody.getNextRecorder());
