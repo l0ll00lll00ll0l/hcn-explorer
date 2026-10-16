@@ -142,14 +142,18 @@ public class Matrix {
         RecorderList.initialize(firstRecorder, 2);
 
         Hcn hcn1 = Hcn.builder().hcnGenerator(firstRecorder).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(2, 0))
-                .factor(new ScientificNumber(2, 0)).build();
+                .factor(new ScientificNumber(2, 0)).hcnStatus(HcnStatus.FIRST_RECORDER).build();
         Hcn hcn2 = Hcn.builder().hcnGenerator(lastRecorder).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(4, 0))
-                .factor(new ScientificNumber(3, 0)).build();
+                .factor(new ScientificNumber(3, 0)).hcnStatus(HcnStatus.FIRST_RECORDER).build();
         Hcn hcn11 = Hcn.builder().hcnGenerator(firstRecorder).lastActivePrime(Prime.getFirstPrime().getNextPrime()).value(new ScientificNumber(6, 0))
-                .factor(new ScientificNumber(4, 0)).build();
+                .factor(new ScientificNumber(4, 0)).hcnStatus(HcnStatus.FIRST_RECORDER).build();
+        Hcn hcn21 = Hcn.builder().hcnGenerator(lastRecorder).lastActivePrime(Prime.getFirstPrime().getNextPrime()).value(new ScientificNumber(12, 0))
+                .factor(new ScientificNumber(6, 0)).build();
 
         firstRecorder.setFirstSuperiorHcn(hcn1);
+        firstRecorder.setPrayHcn(hcn11);
         lastRecorder.setFirstSuperiorHcn(hcn2);
+        lastRecorder.setPrayHcn(hcn21);
 
         //force lapi0 deletion
         lowestProvedLapiWithinInterval = 1;
@@ -172,9 +176,13 @@ public class Matrix {
         b31.setHcnGenerator(h31);
         //firstRecorder.getHunters().add(h31);
 
-        PassingZone passingZone = new PassingZone(firstRecorder, h31);
-        PassingZone.setGlobalNextPassingZone(passingZone);
-        firstRecorder.setPassingZone(passingZone);
+        PassingZone firstPassingZone = new PassingZone(firstRecorder);
+        firstPassingZone.placeHunter2(h31);
+        PassingZone.setGlobalNextPassingZone(firstPassingZone);
+        firstRecorder.setPassingZone(firstPassingZone);
+        
+        PassingZone secondPassingZone = new PassingZone(lastRecorder);
+        lastRecorder.setPassingZone(secondPassingZone);
         //h31.setPassingZone(PassingZone.getGlobalNextPassingZone());
         //Prime.calculatePassingZone(h31);
 

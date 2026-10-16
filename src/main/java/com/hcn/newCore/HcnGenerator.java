@@ -13,7 +13,6 @@ public class HcnGenerator {
     protected int intervalLapiDistance;
     private PassingZone hunterPassingZone;
     private Hcn hunterHcn;
-    private Hcn firstDominatedHcn = null;
 
     public Hcn getHcn(Prime prime) {
         return Hcn.builder()

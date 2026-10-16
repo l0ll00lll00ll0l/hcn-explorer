@@ -7,7 +7,7 @@
     </label>
     <table class="level-table">
         <thead>
-            <tr><th>#</th><th th:if="${matrix.dbMode}">dbId</th><th>Body</th><th>firstHcn</th><th>firstSuperiorHcn</th><th>lastGeneratedHcn</th><th>firstDominatedHcn</th></tr>
+            <tr><th>#</th><th th:if="${matrix.dbMode}">dbId</th><th>Body</th><th>HunterHcn</th><th>PrayHcn</th></tr>
         </thead>
         <tbody id="hcngen-bodylist">
             <tr th:if="${matrix.lastTransition.bodyList != null}"
@@ -16,8 +16,8 @@
                 <td th:text="${bIter.index}"></td>
                 <td th:if="${matrix.dbMode}" th:text="${body.dbId}"></td>
                 <td th:text="${@newCoreController.guiString(body)}"></td>
-                <td th:text="${body.hcnGenerator.firstDominatedHcn != null ? body.hcnGenerator.firstDominatedHcn.lapiIndex + ' v=' + body.hcnGenerator.firstDominatedHcn.value + ' f=' + body.hcnGenerator.firstDominatedHcn.factor : ''}"></td>
-                <td th:text="${body.hcnGenerator.hunterHcn != null ? body.hcnGenerator.hunterHcn.lapiIndex + ' v=' + body.hcnGenerator.hunterHcn.value + ' f=' + body.hcnGenerator.hunterHcn.factor : ''}"></td>
+                <td th:text="${body.hcnGenerator.hunterHcn != null ? body.hcnGenerator.hunterHcn.toString() : ''}"></td>
+                <td th:text="${body.hcnGenerator instanceof T(com.hcn.newCore.RecorderBody) and body.hcnGenerator.prayHcn != null ? body.hcnGenerator.prayHcn.toString() : ''}"></td>
             </tr>
         </tbody>
         <tbody id="hcngen-activelist" style="display:none;">
@@ -26,8 +26,8 @@
                 <td th:text="${bIter.index}"></td>
                 <td th:if="${matrix.dbMode}" th:text="${body.dbId}"></td>
                 <td th:text="${@newCoreController.guiString(body)}"></td>
-                <td th:text="${body.hcnGenerator.firstDominatedHcn != null ? body.hcnGenerator.firstDominatedHcn.lapiIndex + ' v=' + body.hcnGenerator.firstDominatedHcn.value + ' f=' + body.hcnGenerator.firstDominatedHcn.factor : ''}"></td>
-                <td th:text="${body.hcnGenerator.hunterHcn != null ? body.hcnGenerator.hunterHcn.lapiIndex + ' v=' + body.hcnGenerator.hunterHcn.value + ' f=' + body.hcnGenerator.hunterHcn.factor : ''}"></td>
+                <td th:text="${body.hcnGenerator.hunterHcn != null ? body.hcnGenerator.hunterHcn.toString() : ''}"></td>
+                <td th:text="${body.hcnGenerator instanceof T(com.hcn.newCore.RecorderBody) and body.hcnGenerator.prayHcn != null ? body.hcnGenerator.prayHcn.toString() : ''}"></td>
             </tr>
         </tbody>
     </table>
