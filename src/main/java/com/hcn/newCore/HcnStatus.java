@@ -2,10 +2,16 @@ package com.hcn.newCore;
 
 public enum HcnStatus {
     //NA,
-    NONPASSING_HCN,
-    DELETION_FROM_BODYLIST,
-    HUNTER_IN_PASSINGZONE,
-    RECORDER_SURVIVED,
-    RECORDER_DEACTIVATED,
-    FIRST_RECORDER, RECORDER_IN_PASSINGZONE
+    NONPASSING_HCN("NP"),
+    DELETION_FROM_BODYLIST("DEL"),
+    HUNTER_IN_PASSINGZONE("HP"),
+    RECORDER_SURVIVED("RS"),
+    RECORDER_DEACTIVATED("RD"),
+    FIRST_RECORDER("FR"),
+    RECORDER_IN_PASSINGZONE("RP"),
+    RECORDER_HUNTER("RH");
+
+    public final String s;
+
+    HcnStatus(String s) { this.s = s; }
 }

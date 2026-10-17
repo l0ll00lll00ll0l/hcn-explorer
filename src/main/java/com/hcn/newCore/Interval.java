@@ -88,20 +88,4 @@ public class Interval {
         this.referenceInterval = globalReferenceInterval;
     }
 
-    public static void addRecorderHcn(Hcn recorderHcn) {
-        //Hcn recorderHcn = recorderBody.generateRecorderHcn();
-        if (recorderHcn.getHcnGenerator().equals(RecorderList.getFirstRecorder())) {
-            initializeNewCurrentLapi();
-        }
-        currentInterval.hcnList.add(recorderHcn);
-    }
-
-    private static void initializeNewCurrentLapi() {
-        int prevLapi = currentInterval.lapi;
-        Prime.addNextHcnProducer();
-        currentInterval.referenceCheck();
-        currentInterval = Interval.builder().prime(Prime.getHighestHcnProducerPrime())
-                .hcnList(new ArrayList<>()).lowestRecorderLapi(prevLapi + 1).build();
-    }
-
 }

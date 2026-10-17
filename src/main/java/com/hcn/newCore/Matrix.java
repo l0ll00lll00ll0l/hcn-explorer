@@ -122,15 +122,6 @@ public class Matrix {
         b02.getOffsprings().add(b22);
         b03.getOffsprings().add(b32);
 
-        Prime.getFirstPrime().setValueMultiplier(new ScientificNumber((double) 1 / 3, 0));
-        Prime.getFirstPrime().setFactorMultiplier(new ScientificNumber(0.5, 0));
-        Prime.getFirstPrime().getNextPrime().setValueMultiplier(new ScientificNumber(1, 0));
-        Prime.getFirstPrime().getNextPrime().setFactorMultiplier(new ScientificNumber(1, 0));
-        Prime.getHcnProducerPrimes().add(Prime.getFirstPrime().getNextPrime());
-        Prime.getHcnProducerPrimes().add(Prime.getFirstPrime());
-        Prime.setCurrentBasePrime(Prime.getFirstPrime().getNextPrime());
-        Prime p2 = Prime.getFirstPrime().getNextPrime().calculateNextPrimeIfNeeded();
-
         RecorderBody firstRecorder = RecorderBody.builder().body(b11).intervalLapiDistance(0).build();
         RecorderBody lastRecorder = RecorderBody.builder().body(b21).intervalLapiDistance(0).build();
         b11.setHcnGenerator(firstRecorder);
@@ -141,27 +132,16 @@ public class Matrix {
         lastRecorder.setNextRecorder(firstRecorder);
         RecorderList.initialize(firstRecorder, 2);
 
-        Hcn hcn1 = Hcn.builder().hcnGenerator(firstRecorder).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(2, 0))
-                .factor(new ScientificNumber(2, 0)).hcnStatus(HcnStatus.FIRST_RECORDER).build();
-        Hcn hcn2 = Hcn.builder().hcnGenerator(lastRecorder).lastActivePrime(Prime.getFirstPrime()).value(new ScientificNumber(4, 0))
-                .factor(new ScientificNumber(3, 0)).hcnStatus(HcnStatus.FIRST_RECORDER).build();
-        Hcn hcn11 = Hcn.builder().hcnGenerator(firstRecorder).lastActivePrime(Prime.getFirstPrime().getNextPrime()).value(new ScientificNumber(6, 0))
-                .factor(new ScientificNumber(4, 0)).hcnStatus(HcnStatus.FIRST_RECORDER).build();
-        Hcn hcn21 = Hcn.builder().hcnGenerator(lastRecorder).lastActivePrime(Prime.getFirstPrime().getNextPrime()).value(new ScientificNumber(12, 0))
-                .factor(new ScientificNumber(6, 0)).build();
+        Hcn hcn1 = firstRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER);
+        Hcn hcn2 = lastRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER);
 
-        firstRecorder.setFirstSuperiorHcn(hcn1);
-        firstRecorder.setPrayHcn(hcn11);
-        lastRecorder.setFirstSuperiorHcn(hcn2);
-        lastRecorder.setPrayHcn(hcn21);
-
-        //force lapi0 deletion
         lowestProvedLapiWithinInterval = 1;
         provedCount = 2;
         provedLimit = new ScientificNumber(6, 0);
         Interval.setGlobalReferenceInterval(Interval.builder().lapi(0).prime(Prime.getFirstPrime()).hcnList(List.of(hcn1, hcn2)).build());
         Interval.getGlobalReferenceInterval().setReferenceInterval(Interval.getGlobalReferenceInterval());
-        Interval.setCurrentInterval(Interval.builder().lapi(1).prime(Prime.getFirstPrime().getNextPrime()).hcnList(new ArrayList<>(List.of(hcn11))).lowestRecorderLapi(1).build());
+
+        Interval.setCurrentInterval(Interval.builder().lapi(1).prime(Prime.getFirstPrime().getNextPrime()).hcnList(new ArrayList<>()).lowestRecorderLapi(1).build());
         Interval.getGlobalReferenceInterval().setPreviousInterval(Interval.getGlobalReferenceInterval());
         Interval.getGlobalReferenceInterval().setNextInterval(Interval.getCurrentInterval());
         Interval.getCurrentInterval().setNextInterval(null);
@@ -172,7 +152,7 @@ public class Matrix {
             dbInsertService.submit(Interval.getGlobalReferenceInterval());
         }
 
-        HcnGenerator h31 = HcnGenerator.builder().body(b31).intervalLapiDistance(1).build();
+        HcnGenerator h31 = HcnGenerator.builder().body(b31).intervalLapiDistance(1).generatedHunterHcns(new ArrayList<>()).build();
         b31.setHcnGenerator(h31);
         //firstRecorder.getHunters().add(h31);
 
@@ -186,9 +166,9 @@ public class Matrix {
         //h31.setPassingZone(PassingZone.getGlobalNextPassingZone());
         //Prime.calculatePassingZone(h31);
 
-        b22.setHcnGenerator(HcnGenerator.builder().body(b22).build());
+        b22.setHcnGenerator(HcnGenerator.builder().body(b22).generatedHunterHcns(new ArrayList<>()).build());
         RecorderList.findPray(b22.getHcnGenerator());
-        b32.setHcnGenerator(HcnGenerator.builder().body(b32).build());
+        b32.setHcnGenerator(HcnGenerator.builder().body(b32).generatedHunterHcns(new ArrayList<>()).build());
         RecorderList.findPray(b32.getHcnGenerator());
 
     }

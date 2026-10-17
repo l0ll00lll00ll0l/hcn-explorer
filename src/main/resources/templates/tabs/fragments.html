@@ -7,16 +7,11 @@
         <div th:each="hcn : ${pz.passingZone}" th:text="${hcn.toString()}"></div>
     </div>
     <div>
-        <div style="font-weight: bold; margin-bottom: 4px;">nonPassingHcns</div>
-        <div th:if="${pz.nonPassingHcns.isEmpty()}" style="color: #999;">-</div>
-        <div th:each="hcn : ${pz.nonPassingHcns}" th:text="${hcn.toString()}"></div>
-    </div>
-    <div>
         <div style="font-weight: bold; margin-bottom: 4px;">hunters</div>
         <div th:if="${pz.hunters.isEmpty()}" style="color: #999;">-</div>
         <div th:each="entry : ${pz.hunters}" style="margin-bottom: 2px;">
             <span style="color: #666;" th:text="${entry.key + ': '}"></span>
-            <span th:each="hcn, hcnStat : ${entry.value}" th:text="${(hcnStat.first ? '' : ', ') + hcn.toString()}"></span>
+            <span th:each="hcnGen, hcnStat : ${entry.value}" th:text="${(hcnStat.first ? '' : ', ') + hcnGen.hunterHcn.toString()}"></span>
         </div>
     </div>
 </div>

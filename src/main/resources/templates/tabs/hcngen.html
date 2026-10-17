@@ -7,7 +7,7 @@
     </label>
     <table class="level-table">
         <thead>
-            <tr><th>#</th><th th:if="${matrix.dbMode}">dbId</th><th>Body</th><th>HunterHcn</th><th>PrayHcn</th></tr>
+            <tr><th>#</th><th th:if="${matrix.dbMode}">dbId</th><th>Body</th><th>IntervalDistance</th><th>hunter hcns</th><th>HunterHcn</th><th>recorder hcns</th><th>PrayHcn</th></tr>
         </thead>
         <tbody id="hcngen-bodylist">
             <tr th:if="${matrix.lastTransition.bodyList != null}"
@@ -16,8 +16,11 @@
                 <td th:text="${bIter.index}"></td>
                 <td th:if="${matrix.dbMode}" th:text="${body.dbId}"></td>
                 <td th:text="${@newCoreController.guiString(body)}"></td>
-                <td th:text="${body.hcnGenerator.hunterHcn != null ? body.hcnGenerator.hunterHcn.toString() : ''}"></td>
-                <td th:text="${body.hcnGenerator instanceof T(com.hcn.newCore.RecorderBody) and body.hcnGenerator.prayHcn != null ? body.hcnGenerator.prayHcn.toString() : ''}"></td>
+                <td th:text="${body.hcnGenerator.intervalLapiDistance}"></td>
+                <td><span th:each="hcn, s : ${body.hcnGenerator.generatedHunterHcns}" th:text="${(s.first ? '' : ', ') + hcn.getStoredHcnToString()}"></span></td>
+                <td th:text="${body.hcnGenerator.hunterHcn != null ? body.hcnGenerator.hunterHcn.getValueFactorString() : ''}"></td>
+                <td><span th:each="hcn, s : ${@newCoreController.getGeneratedRecorderHcns(body)}" th:text="${(s.first ? '' : ', ') + hcn.getStoredHcnToString()}"></span></td>
+                <td th:text="${body.hcnGenerator instanceof T(com.hcn.newCore.RecorderBody) and body.hcnGenerator.prayHcn != null ? body.hcnGenerator.prayHcn.getValueFactorString() : ''}"></td>
             </tr>
         </tbody>
         <tbody id="hcngen-activelist" style="display:none;">
@@ -26,8 +29,11 @@
                 <td th:text="${bIter.index}"></td>
                 <td th:if="${matrix.dbMode}" th:text="${body.dbId}"></td>
                 <td th:text="${@newCoreController.guiString(body)}"></td>
-                <td th:text="${body.hcnGenerator.hunterHcn != null ? body.hcnGenerator.hunterHcn.toString() : ''}"></td>
-                <td th:text="${body.hcnGenerator instanceof T(com.hcn.newCore.RecorderBody) and body.hcnGenerator.prayHcn != null ? body.hcnGenerator.prayHcn.toString() : ''}"></td>
+                <td th:text="${body.hcnGenerator.intervalLapiDistance}"></td>
+                <td><span th:each="hcn, s : ${body.hcnGenerator.generatedHunterHcns}" th:text="${(s.first ? '' : ', ') + hcn.getStoredHcnToString()}"></span></td>
+                <td th:text="${body.hcnGenerator.hunterHcn != null ? body.hcnGenerator.hunterHcn.getValueFactorString() : ''}"></td>
+                <td><span th:each="hcn, s : ${@newCoreController.getGeneratedRecorderHcns(body)}" th:text="${(s.first ? '' : ', ') + hcn.getStoredHcnToString()}"></span></td>
+                <td th:text="${body.hcnGenerator instanceof T(com.hcn.newCore.RecorderBody) and body.hcnGenerator.prayHcn != null ? body.hcnGenerator.prayHcn.getValueFactorString() : ''}"></td>
             </tr>
         </tbody>
     </table>

@@ -444,6 +444,11 @@ public class NewCoreController {
         return list;
     }
 
+    public List<Hcn> getGeneratedRecorderHcns(Body body) {
+        if (body.getHcnGenerator() instanceof RecorderBody rb) return rb.getGeneratedRecorderHcns();
+        return List.of();
+    }
+
     public ScientificNumber getCurrentIntervalTargetValue() {
         return Matrix.getTargetValue();
     }

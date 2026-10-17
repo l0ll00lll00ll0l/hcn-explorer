@@ -192,7 +192,7 @@ public class BodyList implements Iterable<Body> {
             hunterBodiesToRemove.getHcnGenerator().getHunterPassingZone().deleteHunterBodyFromBodyList(hunterBodiesToRemove.getHcnGenerator());
         });
         successfullyAddedNewBodies.forEach(newHunterBody -> {
-            HcnGenerator hunterBody = HcnGenerator.builder().body(newHunterBody).build();
+            HcnGenerator hunterBody = HcnGenerator.builder().body(newHunterBody).generatedHunterHcns(new ArrayList<>()).build();
             newHunterBody.setHcnGenerator(hunterBody);
             RecorderList.findPray(hunterBody);
         });

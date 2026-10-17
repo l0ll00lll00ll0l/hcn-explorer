@@ -42,4 +42,12 @@ public class Hcn implements Comparable<Hcn> {
     public int compareTo(Hcn other) {
         return this.value.compareTo(other.value);
     }
+
+    public String getStoredHcnToString() {
+        return lastActivePrime.getIndex() + "_" + hcnStatus.s;
+    }
+
+    public String getValueFactorString() {
+        return "[" + getLapiIndex() + "]" + " f: " + factor + " v: " + value;
+    }
 }

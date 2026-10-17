@@ -12,10 +12,8 @@ import java.util.ArrayList;
 @Setter
 @Slf4j
 public class Prime {
-    private static final ArrayList<Prime> hcnProducerPrimes = new ArrayList<>();
     private static Prime largestPrime;
     private static Prime firstPrime;
-    private static Prime currentBasePrime;
     private final int index;
     private final int intValue;
     private final ScientificNumber value;
@@ -24,24 +22,17 @@ public class Prime {
     private ScientificNumber valueMultiplier;
     private ScientificNumber factorMultiplier;
 
-    public static Prime getLowestHcnProducerPrime() {
-        return hcnProducerPrimes.get(hcnProducerPrimes.size() - 1);
-    }
-    public static Prime getHighestHcnProducerPrime() {
-        return hcnProducerPrimes.get(0);
-    }
-    public static ArrayList<Prime> getHcnProducerPrimes() {
-        return hcnProducerPrimes;
-    }
     public static Prime getFirstPrime() {
         return firstPrime;
     }
-    public static Prime getCurrentBasePrime() {return currentBasePrime;}
-    public static void setCurrentBasePrime(Prime currentBasePrime) {Prime.currentBasePrime = currentBasePrime;}
 
     public static void initialize() {
-        firstPrime = Prime.builder().index(0).intValue(2).value(new ScientificNumber(2, 0)).previousPrime(null).build();
-        largestPrime = Prime.builder().index(1).intValue(3).value(new ScientificNumber(3, 0)).previousPrime(firstPrime).nextPrime(null).build();
+        Prime fakePreviousPrime = Prime.builder().index(-1).intValue(1).value(new ScientificNumber(2, -1))
+                .previousPrime(null).factorMultiplier(new ScientificNumber(0.25, 0)).valueMultiplier(new ScientificNumber((double) 1 / 3, 0)).build();
+        firstPrime = Prime.builder().index(0).intValue(2).value(new ScientificNumber(2, 0)).previousPrime(fakePreviousPrime)
+                .valueMultiplier(new ScientificNumber((double) 1 / 3, 0)).factorMultiplier(new ScientificNumber(0.5, 0)).build();
+        largestPrime = Prime.builder().index(1).intValue(3).value(new ScientificNumber(3, 0)).previousPrime(firstPrime).nextPrime(null)
+                .valueMultiplier(new ScientificNumber(1, 0)).factorMultiplier(new ScientificNumber(1, 0)).build();
         firstPrime.setNextPrime(largestPrime);
     }
 
@@ -58,7 +49,7 @@ public class Prime {
         StringBuilder sb = new StringBuilder();
         sb.append("Primes: "+"[\n");
 
-        Prime walker = getLowestHcnProducerPrime();
+        Prime walker = firstPrime;
         while (walker != null) {
             sb.append(walker+" vm: "+walker.valueMultiplier+" fm: "+walker.factorMultiplier+"[\n");
             walker = walker.getNextPrime();
@@ -132,7 +123,7 @@ public class Prime {
     }
 
     public static void recalculateAllMultipliers(Prime prevLastMatrixIndex) {
-        Prime walker = getLowestHcnProducerPrime();
+        Prime walker = firstPrime;
         while (walker != null) {
             walker.valueMultiplier = walker.valueMultiplier.divide(prevLastMatrixIndex.getValue());
             walker.factorMultiplier = walker.factorMultiplier.divide(new ScientificNumber(2, 0));
@@ -140,28 +131,4 @@ public class Prime {
         }
     }
 
-    public static void addNextHcnProducer() {
-        hcnProducerPrimes.add(0, getHighestHcnProducerPrime().calculateNextPrimeIfNeeded());
-    }
-
-    public static Prime getPrimeByLapiDistance(int lapiDistance) {
-        if (lapiDistance > -1) {
-            if (lapiDistance < hcnProducerPrimes.size()) {
-                return hcnProducerPrimes.get(lapiDistance);
-            } else {
-                Prime walker = getHighestHcnProducerPrime();
-                for (int i = 0; i < lapiDistance; i++) {
-                    walker = walker.getPreviousPrime();
-                }
-                return walker;
-            }
-
-        } else {
-            Prime walker = getHighestHcnProducerPrime();
-            for (int i = 0; i > lapiDistance; i--) {
-                walker = walker.calculateNextPrimeIfNeeded();
-            }
-            return walker;
-        }
-    }
 }
