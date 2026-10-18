@@ -27,7 +27,7 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
                 .build();
     }
 
-    public Hcn getHunterHcn(Prime prime, HcnStatus status) {
+    public Hcn generateHunterHcn(Prime prime, HcnStatus status) {
         hunterHcn = getHcn(prime, status);
         generatedHunterHcns.add(hunterHcn);
         return hunterHcn;

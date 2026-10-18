@@ -174,7 +174,7 @@ public class RecorderList {
         prevRecorder.setNextRecorder(newRecorderBody);
         size++;
 
-        newRecorderBody.getBody().matrixMaintainCheck();
+        //newRecorderBody.getBody().matrixMaintainCheck();
 
         List<HcnGenerator> toMove = new ArrayList<>();
         for (int intervalDistance : recorderHcnGenerator.getHunterPassingZone().getHunters().keySet()) {
@@ -188,15 +188,12 @@ public class RecorderList {
         if (!toMove.isEmpty()) {
 
             toMove.forEach(hcnGeneratorToMove -> {
-                //log.debug("hcnGenerator: {}", hcnGeneratorToMove);
-                //hunterToMove.setPassingZone(newRecorderBody.getPassingZone());
                 recorderHcnGenerator.getHunterPassingZone().removeFromHunters(hcnGeneratorToMove);
                 hcnGeneratorToMove.setIntervalLapiDistance(hcnGeneratorToMove.getIntervalLapiDistance() + intervalLapiDistance);
                 newRecorderBody.getPassingZone().placeHunter2(hcnGeneratorToMove);
             });
         }
-
-        //recorderHcnGenerator.setHunterPassingZone(null);
+        newRecorderBody.getBody().matrixMaintainCheck();
         newRecorderBody.getPassingZone().recorderHunterCheck();
     }
 

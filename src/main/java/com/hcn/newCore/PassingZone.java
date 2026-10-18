@@ -26,7 +26,7 @@ public class PassingZone {
     }
 
     public void placeFirstHunter(HcnGenerator hunter) {
-        //log.info("------------------- placeFirstHunter(RecorderBody {}, HunterBody {}) ------------------", prayBody, hunter);
+        log.debug("------------------- placeFirstHunter(RecorderBody {}, HunterBody {}) ------------------", prayBody, hunter);
         //log.info("prayHcn: {}", prayBody.getPrayHcn());
         boolean found = false;
 
@@ -54,7 +54,7 @@ public class PassingZone {
         //log.info(" New method: hunterValue: {} prayValue: {} ({}-{})", hunterValue, prayValue, hunterWalker.getIndex(), prayWalker.getIndex());
 
         this.passingZone.add(prayBody.getRecorderHcn(prayWalker, HcnStatus.RECORDER_IN_PASSINGZONE));
-        this.passingZone.add(hunter.getHunterHcn(hunterWalker, HcnStatus.HUNTER_IN_PASSINGZONE));
+        this.passingZone.add(hunter.generateHunterHcn(hunterWalker, HcnStatus.HUNTER_IN_PASSINGZONE));
         hunter.setHunterPassingZone(this);
         storeInHunters(hunter);
 
@@ -126,19 +126,20 @@ public class PassingZone {
     public void placeHunterWithExistingPassingZone(HcnGenerator hunter) {
         //log.debug("------------------- placeHunterWithExistingPassingZone ------------------");
         //log.debug("passingZone: {}", passingZone);
-        //log.debug("recorderHcn: {}", prayBody.getPrayHcn());
+        //log.debug("getPrayHcn: {}", prayBody.getPrayHcn());
 
             Prime hunterPrime = prayBody.getPrayHcn().getLastActivePrime().getPreviousPrime(hunter.getIntervalLapiDistance() - prayBody.getIntervalLapiDistance());
+        //log.debug("hunterPrime: {}", hunterPrime);
             ScientificNumber hunterValue = hunter.getHcnValue(hunterPrime);
-
+        //log.debug("hunterValue: {}, getPrayHcn().getValue(): {}", hunterValue, prayBody.getPrayHcn().getValue());
             if (hunterValue.isSmallerThan(prayBody.getPrayHcn().getValue())) {
 
                 checkIfLowerHcnWouldHuntedSooner(hunter, hunterPrime);
                 hunter.setHunterPassingZone(this);
-                passingZone.add(hunter.getHunterHcn(hunterPrime, HcnStatus.HUNTER_IN_PASSINGZONE));
+                //passingZone.add(hunter.generateHunterHcn(hunterPrime, HcnStatus.HUNTER_IN_PASSINGZONE));
                 //log.debug("calculatePassingZone hunterHcn: {}, passingZone: {}", hunterHcn, passingZone);
             } else {
-                hunter.getHunterHcn(hunterPrime, HcnStatus.NONPASSING_HCN);
+                hunter.generateHunterHcn(hunterPrime, HcnStatus.NONPASSING_HCN);
                 hunter.setHunterPassingZone(this);
                 //log.debug("calculatePassingZone hunterHcn: {}, nonPassingHcns: {}", hunterHcn, nonPassingHcns);
             }
@@ -148,17 +149,20 @@ public class PassingZone {
     }
 
     private void checkIfLowerHcnWouldHuntedSooner(HcnGenerator hunter, Prime hunterPrime) {
-        //log.debug(" ------------------------------ checkIfLowerHcnWouldHuntedSooner prayHcn: {}, hunterHcn: {}  ------------------------------", prayBody.getPrayHcn(), hunterHcn);
+        //log.debug(" ------------------------------ checkIfLowerHcnWouldHuntedSooner prayHcn: {}, hunterHcn: {}  ------------------------------", prayBody.getPrayHcn(), hunter.getHunterHcn());
 
         Prime prayPrime = prayBody.getPrayHcn().getLastActivePrime().getPreviousPrime();
+        hunterPrime = hunterPrime.getPreviousPrime();
+        //log.debug("hunterPrime: {}", hunterPrime);
         ScientificNumber prayValue = prayBody.getPrayHcn().getHcnGenerator().getHcnValue(prayPrime);
         ScientificNumber hunterValue = hunter.getHcnValue(hunterPrime);
-
+        //log.debug("hunterValue: {}, prayValue: {}", hunterValue, prayValue);
         boolean lowerPassingHunterHcnFound = false;
 
-        while (prayValue.isSmallerThan(hunterValue)) {
+        log.debug("prayPrime: {} hunterPrime: {}, prayValue: {}, hunterValue: {}", prayPrime.getIndex(), hunterPrime, prayValue, hunterValue);
+        while (prayValue.isBiggerThan(hunterValue)) {
             if (hunterPrime.getPreviousPrime() == null) {
-                //log.debug(" ------------------------------ lowerPassingHunterHcnFound no previous ------------------------------");
+                log.debug(" ------------------------------ lowerPassingHunterHcnFound no previous ------------------------------");
                 return;
             }
             lowerPassingHunterHcnFound = true;
@@ -169,20 +173,29 @@ public class PassingZone {
         }
 
         if (lowerPassingHunterHcnFound) {
-            passingZoneResetLowerPrayHcnPrime(prayBody.getRecorderHcn(prayPrime.getNextPrime(),
-                    HcnStatus.RECORDER_IN_PASSINGZONE), hunter.getHunterHcn(hunterPrime, HcnStatus.HUNTER_IN_PASSINGZONE));
+            removeFromStaticChain();
+            passingZone.clear();
+            passingZone.add(prayBody.getRecorderHcn(prayPrime.getNextPrime(), HcnStatus.RECORDER_IN_PASSINGZONE));
+            passingZone.add(hunter.generateHunterHcn(hunterPrime.getNextPrime(), HcnStatus.HUNTER_IN_PASSINGZONE));
+            passingZoneResetLowerPrayHcnPrime();
+            placePassingZoneInStaticChain(this);
         } else {
-
-            //log.debug(" ------------------------------ lowerPassingHunterHcnFound was not detected ------------------------------");
+            passingZone.add(hunter.generateHunterHcn(prayBody.getPrayHcn().getLastActivePrime().getPreviousPrime(hunter.getIntervalLapiDistance() - prayBody.getIntervalLapiDistance()), HcnStatus.HUNTER_IN_PASSINGZONE));
+            log.debug(" ------------------------------ lowerPassingHunterHcnFound was not detected ------------------------------");
         }
     }
 
-    private void passingZoneResetLowerPrayHcnPrime(Hcn newHunterHcn, Hcn newPrayHcn) {
-        //log.debug(" ---------------- passingZoneResetLowerPrayHcnPrime oldPrayHcn: {}, new prayHcn: {}, newHunterHcn: {} -------------------", prayBody.getPrayHcn(), newPrayHcn, newHunterHcn);
-        passingZone.add(newHunterHcn);
-        passingZone.add(newPrayHcn);
-        storeInHunters(newPrayHcn.getHcnGenerator());
-        //log.debug(" ------------------------------ has to be implemented ------------------------------");
+    private void passingZoneResetLowerPrayHcnPrime() {
+        log.debug(" ---------------- passingZoneResetLowerPrayHcnPrime oldPrayHcn: {}, new prayHcn: {}, newHunterHcn: {} -------------------", prayBody.getPrayHcn());
+
+        Prime prayPrime = prayBody.getPrayHcn().getLastActivePrime();
+        for (int intervalDistance : hunters.keySet()) {
+            hunters.get(intervalDistance).forEach(hcnGenerator -> {
+                hcnGenerator.getHunterHcn().setHcnStatus(HcnStatus.DELETED_BY_PRAYPRIME_DECREASE);
+                hcnGenerator.generateHunterHcn(prayPrime.getPreviousPrime(intervalDistance), HcnStatus.NONPASSING_HCN);
+            });
+        }
+        log.debug(" ------------------------------ has to be implemented ------------------------------");
     }
 
     public static void processNextPassingZone() {
@@ -223,6 +236,7 @@ public class PassingZone {
     public void prayBodySurvivedCreateNewPassingZone() {
 
         //log.debug("------------------- prayBodySurvivedCreateNewPassingZone {} ------------------", prayBody.getPrayHcn());
+        removeFromStaticChain();
         passingZone.clear();
         Prime prayPrime = prayBody.getPrayHcn().getLastActivePrime();
         ScientificNumber prayValue;
@@ -247,7 +261,7 @@ public class PassingZone {
 
         for (int intervalDistance : hunters.keySet()) {
             for (HcnGenerator hcnGenerator : hunters.get(intervalDistance)) {
-                Hcn hunterHcn = hcnGenerator.getHunterHcn(prayPrime.getPreviousPrime(intervalDistance), HcnStatus.NONPASSING_HCN);
+                Hcn hunterHcn = hcnGenerator.generateHunterHcn(prayPrime.getPreviousPrime(intervalDistance), HcnStatus.NONPASSING_HCN);
                 //log.debug(" hcnGenerator.getHunterHcn(): {}, prayValue: {}", hcnGenerator.getHunterHcn(), prayValue);
                 if (hunterHcn.getValue().isSmallerThan(prayValue)) {
                     hunterHcn.setHcnStatus(HcnStatus.HUNTER_IN_PASSINGZONE);
@@ -255,8 +269,6 @@ public class PassingZone {
                 }
             }
         }
-
-        removeFromStaticChain();
         placePassingZoneInStaticChain(this);
     }
 
@@ -365,7 +377,7 @@ public class PassingZone {
             int relativeDistance = prayBody.getIntervalLapiDistance() - prevBody.getIntervalLapiDistance();
             Prime requiredPrime = prevBody.getPrayHcn().getLastActivePrime().getPreviousPrime(relativeDistance);
 
-            if (prayBody.getHunterHcn(requiredPrime, HcnStatus.RECORDER_HUNTER).getValue().isSmallerThan(prevBody.getPrayHcn().getValue())) {
+            if (prayBody.generateHunterHcn(requiredPrime, HcnStatus.RECORDER_HUNTER).getValue().isSmallerThan(prevBody.getPrayHcn().getValue())) {
                 //log.debug("  recorderHunterHcn beats pray: {}, recorderHunterHcn: {}", prevBody.getPrayHcn(), recorderHunterHcn);
             } else {
                 //log.debug("  prevRecord holds: {}, recorderHunterHcn: {}", prevBody.getPrayHcn(), recorderHunterHcn);
