@@ -12,6 +12,8 @@ import java.util.List;
 @SuperBuilder
 @Slf4j
 public class TransitionNode extends MatrixNode{
+    public static TransitionNode lastTransition;
+
     private final int transitionFrom;
     private final int transitionTo;
 
@@ -30,6 +32,15 @@ public class TransitionNode extends MatrixNode{
         } else {
             return indexes.get(indexes.size() - 1);
         }
+    }
+
+    public static TransitionNode getLastTransition() {
+        return lastTransition;
+    }
+
+    public static TransitionNode initialize() {
+        lastTransition = TransitionNode.builder().transitionFrom(2).transitionTo(1).build();
+        return lastTransition;
     }
 
     @Override

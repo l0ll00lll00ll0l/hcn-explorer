@@ -324,7 +324,7 @@ public class MatrixDeserializer {
         long totalNanos = (long) row.get("total_nanos");
         long totalMatrixNanos = (long) row.get("total_matrix_nanos");
 
-        Matrix.lastTransition = (TransitionNode) matrixNodeMap.get(lastTransitionId);
+        TransitionNode.lastTransition = (TransitionNode) matrixNodeMap.get(lastTransitionId);
 
         Matrix matrix = Matrix.builder()
                 //.nextLapi(lapiMap.get(nextLapiPrime))

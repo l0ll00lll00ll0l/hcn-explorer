@@ -365,7 +365,7 @@ public class NewCoreController {
 
     public List<MatrixNode> getMatrixChain() {
         List<MatrixNode> chain = new ArrayList<>();
-        MatrixNode current = Matrix.lastTransition;
+        MatrixNode current = TransitionNode.lastTransition;
         while (current != null) {
             chain.add(current);
             current = current.getPrevMatrixNode();
@@ -384,15 +384,22 @@ public class NewCoreController {
         return bodies;
     }
 
+    public List<HcnGenerator> getHcnGenerators() {
+        HcnGenerator current =HcnGenerator.getFirstHcnGenerator();
+        List<HcnGenerator> bodies = new ArrayList<>();
+        while (current != null) {
+            bodies.add(current);
+            current = current.getNextHcnGenerator();
+        }
+        return bodies;
+    }
+
     public List<Body> getActiveBodiesChain(BodyList bodyList) {
         List<Body> bodies = new ArrayList<>();
         Body current = bodyList.getSmallestBody();
         while (current != null && current.isDeactivated()) {
-            current = current.getLargerBody();
-        }
-        while (current != null) {
             bodies.add(current);
-            current = current.getNextActiveBody();
+            current = current.getLargerBody();
         }
         return bodies;
     }
@@ -444,8 +451,8 @@ public class NewCoreController {
         return list;
     }
 
-    public List<Hcn> getGeneratedRecorderHcns(Body body) {
-        if (body.getHcnGenerator() instanceof RecorderBody rb) return rb.getGeneratedRecorderHcns();
+    public List<Hcn> getGeneratedRecorderHcns(HcnGenerator hcnGenerator) {
+        if (hcnGenerator.getRecorderBody() != null) return hcnGenerator.getRecorderBody().getGeneratedRecorderHcns();
         return List.of();
     }
 
@@ -455,8 +462,10 @@ public class NewCoreController {
 
     public List<RecorderBody> getRecorderList() {
         List<RecorderBody> result = new ArrayList<>();
-        RecorderBody current = RecorderList.getFirstRecorder();
-        for (int i = 0; i < RecorderList.getSize(); i++) {
+        result.add(RecorderList.getFirstRecorder());
+        RecorderBody current = RecorderList.getFirstRecorder().getNextRecorder();
+
+        while (!current.equals(RecorderList.getFirstRecorder())) {
             result.add(current);
             current = current.getNextRecorder();
         }

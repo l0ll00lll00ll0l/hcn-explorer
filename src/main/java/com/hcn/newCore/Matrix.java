@@ -16,7 +16,7 @@ import java.util.List;
 @Builder
 public class Matrix {
 
-    public static TransitionNode lastTransition;
+    //public static TransitionNode lastTransition;
     private static ScientificNumber targetValue;
     private static ScientificNumber provedLimit;
     private int lowestProvedLapiWithinInterval;
@@ -51,8 +51,7 @@ public class Matrix {
         p0.getBodyNodes().put(2, pip02);
         p0.getBodyNodes().put(3, pip03);
 
-        lastTransition = TransitionNode.builder()
-                .transitionFrom(2).transitionTo(1).build();
+        TransitionNode lastTransition = TransitionNode.initialize();
         lastTransition.indexes.add(Prime.getFirstPrime().getNextPrime());
         BodyNode t1 = BodyNode.builder().parentNode(lastTransition).bodyNodeId(1)
                 .value(new ScientificNumber(1, 0))
@@ -113,27 +112,32 @@ public class Matrix {
         b22.setLargerBody(b32);
         b32.setSmallerBody(b22);
         b32.setLargerBody(null);
-
-        lastTransition.setBodyList(BodyList.builder().smallestBody(b11).largestBody(b32).size(5).build());
-
         b01.getOffsprings().add(b11);
         b02.getOffsprings().add(b21);
         b03.getOffsprings().add(b31);
         b02.getOffsprings().add(b22);
         b03.getOffsprings().add(b32);
 
-        RecorderBody firstRecorder = RecorderBody.builder().body(b11).intervalLapiDistance(0).build();
-        RecorderBody lastRecorder = RecorderBody.builder().body(b21).intervalLapiDistance(0).build();
-        b11.setHcnGenerator(firstRecorder);
-        b21.setHcnGenerator(lastRecorder);
+        lastTransition.setBodyList(BodyList.builder().smallestBody(b11).largestBody(b32).size(5).build());
+        HcnGenerator.initialHcnGeneratorListBasedOnLastBodyList();
+
+        RecorderBody firstRecorder = RecorderBody.builder().hcnGenerator(HcnGenerator.getFirstHcnGenerator()).intervalLapiDistance(0).build();
+        RecorderBody lastRecorder = RecorderBody.builder().hcnGenerator(HcnGenerator.getFirstHcnGenerator().getNextHcnGenerator()).intervalLapiDistance(0).build();
+        HcnGenerator.getFirstHcnGenerator().setRecorderBody(firstRecorder);
+        HcnGenerator.getFirstHcnGenerator().getNextHcnGenerator().setRecorderBody(lastRecorder);
         firstRecorder.setNextRecorder(lastRecorder);
         lastRecorder.setPreviousRecorder(firstRecorder);
         firstRecorder.setPreviousRecorder(lastRecorder);
         lastRecorder.setNextRecorder(firstRecorder);
         RecorderList.initialize(firstRecorder, 2);
 
-        Hcn hcn1 = firstRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER);
-        Hcn hcn2 = lastRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER);
+        PassingZone firstPassingZone = new PassingZone(firstRecorder);
+        PassingZone secondPassingZone = new PassingZone(lastRecorder);
+        firstRecorder.setPassingZone(firstPassingZone);
+        lastRecorder.setPassingZone(secondPassingZone);
+
+        Hcn hcn1 = firstRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER, firstPassingZone);
+        Hcn hcn2 = lastRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER, secondPassingZone);
 
         lowestProvedLapiWithinInterval = 1;
         provedCount = 2;
@@ -152,24 +156,31 @@ public class Matrix {
             dbInsertService.submit(Interval.getGlobalReferenceInterval());
         }
 
-        HcnGenerator h31 = HcnGenerator.builder().body(b31).intervalLapiDistance(1).generatedHunterHcns(new ArrayList<>()).build();
-        b31.setHcnGenerator(h31);
+        //HcnGenerator h31 = HcnGenerator.builder().body(b31).intervalLapiDistance(1).generatedHunterHcns(new ArrayList<>()).build();
+        //b31.setHcnGenerator(h31);
         //firstRecorder.getHunters().add(h31);
 
-        PassingZone firstPassingZone = new PassingZone(firstRecorder);
-        firstPassingZone.placeHunter2(h31);
+        //Hcn hcn111 = lastRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().calculateNextPrimeIfNeeded(), HcnStatus.RECORDER_IN_PASSINGZONE, firstPassingZone);
+        //Hcn hcn31 = b31.getHcnGenerator().generateHunterHcn(Prime.getFirstPrime().getNextPrime(), HcnStatus.HUNTER_IN_PASSINGZONE, firstPassingZone);
+
+        firstPassingZone.getPassingZone().add(firstRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().calculateNextPrimeIfNeeded(), HcnStatus.RECORDER_IN_PASSINGZONE, firstPassingZone));
+        firstPassingZone.getPassingZone().add(b31.getHcnGenerator().generateHunterHcn(Prime.getFirstPrime().getNextPrime(), null, firstPassingZone, 1).activateHunter(HcnStatus.HUNTER_IN_PASSINGZONE));
+        firstPassingZone.getHunters().put(1, b31.getHcnGenerator().getHunterHcn());
+
+        secondPassingZone.getPassingZone().add(lastRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().getNextPrime(), HcnStatus.RECORDER_IN_PASSINGZONE, secondPassingZone));
+        secondPassingZone.getPassingZone().add(b22.getHcnGenerator().generateHunterHcn(Prime.getFirstPrime().getNextPrime(), null, secondPassingZone, 1).activateHunter(HcnStatus.HUNTER_IN_PASSINGZONE));
+        secondPassingZone.getHunters().put(1, b22.getHcnGenerator().getHunterHcn());
+
+        //firstPassingZone.placeHunter2(lastRecorder.getHcnGenerator().getNextHcnGenerator());
         PassingZone.setGlobalNextPassingZone(firstPassingZone);
-        firstRecorder.setPassingZone(firstPassingZone);
-        
-        PassingZone secondPassingZone = new PassingZone(lastRecorder);
-        lastRecorder.setPassingZone(secondPassingZone);
+        PassingZone.placePassingZoneInStaticChain(secondPassingZone);
         //h31.setPassingZone(PassingZone.getGlobalNextPassingZone());
         //Prime.calculatePassingZone(h31);
 
-        b22.setHcnGenerator(HcnGenerator.builder().body(b22).generatedHunterHcns(new ArrayList<>()).build());
-        RecorderList.findPray(b22.getHcnGenerator());
-        b32.setHcnGenerator(HcnGenerator.builder().body(b32).generatedHunterHcns(new ArrayList<>()).build());
-        RecorderList.findPray(b32.getHcnGenerator());
+        //b22.setHcnGenerator(HcnGenerator.builder().body(b22).generatedHunterHcns(new ArrayList<>()).build());
+        //RecorderList.findPray2(b22.getHcnGenerator());
+        //b32.setHcnGenerator(HcnGenerator.builder().body(b32).generatedHunterHcns(new ArrayList<>()).build());
+        //RecorderList.findPray2(b32.getHcnGenerator());
 
     }
 
@@ -179,6 +190,7 @@ public class Matrix {
         ActivityCenter.setProving(false);
     }
 
+    /*
     private void deactivateMaintain() {
         List<Body> deletedHcnGenerators = lastTransition.deactivatedMaintain();
         ActivityCenter.submitBodyDeletionEvent(deletedHcnGenerators);
@@ -188,6 +200,8 @@ public class Matrix {
             potentialApiNode = potentialApiNode.prevMatrixNode;
         }
     }
+
+     */
 
     public static ScientificNumber getTargetValue() {
         return targetValue;

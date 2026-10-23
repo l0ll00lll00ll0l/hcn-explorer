@@ -34,6 +34,7 @@ public class Prime {
         largestPrime = Prime.builder().index(1).intValue(3).value(new ScientificNumber(3, 0)).previousPrime(firstPrime).nextPrime(null)
                 .valueMultiplier(new ScientificNumber(1, 0)).factorMultiplier(new ScientificNumber(1, 0)).build();
         firstPrime.setNextPrime(largestPrime);
+        //getPrime( 1);
     }
 
     @Override

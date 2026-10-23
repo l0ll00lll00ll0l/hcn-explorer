@@ -10,7 +10,9 @@ public enum HcnStatus {
     FIRST_RECORDER("FR"),
     RECORDER_IN_PASSINGZONE("RP"),
     RECORDER_HUNTER("RH"),
-    DELETED_BY_PRAYPRIME_DECREASE("D");
+    DELETED_BY_PRAYPRIME_DECREASE("D"),
+    HUNTER_DURING_FINDPRAY("H-FP");
+
 
     public final String s;
 

@@ -42,15 +42,23 @@ public class Body implements Comparable<Body>{
         }
         return dbBody;
     }
-    public Body getNextActiveBody() {
+    public HcnGenerator getNextActiveBody() {
         Body candidate = largerBody;
         while (candidate != null && candidate.deactivated) {candidate = candidate.largerBody;}
-        return candidate;
+        if (candidate == null) {
+            return null;
+        } else {
+            return candidate.hcnGenerator;
+        }
     }
-    public Body getPrevActiveBody() {
+    public HcnGenerator getPrevActiveBody() {
         Body candidate = smallerBody;
-        while (candidate != null && candidate.deactivated) {candidate = candidate.smallerBody;}
-        return candidate;
+        while (candidate != null && candidate.getHcnGenerator().getRecorderBody() != null) {candidate = candidate.smallerBody;}
+        if (candidate == null) {
+            return null;
+        } else {
+            return candidate.hcnGenerator;
+        }
     }
 
     @Override

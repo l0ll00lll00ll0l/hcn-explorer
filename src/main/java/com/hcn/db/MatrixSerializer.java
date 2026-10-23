@@ -70,7 +70,7 @@ public class MatrixSerializer {
 
     private void reassignMatrixObjects(Matrix matrix) {
         // There are now orphanBodies in matrix bodylists anymore, so automatic reassign of
-        MatrixNode currentNode = Matrix.lastTransition;
+        MatrixNode currentNode = TransitionNode.lastTransition;
         while (currentNode != null) {
             currentNode.getDeactivatedBodyNodes().values().forEach(bodyNode -> {
                 bodyNode.getDeactivatedBodies().forEach(this::assignBodyAndHcnIds);
@@ -90,7 +90,7 @@ public class MatrixSerializer {
     }
 
     private void resetHcnGeneratorHcns(Matrix matrix) {
-        Body hcnGenerator = Matrix.lastTransition.getBodyList().getSmallestBody();
+        Body hcnGenerator = TransitionNode.lastTransition.getBodyList().getSmallestBody();
         while (hcnGenerator != null) {
             resetBodyHcnTempIds(hcnGenerator);
             hcnGenerator = hcnGenerator.getLargerBody();
@@ -193,7 +193,7 @@ public class MatrixSerializer {
         StringBuilder sb = new StringBuilder("INSERT INTO tmp_prime (index, int_value, value_mantissa, value_exponent, matrix_node_id) VALUES ");
         boolean first = true;
         java.util.Set<Integer> insertedPrimeIndexes = new java.util.HashSet<>();
-        MatrixNode currentNode = Matrix.lastTransition;
+        MatrixNode currentNode = TransitionNode.lastTransition;
         while (currentNode != null) {
             for (Prime prime : currentNode.getIndexes()) {
                 if (!first) sb.append(", ");
@@ -412,7 +412,7 @@ public class MatrixSerializer {
 
     public String buildMatrixInsert(Matrix matrix) {
         return String.format("INSERT INTO tmp_matrix (last_transition, next_lapi, lowest_lapi, highest_lapi, lowest_proved_lapi_within_interval, proved_count, proved_limit_mantissa, proved_limit_exponent, total_time_ms, matrix_maintain_time_ms, generate_hcn_list_time_ms, db_mode, total_nanos, total_matrix_nanos, reference_interval_lapi) VALUES (%d, %s, %s, %s, %d, %d, %s, %d, %d, %d, %d, %b, %d, %d, %s)",
-                Matrix.lastTransition.getTempId(),
+                TransitionNode.lastTransition.getTempId(),
                 "NULL",
                 //Lapi.getLowestLapi() != null ? Lapi.getLowestLapi().getPrime().getIndex() : "NULL",
                 //Lapi.getHighestLapi() != null ? Lapi.getHighestLapi().getPrime().getIndex() : "NULL",

@@ -12,15 +12,13 @@
                 <tr>
                     <th>#</th>
                     <th>Body</th>
-                    <th>Pray</th>
                     <th>IntervalLapiDist</th>
                 </tr>
             </thead>
             <tbody>
-                <tr th:style="${rb.body.deactivated ? 'background:#ff9999;' : 'background:#e8f5e9;'}">
+                <tr th:style="${rb.hcnGenerator.body.deactivated ? 'background:#ff9999;' : 'background:#e8f5e9;'}">
                     <td th:text="${bodyStat.index}"></td>
-                    <td th:text="${@newCoreController.guiString(rb.body)}"></td>
-                    <td th:text="${@newCoreController.guiString(rb.prayBody?.body)}"></td>
+                    <td th:text="${@newCoreController.guiString(rb.hcnGenerator.body)}"></td>
                     <td th:text="${rb.intervalLapiDistance}"></td>
                 </tr>
             </tbody>

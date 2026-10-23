@@ -16,8 +16,9 @@ public class Hcn implements Comparable<Hcn> {
     private ScientificNumber factor;
     @Builder.Default
     private Integer tempId = null;
-    //@Builder.Default
     private HcnStatus hcnStatus;
+    private PassingZone passingZone;
+    private int intervalDistance;
 
     public int getLapiIndex() {
         return lastActivePrime.getIndex();
@@ -49,5 +50,17 @@ public class Hcn implements Comparable<Hcn> {
 
     public String getValueFactorString() {
         return "[" + getLapiIndex() + "]" + " f: " + factor + " v: " + value;
+    }
+
+    public Hcn activateHunter(HcnStatus updatedStatus) {
+        if (!HcnStatus.HUNTER_IN_PASSINGZONE.equals(hcnStatus)) {
+            hcnGenerator.getActiveHunterHcns().add(this);
+        }
+        hcnStatus = updatedStatus;
+        return this;
+    }
+
+    public void deactivateHunter() {
+        hcnGenerator.getActiveHunterHcns().remove(this);
     }
 }

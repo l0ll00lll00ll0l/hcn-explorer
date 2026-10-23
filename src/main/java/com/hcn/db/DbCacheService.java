@@ -5,6 +5,7 @@ import com.hcn.newCore.Body;
 import com.hcn.newCore.Matrix;
 import com.hcn.newCore.Prime;
 import com.hcn.newCore.ScientificNumber;
+import com.hcn.newCore.TransitionNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -291,7 +292,7 @@ public class DbCacheService {
     }
 
     private void initializeNonDeletedDbBodyData() {
-        Body walker = Matrix.lastTransition.getBodyList().getSmallestBody();
+        Body walker = TransitionNode.lastTransition.getBodyList().getSmallestBody();
         while (walker != null) {
             DbBody dbBody = walker.getDbBody();
             /*

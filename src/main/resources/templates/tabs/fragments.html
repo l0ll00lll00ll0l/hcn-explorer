@@ -11,7 +11,7 @@
         <div th:if="${pz.hunters.isEmpty()}" style="color: #999;">-</div>
         <div th:each="entry : ${pz.hunters}" style="margin-bottom: 2px;">
             <span style="color: #666;" th:text="${entry.key + ': '}"></span>
-            <span th:each="hcnGen, hcnStat : ${entry.value}" th:text="${(hcnStat.first ? '' : ', ') + hcnGen.hunterHcn.toString()}"></span>
+            <span th:text="${entry.value != null ? entry.value.toString() : '?'}"></span>
         </div>
     </div>
 </div>
