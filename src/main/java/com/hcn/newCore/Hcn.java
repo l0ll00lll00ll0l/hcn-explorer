@@ -45,7 +45,7 @@ public class Hcn implements Comparable<Hcn> {
     }
 
     public String getStoredHcnToString() {
-        return lastActivePrime.getIndex() + "_" + hcnStatus.s;
+        return lastActivePrime.getIndex() + "_" + (hcnStatus == null ? "N/A" : hcnStatus.s);
     }
 
     public String getValueFactorString() {
@@ -53,14 +53,13 @@ public class Hcn implements Comparable<Hcn> {
     }
 
     public Hcn activateHunter(HcnStatus updatedStatus) {
-        if (!HcnStatus.HUNTER_IN_PASSINGZONE.equals(hcnStatus)) {
-            hcnGenerator.getActiveHunterHcns().add(this);
-        }
+        hcnGenerator.getReferencedHcns().add(this);
         hcnStatus = updatedStatus;
         return this;
     }
 
     public void deactivateHunter() {
-        hcnGenerator.getActiveHunterHcns().remove(this);
+        hcnStatus = HcnStatus.NONPASSING_HCN;
+        hcnGenerator.getReferencedHcns().remove(this);
     }
 }

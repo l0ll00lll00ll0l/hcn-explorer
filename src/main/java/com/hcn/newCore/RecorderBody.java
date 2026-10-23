@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 
 @Getter
 @Setter
@@ -72,8 +73,8 @@ public class RecorderBody {
         }
     }
 
-    public void deleteRecorderBody(Hcn hcn) {
-        hcn.setHcnStatus(HcnStatus.RECORDER_DEACTIVATED);
+    public void deleteRecorderBody() {
+        prayHcn.setHcnStatus(HcnStatus.RECORDER_DEACTIVATED);
         previousRecorder.setNextRecorder(nextRecorder);
         nextRecorder.setPreviousRecorder(previousRecorder);
         if (this.equals(RecorderList.getFirstRecorder())) {
@@ -91,5 +92,11 @@ public class RecorderBody {
         hcnGenerator.getBody().deactivate();
         passingZone.prayBodyDeactivated();
         passingZone = null;
+    }
+
+    public TreeSet<Hcn> generatePassingHcns() {
+
+        TreeSet<Hcn> passingHcns = passingZone.generatePassingHcns();
+      return passingHcns;
     }
 }

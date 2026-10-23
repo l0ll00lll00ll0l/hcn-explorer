@@ -86,15 +86,15 @@ public abstract class MatrixNode {
         if (nextMatrixNode != null) {
             nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());
         } else {
-            bodyList.maintainRecorderList();
+            Extension.finished();
         }
-
     }
 
     public void createNextBodyNode() {
         needsDeactivateMaintain = true;
         int nextBodyNodeId = bodyNodes.lastKey() + 1;
         BodyNode nextBodyNode = provideNextBodyNode();
+        Extension.reportExtension(nextBodyNode);
         if (ActivityCenter.isDbMode()) new MatrixExtensionActivity(nextBodyNode);
         bodyNodes.put(nextBodyNodeId, nextBodyNode);
 
@@ -118,7 +118,7 @@ public abstract class MatrixNode {
         if (nextMatrixNode != null) {
             nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());
         } else {
-            bodyList.maintainRecorderList();
+            Extension.finished();
         }
         ActivityCenter.finishMatrixExtensionActivity();
     }

@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TreeMap;
 
 @Slf4j
 @Getter
@@ -22,11 +21,11 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
     public static void initialHcnGeneratorListBasedOnLastBodyList() {
         Body firstBody = TransitionNode.getLastTransition().getBodyList().getSmallestBody();
         firstHcnGenerator = HcnGenerator.builder().body(firstBody).previousHcnGenerator(null)
-                .nextHcnGenerator(null).generatedHunterHcns(new ArrayList<>()).activeHunterHcns(new ArrayList<>()).build();
+                .nextHcnGenerator(null).generatedHunterHcns(new ArrayList<>()).referencedHcns(new ArrayList<>()).build();
         firstBody.setHcnGenerator(firstHcnGenerator);
         Body secondBody = firstBody.getLargerBody();
         HcnGenerator secondHcnGenerator = HcnGenerator.builder().body(secondBody).previousHcnGenerator(firstHcnGenerator)
-                .nextHcnGenerator(null).generatedHunterHcns(new ArrayList<>()).activeHunterHcns(new ArrayList<>()).build();
+                .nextHcnGenerator(null).generatedHunterHcns(new ArrayList<>()).referencedHcns(new ArrayList<>()).build();
         secondBody.setHcnGenerator(secondHcnGenerator);
         firstHcnGenerator.setNextHcnGenerator(secondHcnGenerator);
 
@@ -34,7 +33,7 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
         while (secondBody.getLargerBody() != null) {
             secondBody = secondBody.getLargerBody();
             HcnGenerator hcnGenerator = HcnGenerator.builder().body(secondBody).previousHcnGenerator(prevHcnGenerator)
-                    .nextHcnGenerator(null).generatedHunterHcns(new ArrayList<>()).activeHunterHcns(new ArrayList<>()).build();
+                    .nextHcnGenerator(null).generatedHunterHcns(new ArrayList<>()).referencedHcns(new ArrayList<>()).build();
             secondBody.setHcnGenerator(hcnGenerator);
             prevHcnGenerator.setNextHcnGenerator(hcnGenerator);
             prevHcnGenerator = hcnGenerator;
@@ -42,19 +41,20 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
     }
 
     protected Body body;
-    private Hcn hunterHcn;
     private List<Hcn> generatedHunterHcns;
-    private List<Hcn> activeHunterHcns;
+    private List<Hcn> referencedHcns;
     private HcnGenerator previousHcnGenerator;
     private HcnGenerator nextHcnGenerator;
     private RecorderBody recorderBody;
 
     public HcnGenerator(Body newHunterBody) {
+        //log.debug("$$$$$$$$$$$$$$$$$$$$$  new HunterBody: {}", newHunterBody);
+
         this.body = newHunterBody;
         this.previousHcnGenerator = body.getPrevActiveBody();
         this.nextHcnGenerator = previousHcnGenerator.nextHcnGenerator;
         this.generatedHunterHcns = new ArrayList<>();
-        this.activeHunterHcns = new ArrayList<>();
+        this.referencedHcns = new ArrayList<>();
         newHunterBody.setHcnGenerator(this);
 
         if (previousHcnGenerator != null) previousHcnGenerator.nextHcnGenerator = this;
@@ -70,6 +70,9 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
     }
 
     public void deleteHcnGenerator() {
+        //log.debug("deleteHcnGenerator: {}", this);
+        //log.debug(" previous: {}, next: {}", previousHcnGenerator, nextHcnGenerator);
+
         if (previousHcnGenerator != null) previousHcnGenerator.setNextHcnGenerator(nextHcnGenerator);
         else firstHcnGenerator = nextHcnGenerator;
 
@@ -80,13 +83,13 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
         nextHcnGenerator = null;
 
         //log.debug(" ÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷ RECORDERLIST before delete ÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷");
-        RecorderList.print();
-        for (Hcn generatedHunterHcn : activeHunterHcns) {
-            generatedHunterHcn.getPassingZone().deleteHunterHcn(generatedHunterHcn);
+        //RecorderList.print();
+        for (Hcn referenceHcn : referencedHcns) {
+            referenceHcn.getPassingZone().deleteHunterHcn(referenceHcn);
         }
-        activeHunterHcns.clear();
+        referencedHcns.clear();
         //log.debug(" ÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷ RECORDERLIST after delete ÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷");
-        RecorderList.print();
+        //RecorderList.print();
         //deletedBody.getHcnGenerator().getHunterPassingZone().deleteHunterBodyFromBodyList(deletedBody.getHcnGenerator());
         //print();
     }
@@ -97,8 +100,8 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
     }
 
     public Hcn generateHunterHcn(Prime prime, HcnStatus status, PassingZone passingZone, int intervalDistance) {
-        hunterHcn = getHcn(prime, status, passingZone, intervalDistance);
-        generatedHunterHcns.add(hunterHcn);
+        Hcn hunterHcn = getHcn(prime, status, passingZone, intervalDistance);
+        generatedHunterHcns.add(getHcn(prime, status, passingZone, intervalDistance));
         return hunterHcn;
     }
 
@@ -121,15 +124,15 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
 
     public Hcn getReferenceHcnForFindPray() {
         HcnGenerator referenceCandidate = previousHcnGenerator;
-        while (referenceCandidate.hunterHcn == null) {
+        while (referenceCandidate.referencedHcns.isEmpty()) {
             referenceCandidate = referenceCandidate.previousHcnGenerator;
         }
-        return referenceCandidate.hunterHcn;
+        return referenceCandidate.referencedHcns.get(0);
     }
 
     public List<Integer> getIntervalDistances() {
         ArrayList<Integer> returnList = new ArrayList<>();
-        activeHunterHcns.forEach(acitveHcn -> returnList.add(acitveHcn.getIntervalDistance()));
+        referencedHcns.forEach(acitveHcn -> returnList.add(acitveHcn.getIntervalDistance()));
         return returnList;
     }
 }

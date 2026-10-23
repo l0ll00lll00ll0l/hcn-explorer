@@ -4,7 +4,8 @@
 <div th:fragment="passingZoneBox(pz)" style="display: flex; gap: 12px; border: 1px solid #aaa; padding: 6px 8px; font-size: 11px;">
     <div>
         <div style="font-weight: bold; margin-bottom: 4px;">passingZone</div>
-        <div th:each="hcn : ${pz.passingZone}" th:text="${hcn.toString()}"></div>
+        <div th:text="${pz.passingHcn != null ? pz.passingHcn.toString() : '-'}"></div>
+        <div th:text="${pz.prayBody?.prayHcn != null ? pz.prayBody.prayHcn.toString() : '-'}"></div>
     </div>
     <div>
         <div style="font-weight: bold; margin-bottom: 4px;">hunters</div>

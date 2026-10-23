@@ -443,10 +443,10 @@ public class NewCoreController {
 
     public List<PassingZone> getPassingZoneList() {
         List<PassingZone> list = new ArrayList<>();
-        PassingZone walker = PassingZone.getGlobalNextPassingZone();
+        Passing walker = Passing.getLowestPassing();
         while (walker != null) {
-            list.add(walker);
-            walker = walker.getNextPassingZone();
+            list.add(walker.getPrayBody().getPassingZone());
+            walker = walker.getNextPassing();
         }
         return list;
     }

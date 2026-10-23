@@ -4,7 +4,7 @@
 <div th:fragment="content">
     <table class="level-table">
         <thead>
-            <tr><th>#</th><th th:if="${matrix.dbMode}">dbId</th><th>Body</th><th>IntervalDistance</th><th>hunter hcns</th><th>HunterHcn</th><th>recorder hcns</th><th>PrayHcn</th></tr>
+            <tr><th>#</th><th th:if="${matrix.dbMode}">dbId</th><th>Body</th><th>IntervalDistance</th><th>generated Hcns</th><th>referenced Hcns</th><th>recorder hcns</th><th>PrayHcn</th></tr>
         </thead>
         <tbody>
             <tr th:each="hcnGenerator, bIter : ${@newCoreController.getHcnGenerators()}">
@@ -14,7 +14,7 @@
                 <td th:if="${hcnGenerator.recorderBody != null}" th:text="${hcnGenerator.recorderBody.intervalLapiDistance}"></td>
                 <td th:if="${hcnGenerator.recorderBody == null}"><span th:each="d, s : ${hcnGenerator.getIntervalDistances()}" th:text="${(s.first ? '' : ', ') + d}"></span></td>
                 <td><span th:each="hcn, s : ${hcnGenerator.generatedHunterHcns}" th:text="${(s.first ? '' : ', ') + hcn.getStoredHcnToString()}"></span></td>
-                <td th:text="${hcnGenerator.hunterHcn != null ? hcnGenerator.hunterHcn.getValueFactorString() : ''}"></td>
+                <td><span th:each="hcn, s : ${hcnGenerator.referencedHcns}" th:text="${(s.first ? '' : ', ') + hcn.toString()}"></span></td>
                 <td><span th:each="hcn, s : ${@newCoreController.getGeneratedRecorderHcns(hcnGenerator)}" th:text="${(s.first ? '' : ', ') + hcn.getStoredHcnToString()}"></span></td>
                 <td th:text="${hcnGenerator.recorderBody != null and hcnGenerator.recorderBody.prayHcn != null ? hcnGenerator.recorderBody.prayHcn.getValueFactorString() : ''}"></td>
             </tr>

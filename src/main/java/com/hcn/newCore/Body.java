@@ -53,7 +53,7 @@ public class Body implements Comparable<Body>{
     }
     public HcnGenerator getPrevActiveBody() {
         Body candidate = smallerBody;
-        while (candidate != null && candidate.getHcnGenerator().getRecorderBody() != null) {candidate = candidate.smallerBody;}
+        while (candidate != null && candidate.getHcnGenerator() == null) {candidate = candidate.smallerBody;}
         if (candidate == null) {
             return null;
         } else {

@@ -186,32 +186,4 @@ public class BodyList implements Iterable<Body> {
         };
     }
 
-    public void maintainRecorderList() {
-
-        //log.debug("[CREATED NEW HCN GENERATORS]");
-        //log.debug("");
-        Iterator<Body> delIt = dominatedSuperiorBodies.iterator();
-        Iterator<Body> addIt = successfullyAddedNewBodies.iterator();
-        Body del = delIt.hasNext() ? delIt.next() : null;
-        Body add = addIt.hasNext() ? addIt.next() : null;
-
-        RecorderList.print();
-        while (del != null || add != null) {
-            if (add == null || (del != null && del.compareTo(add) <= 0)) {
-                del.getHcnGenerator().deleteHcnGenerator();
-                del = delIt.hasNext() ? delIt.next() : null;
-            } else {
-                new HcnGenerator(add);
-                add = addIt.hasNext() ? addIt.next() : null;
-            }
-        }
-
-
-        if (ActivityCenter.isDbMode()) {
-            MatrixExtensionActivity mea = ActivityCenter.getLastMatrixExtensionActivity();
-            mea.setCreatedActiveBodyCount(successfullyAddedNewBodies.size());
-            mea.setDeletedActiveBodyCount(dominatedSuperiorBodies.size());
-            mea.setDeletedDeactivatedBodyCount(dominatedDeactivatedBodies.size());
-        }
-    }
 }
