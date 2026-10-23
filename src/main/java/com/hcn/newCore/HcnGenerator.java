@@ -62,7 +62,7 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
         if (nextHcnGenerator != null) nextHcnGenerator.previousHcnGenerator = this;
 
         Hcn referenceHunterHcn = getReferenceHcnForFindPray();
-        RecorderBody prayCandidate = referenceHunterHcn.getPassingZone().getPrayBody();
+        RecorderBody prayCandidate = referenceHunterHcn.getPrayBody();
         //log.debug(" ################################ createHcnGenerator: {}", this);
         //log.debug(" previous: {}, next: {}", previousHcnGenerator, nextHcnGenerator);
         prayCandidate.findPrayCheck(this, referenceHunterHcn.getIntervalDistance());
@@ -85,7 +85,7 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
         //log.debug(" ÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷ RECORDERLIST before delete ÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷");
         //RecorderList.print();
         for (Hcn referenceHcn : referencedHcns) {
-            referenceHcn.getPassingZone().deleteHunterHcn(referenceHcn);
+            referenceHcn.getPrayBody().deleteHunterHcn(referenceHcn);
         }
         referencedHcns.clear();
         //log.debug(" ÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷ RECORDERLIST after delete ÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷");
@@ -94,14 +94,14 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
         //print();
     }
 
-    protected Hcn getHcn(Prime prime, HcnStatus status, PassingZone passingZone, int intervalDistance) {
+    protected Hcn getHcn(Prime prime, HcnStatus status, RecorderBody prayBody, int intervalDistance) {
         return Hcn.builder().hcnGenerator(this).value(getHcnValue(prime)).factor(getHcnFactor(prime)).lastActivePrime(prime)
-                .hcnStatus(status).passingZone(passingZone).intervalDistance(intervalDistance).build();
+                .hcnStatus(status).prayBody(prayBody).intervalDistance(intervalDistance).build();
     }
 
-    public Hcn generateHunterHcn(Prime prime, HcnStatus status, PassingZone passingZone, int intervalDistance) {
-        Hcn hunterHcn = getHcn(prime, status, passingZone, intervalDistance);
-        generatedHunterHcns.add(getHcn(prime, status, passingZone, intervalDistance));
+    public Hcn generateHunterHcn(Prime prime, HcnStatus status, RecorderBody prayBody, int intervalDistance) {
+        Hcn hunterHcn = getHcn(prime, status, prayBody, intervalDistance);
+        generatedHunterHcns.add(getHcn(prime, status, prayBody, intervalDistance));
         return hunterHcn;
     }
 

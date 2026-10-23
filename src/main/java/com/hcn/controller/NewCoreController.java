@@ -441,11 +441,11 @@ public class NewCoreController {
         return list;
     }
 
-    public List<PassingZone> getPassingZoneList() {
-        List<PassingZone> list = new ArrayList<>();
+    public List<RecorderBody> getPassingZoneList() {
+        List<RecorderBody> list = new ArrayList<>();
         Passing walker = Passing.getLowestPassing();
         while (walker != null) {
-            list.add(walker.getPrayBody().getPassingZone());
+            list.add(walker.getPrayBody());
             walker = walker.getNextPassing();
         }
         return list;

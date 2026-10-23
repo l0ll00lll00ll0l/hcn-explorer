@@ -131,13 +131,13 @@ public class Matrix {
         lastRecorder.setNextRecorder(firstRecorder);
         RecorderList.initialize(firstRecorder, 2);
 
-        PassingZone firstPassingZone = new PassingZone(firstRecorder);
-        PassingZone secondPassingZone = new PassingZone(lastRecorder);
-        firstRecorder.setPassingZone(firstPassingZone);
-        lastRecorder.setPassingZone(secondPassingZone);
+        //PassingZone firstPassingZone = new PassingZone(firstRecorder);
+        //PassingZone secondPassingZone = new PassingZone(lastRecorder);
+        //firstRecorder.setPassingZone(firstPassingZone);
+        //lastRecorder.setPassingZone(secondPassingZone);
 
-        Hcn hcn1 = firstRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER, firstPassingZone);
-        Hcn hcn2 = lastRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER, secondPassingZone);
+        Hcn hcn1 = firstRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER);
+        Hcn hcn2 = lastRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER);
 
         lowestProvedLapiWithinInterval = 1;
         provedCount = 2;
@@ -163,24 +163,24 @@ public class Matrix {
         //Hcn hcn111 = lastRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().calculateNextPrimeIfNeeded(), HcnStatus.RECORDER_IN_PASSINGZONE, firstPassingZone);
         //Hcn hcn31 = b31.getHcnGenerator().generateHunterHcn(Prime.getFirstPrime().getNextPrime(), HcnStatus.HUNTER_IN_PASSINGZONE, firstPassingZone);
 
-        firstRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().calculateNextPrimeIfNeeded(), HcnStatus.RECORDER_IN_PASSINGZONE, firstPassingZone);
+        firstRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().calculateNextPrimeIfNeeded(), HcnStatus.RECORDER_IN_PASSINGZONE);
         //firstPassingZone.getPassingZone().add();
-        Hcn hcn31 = b31.getHcnGenerator().generateHunterHcn(Prime.getFirstPrime().getNextPrime(), HcnStatus.REFERENCED_HUNTER, firstPassingZone, 1).activateHunter(HcnStatus.REFERENCED_HUNTER);
-        firstPassingZone.setPassingHcn(hcn31);
-        firstPassingZone.getHunters().put(1, hcn31);
+        Hcn hcn31 = b31.getHcnGenerator().generateHunterHcn(Prime.getFirstPrime().getNextPrime(), HcnStatus.REFERENCED_HUNTER, firstRecorder, 1).activateHunter(HcnStatus.REFERENCED_HUNTER);
+        firstRecorder.setPassingHcn(hcn31);
+        firstRecorder.getHunters().put(1, hcn31);
 
-        lastRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().getNextPrime(), HcnStatus.RECORDER_IN_PASSINGZONE, secondPassingZone);
+        lastRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().getNextPrime(), HcnStatus.RECORDER_IN_PASSINGZONE);
         //secondPassingZone.getPassingZone().add(lastRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().getNextPrime(), HcnStatus.RECORDER_IN_PASSINGZONE, secondPassingZone));
-        Hcn hcn22 = b22.getHcnGenerator().generateHunterHcn(Prime.getFirstPrime().getNextPrime(), HcnStatus.REFERENCED_HUNTER, secondPassingZone, 1).activateHunter(HcnStatus.REFERENCED_HUNTER);
-        secondPassingZone.setPassingHcn(hcn22);
-        secondPassingZone.getHunters().put(1, hcn22);
+        Hcn hcn22 = b22.getHcnGenerator().generateHunterHcn(Prime.getFirstPrime().getNextPrime(), HcnStatus.REFERENCED_HUNTER, lastRecorder, 1).activateHunter(HcnStatus.REFERENCED_HUNTER);
+        lastRecorder.setPassingHcn(hcn22);
+        lastRecorder.getHunters().put(1, hcn22);
 
         Passing.setLowestPassing(new Passing(hcn31, null, null, firstRecorder));
         Passing secondPassing = new Passing(hcn22, null, Passing.getLowestPassing(), lastRecorder);
         Passing.getLowestPassing().setNextPassing(secondPassing);
 
-        firstRecorder.getPassingZone().setPassing(Passing.getLowestPassing());
-        lastRecorder.getPassingZone().setPassing(secondPassing);
+        firstRecorder.setPassing(Passing.getLowestPassing());
+        lastRecorder.setPassing(secondPassing);
 
         //firstPassingZone.placeHunter2(lastRecorder.getHcnGenerator().getNextHcnGenerator());
         //h31.setPassingZone(PassingZone.getGlobalNextPassingZone());

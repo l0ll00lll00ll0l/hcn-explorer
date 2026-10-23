@@ -38,7 +38,7 @@ public class Passing {
         if (passingHcns.last().getFactor().isNotSmallerThan(lowestPassing.prayBody.getPrayHcn().getFactor())) {
             lowestPassing.prayBody.deleteRecorderBody();
         } else {
-            lowestPassing.prayBody.getPassingZone().createPassingZoneAfterSurvival(passingHcns.last());
+            lowestPassing.prayBody.createPassingZoneAfterSurvival(passingHcns.last());
         }
         /*
         for (Hcn hcn : globalNextPassingZone.getPassingZone()) {

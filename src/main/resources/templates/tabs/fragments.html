@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<div th:fragment="passingZoneBox(pz)" style="display: flex; gap: 12px; border: 1px solid #aaa; padding: 6px 8px; font-size: 11px;">
+<div th:fragment="passingZoneBox(rb)" style="display: flex; gap: 12px; border: 1px solid #aaa; padding: 6px 8px; font-size: 11px;">
     <div>
         <div style="font-weight: bold; margin-bottom: 4px;">passingZone</div>
-        <div th:text="${pz.passingHcn != null ? pz.passingHcn.toString() : '-'}"></div>
-        <div th:text="${pz.prayBody?.prayHcn != null ? pz.prayBody.prayHcn.toString() : '-'}"></div>
+        <div th:text="${rb.passingHcn != null ? rb.passingHcn.toString() : '-'}"></div>
+        <div th:text="${rb.prayHcn != null ? rb.prayHcn.toString() : '-'}"></div>
     </div>
     <div>
         <div style="font-weight: bold; margin-bottom: 4px;">hunters</div>
-        <div th:if="${pz.hunters.isEmpty()}" style="color: #999;">-</div>
-        <div th:each="entry : ${pz.hunters}" style="margin-bottom: 2px;">
+        <div th:if="${rb.hunters.isEmpty()}" style="color: #999;">-</div>
+        <div th:each="entry : ${rb.hunters}" style="margin-bottom: 2px;">
             <span style="color: #666;" th:text="${entry.key + ': '}"></span>
             <span th:text="${entry.value != null ? entry.value.toString() : '?'}"></span>
         </div>
