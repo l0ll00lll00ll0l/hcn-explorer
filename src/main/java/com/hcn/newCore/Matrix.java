@@ -36,165 +36,21 @@ public class Matrix {
 
     public void initialize() {
         Prime.initialize();
-        ApiNode p0 = ApiNode.builder().prevMatrixNode(null).build();
-        p0.getIndexes().add(Prime.getFirstPrime());
-        BodyNode pip01 = BodyNode.builder().parentNode(p0).bodyNodeId(1).proved(true)
-                .value(new ScientificNumber(2,0))
-                .factor(new ScientificNumber(2, 0)).build();
-        BodyNode pip02 = BodyNode.builder().parentNode(p0).bodyNodeId(2).proved(true)
-                .value(new ScientificNumber(4,0))
-                .factor(new ScientificNumber(3, 0)).build();
-        BodyNode pip03 = BodyNode.builder().parentNode(p0).bodyNodeId(3)
-                .value(new ScientificNumber(8,0))
-                .factor(new ScientificNumber(4, 0)).build();
-        p0.getBodyNodes().put(1, pip01);
-        p0.getBodyNodes().put(2, pip02);
-        p0.getBodyNodes().put(3, pip03);
-
-        TransitionNode lastTransition = TransitionNode.initialize();
-        lastTransition.indexes.add(Prime.getFirstPrime().getNextPrime());
-        BodyNode t1 = BodyNode.builder().parentNode(lastTransition).bodyNodeId(1)
-                .value(new ScientificNumber(1, 0))
-                .factor(new ScientificNumber(1, 0)).proved(true).build();
-        lastTransition.getBodyNodes().put(1, t1);
-        BodyNode t2 = BodyNode.builder()
-                .parentNode(lastTransition).bodyNodeId(2).value(new ScientificNumber(9, 0))
-                .factor(new ScientificNumber(3, 0)).build();
-        lastTransition.getBodyNodes().put(2, t2);
-
-        p0.setNextMatrixNode(lastTransition);
-        lastTransition.setPrevMatrixNode(p0);
-
-        Body b01 = Body.builder().bodyNode(pip01).parent(null).value(new ScientificNumber(2, 0))
-                .factor(new ScientificNumber(2, 0)).proved(true).build();
-        Body b02 = Body.builder().bodyNode(pip02).parent(null).value(new ScientificNumber(4, 0))
-                .factor(new ScientificNumber(3, 0)).proved(true).build();
-        Body b03 = Body.builder().bodyNode(pip03).parent(null).value(new ScientificNumber(8, 0))
-                .factor(new ScientificNumber(4, 0)).proved(false).build();
-
-        pip01.getActiveBodies().add(b01);
-        pip02.getActiveBodies().add(b02);
-        pip03.getActiveBodies().add(b03);
-
-        b01.setSmallerBody(null);
-        b01.setLargerBody(b02);
-        b02.setSmallerBody(b01);
-        b02.setLargerBody(b03);
-        b03.setSmallerBody(b02);
-        b03.setLargerBody(null);
-
-        p0.setBodyList(BodyList.builder().smallestBody(b01).largestBody(b03).size(3).build());
-
-        Body b11 = Body.builder().bodyNode(t1).parent(b01).value(new ScientificNumber(6, 0))
-                .factor(new ScientificNumber(4, 0)).proved(true).build();
-        Body b21 = Body.builder().bodyNode(t1).parent(b02).value(new ScientificNumber(12, 0))
-                .factor(new ScientificNumber(6, 0)).proved(true).build();
-        Body b31 = Body.builder().bodyNode(t1).parent(b03).value(new ScientificNumber(24, 0))
-                .factor(new ScientificNumber(8, 0)).build();
-        Body b22 = Body.builder().bodyNode(t2).parent(b02).value(new ScientificNumber(36, 0))
-                .factor(new ScientificNumber(9, 0)).build();
-        Body b32 = Body.builder().bodyNode(t2).parent(b03).value(new ScientificNumber(72, 0))
-                .factor(new ScientificNumber(12, 0)).build();
-
-        t1.getActiveBodies().add(b11);
-        t1.getActiveBodies().add(b21);
-        t1.getActiveBodies().add(b31);
-        t2.getActiveBodies().add(b22);
-        t2.getActiveBodies().add(b32);
-
-        b11.setSmallerBody(null);
-        b11.setLargerBody(b21);
-        b21.setSmallerBody(b11);
-        b21.setLargerBody(b31);
-        b31.setSmallerBody(b21);
-        b31.setLargerBody(b22);
-        b22.setSmallerBody(b31);
-        b22.setLargerBody(b32);
-        b32.setSmallerBody(b22);
-        b32.setLargerBody(null);
-        b01.getOffsprings().add(b11);
-        b02.getOffsprings().add(b21);
-        b03.getOffsprings().add(b31);
-        b02.getOffsprings().add(b22);
-        b03.getOffsprings().add(b32);
-
-        lastTransition.setBodyList(BodyList.builder().smallestBody(b11).largestBody(b32).size(5).build());
+        TransitionNode.initialize();
+        Body.initialize();
         HcnGenerator.initialHcnGeneratorListBasedOnLastBodyList();
-
-        RecorderBody firstRecorder = RecorderBody.builder().hcnGenerator(HcnGenerator.getFirstHcnGenerator()).intervalLapiDistance(0).build();
-        RecorderBody lastRecorder = RecorderBody.builder().hcnGenerator(HcnGenerator.getFirstHcnGenerator().getNextHcnGenerator()).intervalLapiDistance(0).build();
-        HcnGenerator.getFirstHcnGenerator().setRecorderBody(firstRecorder);
-        HcnGenerator.getFirstHcnGenerator().getNextHcnGenerator().setRecorderBody(lastRecorder);
-        firstRecorder.setNextRecorder(lastRecorder);
-        lastRecorder.setPreviousRecorder(firstRecorder);
-        firstRecorder.setPreviousRecorder(lastRecorder);
-        lastRecorder.setNextRecorder(firstRecorder);
-        RecorderList.initialize(firstRecorder, 2);
-
-        //PassingZone firstPassingZone = new PassingZone(firstRecorder);
-        //PassingZone secondPassingZone = new PassingZone(lastRecorder);
-        //firstRecorder.setPassingZone(firstPassingZone);
-        //lastRecorder.setPassingZone(secondPassingZone);
-
-        Hcn hcn1 = firstRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER);
-        Hcn hcn2 = lastRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER);
+        RecorderBody.initialize();
 
         lowestProvedLapiWithinInterval = 1;
         provedCount = 2;
         provedLimit = new ScientificNumber(6, 0);
-        Interval.setGlobalReferenceInterval(Interval.builder().lapi(0).prime(Prime.getFirstPrime()).hcnList(List.of(hcn1, hcn2)).build());
-        Interval.getGlobalReferenceInterval().setReferenceInterval(Interval.getGlobalReferenceInterval());
-
-        Interval.setCurrentInterval(Interval.builder().lapi(1).prime(Prime.getFirstPrime().getNextPrime()).hcnList(new ArrayList<>()).lowestRecorderLapi(1).build());
-        Interval.getGlobalReferenceInterval().setPreviousInterval(Interval.getGlobalReferenceInterval());
-        Interval.getGlobalReferenceInterval().setNextInterval(Interval.getCurrentInterval());
-        Interval.getCurrentInterval().setNextInterval(null);
-        Interval.getCurrentInterval().setPreviousInterval(null);
-        RecorderList.setCurrentRecorder(firstRecorder);
 
         if (dbMode) {
             dbInsertService.submit(Interval.getGlobalReferenceInterval());
         }
-
-        //HcnGenerator h31 = HcnGenerator.builder().body(b31).intervalLapiDistance(1).generatedHunterHcns(new ArrayList<>()).build();
-        //b31.setHcnGenerator(h31);
-        //firstRecorder.getHunters().add(h31);
-
-        //Hcn hcn111 = lastRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().calculateNextPrimeIfNeeded(), HcnStatus.RECORDER_IN_PASSINGZONE, firstPassingZone);
-        //Hcn hcn31 = b31.getHcnGenerator().generateHunterHcn(Prime.getFirstPrime().getNextPrime(), HcnStatus.HUNTER_IN_PASSINGZONE, firstPassingZone);
-
-        firstRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().calculateNextPrimeIfNeeded(), HcnStatus.RECORDER_IN_PASSINGZONE);
-        //firstPassingZone.getPassingZone().add();
-        Hcn hcn31 = b31.getHcnGenerator().generateHunterHcn(Prime.getFirstPrime().getNextPrime(), HcnStatus.REFERENCED_HUNTER, firstRecorder, 1).activateHunter(HcnStatus.REFERENCED_HUNTER);
-        firstRecorder.setPassingHcn(hcn31);
-        firstRecorder.getHunters().put(1, hcn31);
-
-        lastRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().getNextPrime(), HcnStatus.RECORDER_IN_PASSINGZONE);
-        //secondPassingZone.getPassingZone().add(lastRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().getNextPrime(), HcnStatus.RECORDER_IN_PASSINGZONE, secondPassingZone));
-        Hcn hcn22 = b22.getHcnGenerator().generateHunterHcn(Prime.getFirstPrime().getNextPrime(), HcnStatus.REFERENCED_HUNTER, lastRecorder, 1).activateHunter(HcnStatus.REFERENCED_HUNTER);
-        lastRecorder.setPassingHcn(hcn22);
-        lastRecorder.getHunters().put(1, hcn22);
-
-        Passing.setLowestPassing(new Passing(hcn31, null, null, firstRecorder));
-        Passing secondPassing = new Passing(hcn22, null, Passing.getLowestPassing(), lastRecorder);
-        Passing.getLowestPassing().setNextPassing(secondPassing);
-
-        firstRecorder.setPassing(Passing.getLowestPassing());
-        lastRecorder.setPassing(secondPassing);
-
-        //firstPassingZone.placeHunter2(lastRecorder.getHcnGenerator().getNextHcnGenerator());
-        //h31.setPassingZone(PassingZone.getGlobalNextPassingZone());
-        //Prime.calculatePassingZone(h31);
-
-        //b22.setHcnGenerator(HcnGenerator.builder().body(b22).generatedHunterHcns(new ArrayList<>()).build());
-        //RecorderList.findPray2(b22.getHcnGenerator());
-        //b32.setHcnGenerator(HcnGenerator.builder().body(b32).generatedHunterHcns(new ArrayList<>()).build());
-        //RecorderList.findPray2(b32.getHcnGenerator());
-
     }
 
     public void proveNextLapi() {
-        //Interval.processCurrentInterval();
         Passing.processNextPassing();
         ActivityCenter.setProving(false);
     }

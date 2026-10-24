@@ -462,10 +462,10 @@ public class NewCoreController {
 
     public List<RecorderBody> getRecorderList() {
         List<RecorderBody> result = new ArrayList<>();
-        result.add(RecorderList.getFirstRecorder());
-        RecorderBody current = RecorderList.getFirstRecorder().getNextRecorder();
+        result.add(RecorderBody.getFirstRecorder());
+        RecorderBody current = RecorderBody.getFirstRecorder().getNextRecorder();
 
-        while (!current.equals(RecorderList.getFirstRecorder())) {
+        while (!current.equals(RecorderBody.getFirstRecorder())) {
             result.add(current);
             current = current.getNextRecorder();
         }

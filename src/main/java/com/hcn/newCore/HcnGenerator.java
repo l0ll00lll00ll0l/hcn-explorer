@@ -15,7 +15,6 @@ import java.util.List;
 public class HcnGenerator implements Comparable<HcnGenerator> {
 
     private static HcnGenerator firstHcnGenerator;
-    private static int size = 0;
     public static HcnGenerator getFirstHcnGenerator() { return firstHcnGenerator; }
 
     public static void initialHcnGeneratorListBasedOnLastBodyList() {

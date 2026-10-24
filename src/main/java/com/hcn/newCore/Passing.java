@@ -21,7 +21,6 @@ public class Passing {
 
     public static void processNextPassing() {
         //log.debug("[PROCESS PASSING ZONE]]");
-        RecorderList.setCurrentRecorder(lowestPassing.getPrayBody());
         ScientificNumber previousRecorderFactor = new ScientificNumber(1, 0);
 
         TreeSet<Hcn> passingHcns = lowestPassing.prayBody.generatePassingHcns();

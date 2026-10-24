@@ -39,7 +39,35 @@ public class TransitionNode extends MatrixNode{
     }
 
     public static TransitionNode initialize() {
+
+        ApiNode p0 = ApiNode.builder().prevMatrixNode(null).build();
+        p0.getIndexes().add(Prime.getFirstPrime());
+        BodyNode pip01 = BodyNode.builder().parentNode(p0).bodyNodeId(1).proved(true)
+                .value(new ScientificNumber(2,0))
+                .factor(new ScientificNumber(2, 0)).build();
+        BodyNode pip02 = BodyNode.builder().parentNode(p0).bodyNodeId(2).proved(true)
+                .value(new ScientificNumber(4,0))
+                .factor(new ScientificNumber(3, 0)).build();
+        BodyNode pip03 = BodyNode.builder().parentNode(p0).bodyNodeId(3)
+                .value(new ScientificNumber(8,0))
+                .factor(new ScientificNumber(4, 0)).build();
+        p0.getBodyNodes().put(1, pip01);
+        p0.getBodyNodes().put(2, pip02);
+        p0.getBodyNodes().put(3, pip03);
+
         lastTransition = TransitionNode.builder().transitionFrom(2).transitionTo(1).build();
+        lastTransition.indexes.add(Prime.getFirstPrime().getNextPrime());
+        BodyNode t1 = BodyNode.builder().parentNode(lastTransition).bodyNodeId(1)
+                .value(new ScientificNumber(1, 0))
+                .factor(new ScientificNumber(1, 0)).proved(true).build();
+        lastTransition.getBodyNodes().put(1, t1);
+        BodyNode t2 = BodyNode.builder()
+                .parentNode(lastTransition).bodyNodeId(2).value(new ScientificNumber(9, 0))
+                .factor(new ScientificNumber(3, 0)).build();
+        lastTransition.getBodyNodes().put(2, t2);
+
+        p0.setNextMatrixNode(lastTransition);
+        lastTransition.setPrevMatrixNode(p0);
         return lastTransition;
     }
 

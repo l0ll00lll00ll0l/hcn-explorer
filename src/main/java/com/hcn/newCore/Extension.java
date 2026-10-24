@@ -76,7 +76,7 @@ public class Extension {
         Body del = delIt.hasNext() ? delIt.next() : null;
         Body add = addIt.hasNext() ? addIt.next() : null;
         //log.debug(" [BEFORE:]");
-        RecorderList.print();
+        //RecorderList.print();
         while (del != null || add != null) {
             if (add == null || (del != null && del.compareTo(add) <= 0)) {
                 //log.debug("DELETING: {}", del);
@@ -88,7 +88,7 @@ public class Extension {
             }
         }
         //log.debug(" [AFTER:]");
-        RecorderList.print();
+        //RecorderList.print();
         if (ActivityCenter.isDbMode()) {
             MatrixExtensionActivity mea = ActivityCenter.getLastMatrixExtensionActivity();
             mea.setCreatedActiveBodyCount(successfullyAddedNewBodies.size());
