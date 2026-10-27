@@ -7,9 +7,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Slf4j
 @Getter
 @Setter
@@ -25,6 +22,7 @@ public class Matrix {
     private String dbName = null;
     private boolean dbMode;
     private DbInsertService dbInsertService;
+    private static int passingCounter = 0;
 
     // Timing
     @Builder.Default
@@ -38,7 +36,7 @@ public class Matrix {
         Prime.initialize();
         TransitionNode.initialize();
         Body.initialize();
-        HcnGenerator.initialHcnGeneratorListBasedOnLastBodyList();
+        HcnGenerator.initialize();
         RecorderBody.initialize();
 
         lowestProvedLapiWithinInterval = 1;
@@ -50,8 +48,12 @@ public class Matrix {
         }
     }
 
-    public void proveNextLapi() {
-        Passing.processNextPassing();
+    public void proveNextLapi(int passingCount) {
+
+        for (int i = 0; i < passingCount; i++) {
+            Passing.processNextPassing();
+            this.passingCounter++;
+        }
         ActivityCenter.setProving(false);
     }
 
@@ -78,6 +80,10 @@ public class Matrix {
 
     public static void setProvedLimit(ScientificNumber proved) {
         provedLimit = proved;
+    }
+
+    public static int getPassingCounter() {
+        return passingCounter;
     }
 
 }

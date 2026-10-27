@@ -31,7 +31,12 @@ public class Passing {
 
         passingHcns.forEach(hcn -> {
             Extension.extend(hcn);
-            RecorderBody newRecorderBody = new RecorderBody(hcn);
+            if (hcn.getHcnGenerator().getRecorderBody() == null) {
+                RecorderBody newRecorderBody = new RecorderBody(hcn);
+            } else {
+                hcn.getHcnGenerator().getRecorderBody().resetReferencedHuntersFromPreviousRecorderBody(hcn, lowestPassing.prayBody);
+                //log.debug("HCN belongs to an already recorderBody: {}", hcn);
+            }
         });
 
         if (passingHcns.last().getFactor().isNotSmallerThan(lowestPassing.prayBody.getPrayHcn().getFactor())) {
@@ -77,12 +82,12 @@ public class Passing {
     public static void placePassingInStaticChain(Passing passingZoneToPlace) {
         //log.debug("   :::::::::::::::::::  placePassingZoneInStaticChain {}  :::::::::::::::::::: ", passingZoneToPlace);
 
-        ScientificNumber pzKey = passingZoneToPlace.lowestPassingHcn.getValue();
+        ScientificNumber pzKey = passingZoneToPlace.prayBody.getPrayHcn().getValue();
 
         Passing firstLargerPassingZone = lowestPassing;
         Passing previousPassingZone = null;
         while (firstLargerPassingZone != null
-                && firstLargerPassingZone.lowestPassingHcn.getValue().isSmallerThan(pzKey)) {
+                && firstLargerPassingZone.prayBody.getPrayHcn().getValue().isSmallerThan(pzKey)) {
             previousPassingZone = firstLargerPassingZone;
             firstLargerPassingZone = firstLargerPassingZone.nextPassing;
         }
@@ -99,9 +104,9 @@ public class Passing {
         }
 
         if (firstLargerPassingZone != null) {
-            ScientificNumber nextPassingZoneStart = firstLargerPassingZone.lowestPassingHcn.getValue();
+            ScientificNumber nextPassingZoneStart = firstLargerPassingZone.prayBody.getPrayHcn().getValue();
             //log.debug("Ceiling PZ check: new entry passingZoneToPlace.passingZone.last(): {}, nextPassingZoneStart: {}", passingZoneToPlace.passingZone.last(), nextPassingZoneStart);
-            if (nextPassingZoneStart.isSmallerThan(passingZoneToPlace.lowestPassingHcn.getValue())) {
+            if (nextPassingZoneStart.isSmallerThan(passingZoneToPlace.prayBody.getPrayHcn().getValue())) {
                 //log.debug(" PassingZoneMerge Required implementation");
             } else {
                 //log.debug(" check: OK");
@@ -137,18 +142,15 @@ public class Passing {
     }
 
     private final RecorderBody prayBody;
-    private Hcn lowestPassingHcn;
     private Passing prevPassing;
     private Passing nextPassing;
 
-    public Passing (Hcn lowestPassingHcn, RecorderBody prayBody) {
-        this.lowestPassingHcn = lowestPassingHcn;
+    public Passing (RecorderBody prayBody) {
         this.prayBody = prayBody;
         Passing.placePassingInStaticChain(this);
     }
 
-    public Passing(Hcn lowestPassingHcn, Passing nextPassing, Passing prevPassing, RecorderBody prayBody) {
-        this.lowestPassingHcn = lowestPassingHcn;
+    public Passing(Passing nextPassing, Passing prevPassing, RecorderBody prayBody) {
         this.nextPassing = nextPassing;
         this.prevPassing = prevPassing;
         this.prayBody = prayBody;

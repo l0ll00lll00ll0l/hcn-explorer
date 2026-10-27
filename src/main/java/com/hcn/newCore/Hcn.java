@@ -52,14 +52,7 @@ public class Hcn implements Comparable<Hcn> {
         return "[" + getLapiIndex() + "]" + " f: " + factor + " v: " + value;
     }
 
-    public Hcn activateHunter(HcnStatus updatedStatus) {
-        hcnGenerator.getReferencedHcns().add(this);
-        hcnStatus = updatedStatus;
-        return this;
-    }
-
-    public void deactivateHunter() {
-        hcnStatus = HcnStatus.NONPASSING_HCN;
+    public void removeHunterReference() {
         hcnGenerator.getReferencedHcns().remove(this);
     }
 }

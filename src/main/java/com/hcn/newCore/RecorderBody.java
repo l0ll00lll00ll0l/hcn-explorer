@@ -6,9 +6,11 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -36,22 +38,32 @@ public class RecorderBody {
 
         firstRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().calculateNextPrimeIfNeeded(), HcnStatus.RECORDER_IN_PASSINGZONE);
         HcnGenerator thirdGenerator = secondRecorder.getHcnGenerator().getNextHcnGenerator();
-        Hcn hcn31 = thirdGenerator.generateHunterHcn(Prime.getFirstPrime().getNextPrime(), HcnStatus.REFERENCED_HUNTER, firstRecorder, 1).activateHunter(HcnStatus.REFERENCED_HUNTER);
+        Hcn hcn31 = thirdGenerator.generateReferencedHcn(Prime.getFirstPrime().getNextPrime(), firstRecorder, 1);
         firstRecorder.setPassingHcn(hcn31);
         firstRecorder.getHunters().put(1, hcn31);
 
         secondRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().getNextPrime(), HcnStatus.RECORDER_IN_PASSINGZONE);
         HcnGenerator fourthGenerator = thirdGenerator.getNextHcnGenerator();
-        Hcn hcn22 = fourthGenerator.generateHunterHcn(Prime.getFirstPrime().getNextPrime(), HcnStatus.REFERENCED_HUNTER, secondRecorder, 1).activateHunter(HcnStatus.REFERENCED_HUNTER);
+        Hcn hcn22 = fourthGenerator.generateReferencedHcn(Prime.getFirstPrime().getNextPrime(), secondRecorder, 1);
         secondRecorder.setPassingHcn(hcn22);
         secondRecorder.getHunters().put(1, hcn22);
 
-        Passing.setLowestPassing(new Passing(hcn31, null, null, firstRecorder));
-        Passing secondPassing = new Passing(hcn22, null, Passing.getLowestPassing(), secondRecorder);
+        Passing.setLowestPassing(new Passing(null, null, firstRecorder));
+        Passing secondPassing = new Passing(null, Passing.getLowestPassing(), secondRecorder);
         Passing.getLowestPassing().setNextPassing(secondPassing);
 
         firstRecorder.setPassing(Passing.getLowestPassing());
         secondRecorder.setPassing(secondPassing);
+    }
+
+    public static void printRecordlist() {
+        log.debug("RecorderList:");
+        firstRecorder.print();
+        RecorderBody walker = firstRecorder.nextRecorder;
+        while (!walker.equals(firstRecorder)) {
+            walker.print();
+            walker = walker.nextRecorder;
+        }
     }
 
     private int intervalLapiDistance;
@@ -76,14 +88,43 @@ public class RecorderBody {
         createPassingZone(initiateHcnGeneratorsBasedOnPreviousPassingZone());
     }
 
+    public void resetReferencedHuntersFromPreviousRecorderBody(Hcn hcn, RecorderBody prayBody) {
+        //log.debug("RecorderBody passing again at {}: {}", Matrix.getPassingCounter(), this);
+        //RecorderBody.printRecordlist();
+        RecorderBody oldPrev = previousRecorder;
+        RecorderBody oldNext = nextRecorder;
+        //log.debug("RecorderBody passing again: oldPrev: {} - this - {} - oldNext: {}", oldPrev, this, oldNext);
+        oldPrev.setNextRecorder(oldNext);
+        oldNext.setPreviousRecorder(oldPrev);
+
+        RecorderBody newNext = prayBody;
+        RecorderBody newPrev = prayBody.previousRecorder;
+
+        //log.debug("RecorderBody passing again: newPrev: {} - this - {} - newNext: {}", newPrev, this, newNext);
+
+        newNext.setPreviousRecorder(this);
+        this.nextRecorder = newNext;
+        newPrev.setNextRecorder(this);
+        this.previousRecorder = newPrev;
+
+        if (prayBody.equals(firstRecorder)) {
+            decreaseIntervalLapiDistances();
+        }
+
+        log.debug("@@: it is HAPPENING ");
+        createPassingZone(initiateHcnGeneratorsBasedOnPreviousPassingZone());
+    }
+
     @Override
     public String toString() {
         return hcnGenerator.getBody().toString() + " intervalLapiDistance: " + intervalLapiDistance;
     }
 
     public void print() {
-        //log.debug("  {}", this);
-        //passingZone.print();
+        log.debug("{}", this);
+        hunters.entrySet().forEach(entry -> {
+            log.debug("  [{}] - {}", entry.getKey(), entry.getValue());
+        });
     }
 
     public Hcn getRecorderHcn(Prime prime, HcnStatus status) {
@@ -94,21 +135,87 @@ public class RecorderBody {
 
     public void findPrayCheck(HcnGenerator hunter, int intervalDistance) {
         int distDiff = intervalDistance - this.intervalLapiDistance;
-        //log.debug("prayHcn {}", prayHcn);
         Prime hunterPrime = prayHcn.getLastActivePrime().getPreviousPrime(distDiff);
-        //log.debug("hunterPrime {}", hunterPrime);
-        Hcn hunterHcn = hunter.generateHunterHcn(hunterPrime, HcnStatus.HUNTER_DURING_FINDPRAY, this, intervalDistance);
-        //log.debug(" # findPrayCheck distDiff: {} hunterPrime: {} hunterHcn: {} ########################", distDiff, hunterPrime, hunterHcn);
+        ScientificNumber hunterValue = hunter.getHcnValue(hunterPrime);
+        ScientificNumber hunterFactor = hunter.getHcnFactor(hunterPrime);
+        ScientificNumber prayFactor = prayHcn.getFactor();
+        //log.debug(" #{} findPrayCheck at {} hunterValue: {} intervalDistance: {}", intervalDistance, prayHcn, hunterValue, intervalDistance);
 
-        placeHunterIntoActivePassingZone(hunterHcn, intervalDistance);
+        placeHunterIntoActivePassingZone(intervalDistance, hunterValue, hunter,  hunterPrime);
 
-        if (prayHcn.getFactor().isSmallerThan(hunterHcn.getFactor())) {
+
+        //log.debug("  @ Passing? prayFactor: {}, hunterfactor: {}", prayFactor, hunterFactor);
+        if (prayFactor.isSmallerThan(hunterFactor)) {
             if (nextRecorder.equals(firstRecorder)) {
                 //log.debug("# intervalDistance raised to {}", intervalDistance);
                 intervalDistance++;
             }
             //log.debug(" calling nextRecorder: {}", nextRecorder);
             nextRecorder.findPrayCheck(hunter, intervalDistance);
+        }
+    }
+
+    public void placeHunterIntoActivePassingZone(int intervalDistance, ScientificNumber hunterValue, HcnGenerator hunter, Prime hunterPrime) {
+
+        if (!hunters.containsKey(intervalDistance)) {
+            hunters.put(intervalDistance, hunter.generateReferencedHcn(hunterPrime,this, intervalDistance));
+            //log.debug("   NEW: {} for prayHcn: {}, hunterHcn: {}", intervalDistance, prayHcn, hunters.get(intervalDistance));
+            if (hunterValue.isSmallerThan(passingHcn.getValue())) {
+                findSmallestPassingHcn(intervalDistance, hunterPrime, hunterValue, hunter);
+            }
+        } else {
+            Hcn currentHunterHcn = hunters.get(intervalDistance);
+            if (hunterValue.isSmallerThan(currentHunterHcn.getValue())) {
+                if (hunterValue.isSmallerThan(passingHcn.getValue())) {
+                    findSmallestPassingHcn(intervalDistance, hunterPrime, hunterValue, hunter);
+                } else {
+                    hunters.get(intervalDistance).removeHunterReference();
+                    hunters.put(intervalDistance, hunter.generateReferencedHcn(hunterPrime,this, intervalDistance));
+                }
+                //log.debug("   {} REPLACED hunterHcn: {}",currentHunterHcn, hunters.get(intervalDistance));
+            } else {
+                //log.debug("   {} NOT replaced hunterValue: {}", currentHunterHcn, hunterValue);
+            }
+        }
+    }
+
+    private void findSmallestPassingHcn(int intervalDistance, Prime hunterPrime, ScientificNumber hunterValue, HcnGenerator hunter) {
+        Prime prayPrimeWalker = prayHcn.getLastActivePrime();
+        Prime hunterPrimeWalker = hunterPrime;
+        ScientificNumber prayHcnValue = prayHcn.getValue();
+        ScientificNumber hunterHcnValue = hunterValue;
+
+        while (hunterHcnValue.isSmallerThan(prayHcnValue)) {
+            prayPrimeWalker = prayPrimeWalker.getPreviousPrime();
+            hunterPrimeWalker = hunterPrimeWalker.getPreviousPrime();
+            prayHcnValue = hcnGenerator.getHcnValue(prayPrimeWalker);
+            hunterHcnValue = hunter.getHcnValue(hunterPrimeWalker);
+        }
+
+        if (prayPrimeWalker.getNextPrime().equals(prayHcn.getLastActivePrime())) {
+            //log.debug(" NO findSmallestPassingHcn found for hunter: {} and pray: {}", passingHcn, prayHcn);
+            hunters.get(intervalDistance).removeHunterReference();
+            hunters.put(intervalDistance, hunter.generateReferencedHcn(hunterPrime,this, intervalDistance));
+            passingHcn = hunters.get(intervalDistance);
+            Passing.removePassingFromStaticChain(passing);
+            Passing.placePassingInStaticChain(passing);
+        } else {
+            //log.debug(" YEEEEEEEEEEEEEES findSmallestPassingHcn found for hunter: {} and pray: {}", passingHcn, prayHcn);
+            replaceHunterHcns(prayPrimeWalker.getNextPrime());
+            hunters.get(intervalDistance).removeHunterReference();
+            hunters.put(intervalDistance, hunter.generateReferencedHcn(hunterPrimeWalker.getNextPrime(),this, intervalDistance));
+            passingHcn = hunters.get(intervalDistance);
+            Passing.removePassingFromStaticChain(passing);
+            Passing.placePassingInStaticChain(passing);
+        }
+    }
+
+    private void replaceHunterHcns(Prime prayHcnPrime) {
+        getRecorderHcn(prayHcnPrime, HcnStatus.RECORDER_IN_PASSINGZONE);
+        for (Map.Entry<Integer, Hcn> entry : hunters.entrySet()) {
+            prayHcnPrime = prayHcnPrime.getPreviousPrime();
+            entry.getValue().removeHunterReference();
+            entry.setValue(entry.getValue().getHcnGenerator().generateReferencedHcn(prayHcnPrime, this, entry.getKey()));
         }
     }
 
@@ -129,7 +236,7 @@ public class RecorderBody {
         nextRecorder = null;
         hcnGenerator.getBody().deactivate();
         hunters.values().forEach(hunterHcn -> {
-            hunterHcn.deactivateHunter();
+            hunterHcn.removeHunterReference();
             hunterHcn.setPrayBody(null);
         });
         hunters.clear();
@@ -150,100 +257,6 @@ public class RecorderBody {
         Passing.removePassingFromStaticChain(passing);
         //removeFromStaticChain();
         createPassingZone(initiateHcnGeneratorsBasedOnLocalPassingZone(factorReferenceHcn));
-    }
-
-    private TreeMap<Integer, HcnGenerator> initiateHcnGeneratorsBasedOnPreviousPassingZone() {
-
-        //log.debug("&&&&&&&&&&&&&&&&&&&&&&&& createFirstPassingZone for prayHcn {} &&&&&&&&&&&&&&&&&&&&&&&&&", prayBody.getPrayHcn());
-        TreeMap<Integer, HcnGenerator> hunterBodies = new TreeMap<>();
-
-        previousRecorder.hunters.keySet().forEach(prevIntervalDistance -> {
-            //log.debug("  previousRecorder - prevIntervalDistance: {}, - prayBody.getIntervalLapiDistance(): {}", prevIntervalDistance, prayBody.getIntervalLapiDistance());
-            if (prevIntervalDistance > intervalLapiDistance) {
-                //log.info("  {} exists for prayBody {}, hunterHcn: {}", prevIntervalDistance, previousRecorder.prayBody.getPrayHcn(),  previousRecorder.hunters.get(prevIntervalDistance));
-                HcnGenerator hunterWalker = previousRecorder.hunters.get(prevIntervalDistance).getHcnGenerator();
-                Prime hunterPrime = previousRecorder.hunters.get(prevIntervalDistance).getLastActivePrime();
-                ScientificNumber hunterHcnFactor = hunterWalker.getHcnFactor(hunterPrime);
-                ScientificNumber prayFactor = previousRecorder.getPrayHcn().getFactor();
-
-                //log.info("    * hunterWalker {} hunterPrime: {}, hunterHcnFactor: {}, prayFactor: {}", hunterWalker, hunterPrime, hunterHcnFactor, prayFactor);
-                while (hunterHcnFactor.isNotBiggerThan(prayFactor)) {
-                    hunterWalker = hunterWalker.getNextHcnGenerator();
-                    if (hunterWalker == null) {
-                        //log.info("hunterWalker is null interval Not added and returned: {} ", prevIntervalDistance);
-                        //createFirstPassingZone(hunterBodies);
-                        return;
-                    }
-
-                    hunterHcnFactor = hunterWalker.getHcnFactor(hunterPrime);
-                    //log.info("    - hunterWalker {} hunterPrime: {}, hunterHcnFactor: {}, prayFactor: {}", hunterWalker, hunterPrime, hunterHcnFactor, prayFactor);
-                }
-                hunterBodies.put(prevIntervalDistance, hunterWalker);
-                //log.debug("  suitable hunterHcn generator found for intervaldistance {}:  {}", prevIntervalDistance, hunterWalker);
-            }
-        });
-        //log.debug("  hunterBodies: {}", hunterBodies);
-        return hunterBodies;
-    }
-
-    private void createPassingZone(TreeMap<Integer, HcnGenerator> hunterBodies) {
-        //log.debug(" && createPassingZone with hunterBodies {} --------------------------", hunterBodies);
-
-        TreeMap<ScientificNumber, Integer> hunterValuesByIntervalDistance = new TreeMap<>();
-        Prime basePrayPrime = prayHcn.getLastActivePrime();
-
-        basePrayPrime = identifyNextPassing(hunterBodies, basePrayPrime, hunterValuesByIntervalDistance);
-
-        //log.debug("  hunterBodies: {}, hunters: {}", hunterBodies.keySet(), hunters.keySet());
-
-        hunters.values().forEach(Hcn::deactivateHunter);
-
-        if (hunterBodies.size() < hunters.size()) {
-            //log.debug("  hunters.lastkey toRemove {}", hunters.lastEntry().getValue());
-            hunters.remove(hunters.lastKey());
-        }
-
-        Prime innerHunterWalker = basePrayPrime;
-        for (Iterator<Integer> iterator = hunterBodies.keySet().iterator(); iterator.hasNext(); ) {
-            int intervalDistance = iterator.next();
-            innerHunterWalker = innerHunterWalker.getPreviousPrime();
-            hunters.put(intervalDistance, hunterBodies.get(intervalDistance)
-                    .generateHunterHcn(innerHunterWalker, HcnStatus.REFERENCED_HUNTER, this, intervalDistance).activateHunter(HcnStatus.REFERENCED_HUNTER));
-            //log.debug("  hunterHcn: {}", hunters.get(intervalDistance));
-        }
-
-        passingHcn = hunters.get(hunterValuesByIntervalDistance.firstEntry().getValue());
-        //log.debug("passingZone: {}", passingHcn);
-        //log.debug("");
-        passing = new Passing(passingHcn, this);
-        //Passing.placePassingInStaticChain(Passing.builder().lowestPassingHcn(passingHcn).build());
-        //placePassingZoneInStaticChain(this);
-    }
-
-    private Prime identifyNextPassing(TreeMap<Integer, HcnGenerator> hunterBodies, Prime basePrayPrime, TreeMap<ScientificNumber, Integer> hunterValuesByIntervalDistance) {
-        ScientificNumber prayValue;
-        do {
-            prayValue = hcnGenerator.getHcnValue(basePrayPrime);
-            //log.debug("  prayValue: {} with : {}", prayValue, basePrayPrime);
-            hunterValuesByIntervalDistance.clear();
-
-            Prime innerHunterWalker = basePrayPrime;
-            for (Iterator<Integer> iterator = hunterBodies.keySet().iterator(); iterator.hasNext(); ) {
-                int intervalDistance = iterator.next();
-                innerHunterWalker = innerHunterWalker.getPreviousPrime();
-                ScientificNumber hunterValue = hunterBodies.get(intervalDistance).getHcnValue(innerHunterWalker);
-                hunterValuesByIntervalDistance.put(hunterValue, intervalDistance);
-            }
-
-            //log.debug("  prayValue: {}, hunterValuesByIntervalDistance.firstKey(): {}", prayValue, hunterValuesByIntervalDistance.firstKey());
-
-            basePrayPrime = basePrayPrime.calculateNextPrimeIfNeeded();
-        } while (prayValue.isSmallerThan(hunterValuesByIntervalDistance.firstKey()));
-
-        basePrayPrime = basePrayPrime.getPreviousPrime();
-        getRecorderHcn(basePrayPrime, HcnStatus.RECORDER_IN_PASSINGZONE);
-        //passingZone.add(prayBody.getRecorderHcn(basePrayPrime, HcnStatus.RECORDER_IN_PASSINGZONE, this));
-        return basePrayPrime;
     }
 
     private TreeMap<Integer, HcnGenerator> initiateHcnGeneratorsBasedOnLocalPassingZone(Hcn factorReferenceHcn) {
@@ -281,52 +294,107 @@ public class RecorderBody {
         return hunterBodies;
     }
 
+    private TreeMap<Integer, HcnGenerator> initiateHcnGeneratorsBasedOnPreviousPassingZone() {
+
+        //log.debug("&&&&&&&&&&&&&&&&&&&&&&&& createFirstPassingZone for prayHcn {} &&&&&&&&&&&&&&&&&&&&&&&&&", prayHcn);
+        TreeMap<Integer, HcnGenerator> hunterBodies = new TreeMap<>();
+
+        previousRecorder.hunters.keySet().forEach(prevIntervalDistance -> {
+            //log.debug("  previousRecorder - prevIntervalDistance: {}, - prayBody.getIntervalLapiDistance(): {}", prevIntervalDistance, intervalLapiDistance);
+            if (prevIntervalDistance > intervalLapiDistance) {
+                //log.debug("  {} exists for prayBody {}, hunterHcn: {}", prevIntervalDistance, previousRecorder.getPrayHcn(),  previousRecorder.hunters.get(prevIntervalDistance));
+                HcnGenerator hunterWalker = previousRecorder.hunters.get(prevIntervalDistance).getHcnGenerator();
+                Prime hunterPrime = previousRecorder.hunters.get(prevIntervalDistance).getLastActivePrime();
+                ScientificNumber hunterHcnFactor = hunterWalker.getHcnFactor(hunterPrime);
+                ScientificNumber prayFactor = previousRecorder.getPrayHcn().getFactor();
+
+                //log.debug("    * hunterWalker {} hunterPrime: {}, hunterHcnFactor: {}, prayFactor: {}", hunterWalker, hunterPrime, hunterHcnFactor, prayFactor);
+                while (hunterHcnFactor.isNotBiggerThan(prayFactor)) {
+                    hunterWalker = hunterWalker.getNextHcnGenerator();
+                    if (hunterWalker == null) {
+                        //log.info("hunterWalker is null interval Not added and returned: {} ", prevIntervalDistance);
+                        //createFirstPassingZone(hunterBodies);
+                        return;
+                    }
+
+                    hunterHcnFactor = hunterWalker.getHcnFactor(hunterPrime);
+                    //log.debug("    - hunterWalker {} hunterPrime: {}, hunterHcnFactor: {}, prayFactor: {}", hunterWalker, hunterPrime, hunterHcnFactor, prayFactor);
+                }
+                hunterBodies.put(prevIntervalDistance, hunterWalker);
+                //log.debug("  suitable hunterHcn generator found for intervaldistance {}:  {}", prevIntervalDistance, hunterWalker);
+            }
+        });
+        //log.debug("  hunterBodies: {}", hunterBodies);
+        return hunterBodies;
+    }
+
+    private void createPassingZone(TreeMap<Integer, HcnGenerator> hunterBodies) {
+        //log.debug(" && createPassingZone with hunterBodies {} --------------------------", hunterBodies);
+
+        TreeMap<ScientificNumber, Integer> hunterValuesByIntervalDistance = new TreeMap<>();
+        Prime basePrayPrime = prayHcn.getLastActivePrime();
+
+        basePrayPrime = identifyNextPassing(hunterBodies, basePrayPrime, hunterValuesByIntervalDistance);
+
+        //log.debug("  hunterBodies: {}, hunters: {}", hunterBodies.keySet(), hunters.keySet());
+
+        hunters.values().forEach(Hcn::removeHunterReference);
+
+        if (hunterBodies.size() < hunters.size()) {
+            //log.debug("  hunters.lastkey toRemove {}", hunters.lastEntry().getValue());
+            hunters.remove(hunters.lastKey());
+        }
+
+        Prime innerHunterWalker = basePrayPrime;
+        for (Iterator<Integer> iterator = hunterBodies.keySet().iterator(); iterator.hasNext(); ) {
+            int intervalDistance = iterator.next();
+            innerHunterWalker = innerHunterWalker.getPreviousPrime();
+            hunters.put(intervalDistance, hunterBodies.get(intervalDistance).generateReferencedHcn(innerHunterWalker,this, intervalDistance));
+            //log.debug("  hunterHcn: {}", hunters.get(intervalDistance));
+        }
+
+        passingHcn = hunters.get(hunterValuesByIntervalDistance.firstEntry().getValue());
+        //log.debug("passingZone: {}", passingHcn);
+        //log.debug("");
+        passing = new Passing(this);
+        //Passing.placePassingInStaticChain(Passing.builder().lowestPassingHcn(passingHcn).build());
+        //placePassingZoneInStaticChain(this);
+    }
+
+    private Prime identifyNextPassing(TreeMap<Integer, HcnGenerator> hunterBodies, Prime basePrayPrime, TreeMap<ScientificNumber, Integer> hunterValuesByIntervalDistance) {
+        ScientificNumber prayValue;
+        do {
+            prayValue = hcnGenerator.getHcnValue(basePrayPrime);
+            //log.debug("  prayValue: {} with : {}", prayValue, basePrayPrime);
+            hunterValuesByIntervalDistance.clear();
+
+            Prime innerHunterWalker = basePrayPrime;
+            for (Iterator<Integer> iterator = hunterBodies.keySet().iterator(); iterator.hasNext(); ) {
+                int intervalDistance = iterator.next();
+                innerHunterWalker = innerHunterWalker.getPreviousPrime();
+                ScientificNumber hunterValue = hunterBodies.get(intervalDistance).getHcnValue(innerHunterWalker);
+                hunterValuesByIntervalDistance.put(hunterValue, intervalDistance);
+            }
+
+            //log.debug("  prayValue: {}, hunterValuesByIntervalDistance.firstKey(): {}", prayValue, hunterValuesByIntervalDistance.firstKey());
+
+            basePrayPrime = basePrayPrime.calculateNextPrimeIfNeeded();
+        } while (prayValue.isSmallerThan(hunterValuesByIntervalDistance.firstKey()));
+
+        basePrayPrime = basePrayPrime.getPreviousPrime();
+        getRecorderHcn(basePrayPrime, HcnStatus.RECORDER_IN_PASSINGZONE);
+        //passingZone.add(prayBody.getRecorderHcn(basePrayPrime, HcnStatus.RECORDER_IN_PASSINGZONE, this));
+        return basePrayPrime;
+    }
+
     public void decreaseIntervalLapiDistances() {
         intervalLapiDistance--;
         List<Integer> intervalLapiDistances = hunters.keySet().stream().toList();
         intervalLapiDistances.forEach(intervalLapiDistance -> {
             Hcn hunterHcn = hunters.remove(intervalLapiDistance);
+            hunterHcn.setIntervalDistance(intervalLapiDistance - 1);
             hunters.put(intervalLapiDistance - 1, hunterHcn);
         });
-    }
-
-    public void placeHunterIntoActivePassingZone(Hcn hunterHcn, int intervalDistance) {
-
-        if (!hunters.containsKey(intervalDistance)) {
-            //log.debug("placeHunterIntoActivePassingZone befor:");
-            //printHunters();
-            hunters.put(intervalDistance, hunterHcn.activateHunter(HcnStatus.REFERENCED_HUNTER));
-            if (hunterHcn.getValue().isSmallerThan(passingHcn.getValue())) {
-                passingHcn = hunterHcn;
-            }
-            //log.debug("  placeHunterIntoActivePassingZone new intervalDistance: {} for prayHcn: {}, hunterHcn: {} ------------------- ", intervalDistance, prayBody.getPrayHcn(), hunterHcn);
-            //printHunters();
-        } else {
-            Hcn currentHunterHcn = hunters.get(intervalDistance);
-            //log.debug("  currentHunterHcn: {}, hunterHcn: {}", currentHunterHcn, hunterHcn);
-            //printHunters();
-            if (hunterHcn.getValue().isSmallerThan(currentHunterHcn.getValue())) {
-                //log.debug(" currentHunterHcn  for prayHcn: {}, REPLACED prev: {}, hunter: {}", prayBody.getPrayHcn(), currentHunterHcn, hunterHcn);
-                hunters.get(intervalDistance).deactivateHunter();
-                hunters.put(intervalDistance, hunterHcn.activateHunter(HcnStatus.REFERENCED_HUNTER));
-                if (hunterHcn.getValue().isSmallerThan(passingHcn.getValue())) {
-                    passingHcn = hunterHcn;
-                }
-            } else {
-                //log.debug("  currentHunterHcn  for prayHcn: {}, NOT replaced prev: {}, hunter: {}", prayBody.getPrayHcn(), currentHunterHcn, hunterHcn);
-            }
-            //log.debug("currentHunterHcn after: {}", hunters.get(intervalDistance));
-            //printHunters();
-        }
-
-        /*
-        if (hunterHcn.getValue().isSmallerThan(prayBody.getPrayHcn().getValue())) {
-            //TODO checkIfLowerHcnWouldGenerateNewPassingZone
-            passingZone.add(hunterHcn.activateHunter(HcnStatus.HUNTER_IN_PASSINGZONE));
-            //log.debug("  CHECK IMPL NEEDED hunterHcn: {}", hunterHcn);
-        }
-
-         */
     }
 
     public void deleteHunterHcn(Hcn hunterHcn) {
@@ -357,25 +425,38 @@ public class RecorderBody {
 
             //log.debug("  hunterhcn: {}, lapiDist: {}", hunterHcn, hunterHcn.getIntervalDistance());
             // deactivate happens after this call
-            hunters.put(hunterHcn.getIntervalDistance(), hunterWalker.generateHunterHcn(prayHcn.getLastActivePrime()
-                    .getPreviousPrime(hunterHcn.getIntervalDistance()), HcnStatus.REFERENCED_HUNTER, this, hunterHcn.getIntervalDistance()).activateHunter(HcnStatus.REFERENCED_HUNTER));
+            hunters.put(hunterHcn.getIntervalDistance(), hunterWalker.generateReferencedHcn(prayHcn.getLastActivePrime()
+                    .getPreviousPrime(hunterHcn.getIntervalDistance()),this, hunterHcn.getIntervalDistance()));
         }
 
     }
 
     public TreeSet<Hcn> generatePassingHcns() {
+
         TreeSet<Hcn> passingHcns = new TreeSet<>();
         hunters.keySet().forEach(intervalDistance -> {
             Hcn hunterHcn = hunters.get(intervalDistance);
             ScientificNumber potentialPasserValue = hunterHcn.getValue();
             HcnGenerator potentialPasser = hunterHcn.getHcnGenerator();
             while (potentialPasserValue.isSmallerThan(prayHcn.getValue())) {
-                Hcn passingHcn = potentialPasser.generateHunterHcn(hunterHcn.getLastActivePrime(), HcnStatus.HUNTER_IN_PASSINGZONE, this, intervalDistance);
-                passingHcns.add(passingHcn);
+                Hcn passingCandidate = potentialPasser.generateTempHcn(hunterHcn.getLastActivePrime(), this, intervalDistance);
+                passingHcns.add(passingCandidate);
                 potentialPasser = potentialPasser.getNextHcnGenerator();
                 potentialPasserValue = potentialPasser.getHcnValue(hunterHcn.getLastActivePrime());
             }
         });
+
+        ScientificNumber factorLimit = new ScientificNumber(1, 0);
+        Set<Hcn> notSuperiorHcns = new HashSet<>();
+        for (Hcn passingCandidate : passingHcns) {
+            if (passingCandidate.getFactor().isBiggerThan(factorLimit)) {
+                factorLimit = passingCandidate.getFactor();
+            } else {
+                //passingCandidate.setHcnStatus(HcnStatus.NONPASSING_HCN);
+                notSuperiorHcns.add(passingCandidate);
+            }
+        }
+        notSuperiorHcns.forEach(passingHcns::remove);
         return passingHcns;
     }
 }

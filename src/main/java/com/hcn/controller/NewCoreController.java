@@ -276,11 +276,11 @@ public class NewCoreController {
 
     @PostMapping("/newcore/prove")
     @ResponseBody
-    public String prove() {
+    public String prove(@RequestParam(defaultValue = "1") int count) {
         if (!ActivityCenter.isProving()) {
             ActivityCenter.setProving(true);
             dbCacheService.clear();
-            new Thread(() -> matrix.proveNextLapi()).start();
+            new Thread(() -> matrix.proveNextLapi(count)).start();
         }
         return "{\"started\":true}";
     }
@@ -382,6 +382,10 @@ public class NewCoreController {
             current = current.getLargerBody();
         }
         return bodies;
+    }
+
+    public int getPassingCounter() {
+        return Matrix.getPassingCounter();
     }
 
     public List<HcnGenerator> getHcnGenerators() {

@@ -69,20 +69,22 @@ public class Extension {
         //log.debug("[CREATED NEW HCN GENERATORS]");
         //log.debug(" successfullyAddedNewBodies {}", successfullyAddedNewBodies);
         //log.debug(" dominatedSuperiorBodies {}", dominatedSuperiorBodies);
+        //RecorderBody.printRecordlist();
+        //HcnGenerator.printGeneratorList();
         //log.debug(" bodylist {}", TransitionNode.getLastTransition().getBodyList());
         //log.debug("");
         Iterator<Body> delIt = dominatedSuperiorBodies.iterator();
         Iterator<Body> addIt = successfullyAddedNewBodies.iterator();
         Body del = delIt.hasNext() ? delIt.next() : null;
         Body add = addIt.hasNext() ? addIt.next() : null;
-        //log.debug(" [BEFORE:]");
-        //RecorderList.print();
+
         while (del != null || add != null) {
             if (add == null || (del != null && del.compareTo(add) <= 0)) {
-                //log.debug("DELETING: {}", del);
+                //log.debug(" DELETING: {}", del);
                 del.getHcnGenerator().deleteHcnGenerator();
                 del = delIt.hasNext() ? delIt.next() : null;
             } else {
+                //log.debug(" ADDING: {}", add);
                 new HcnGenerator(add);
                 add = addIt.hasNext() ? addIt.next() : null;
             }
