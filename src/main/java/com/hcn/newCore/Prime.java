@@ -79,8 +79,10 @@ public class Prime {
 
     public Prime getPreviousPrime(int distance) {
         Prime primeWalker = this;
-        for (int i = 0; i < distance; i++) {
-            primeWalker = primeWalker.getPreviousPrime();
+        if (distance >= 0) {
+            for (int i = 0; i < distance; i++) primeWalker = primeWalker.getPreviousPrime();
+        } else {
+            for (int i = 0; i > distance; i--) primeWalker = primeWalker.getNextPrime();
         }
         return primeWalker;
     }
