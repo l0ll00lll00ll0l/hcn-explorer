@@ -2,10 +2,18 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <div th:fragment="content">
-    <div th:if="${@newCoreController.getPassingZoneList().isEmpty()}" style="font-size: 11px; color: #999;">No passingZone entries</div>
-    <div th:each="pb : ${@newCoreController.getPassingZoneList()}"
-         style="margin-bottom: 12px; border: 1px solid #333; padding: 6px 8px;">
-        <div th:replace="~{tabs/fragments :: passingZoneBox(${pb})}"></div>
+    <div th:if="${@newCoreController.getPassingZoneList().isEmpty()}" style="font-size: 11px; color: #999;">No passing entries</div>
+    <div th:each="passing : ${@newCoreController.getPassingZoneList()}"
+         style="margin-bottom: 12px; border: 1px solid #333; padding: 6px 8px; display: flex; gap: 12px; font-size: 11px;">
+        <div>
+            <div style="font-weight: bold; margin-bottom: 4px;">passingHcn</div>
+            <div th:text="${passing.passingHcn != null ? passing.passingHcn.toString() : '-'}"></div>
+        </div>
+        <div>
+            <div style="font-weight: bold; margin-bottom: 4px;">passed recorders</div>
+            <div th:if="${passing.recorderBodies.isEmpty()}" style="color: #999;">-</div>
+            <div th:each="rb : ${passing.recorderBodies}" th:text="${rb.prayHcn != null ? rb.prayHcn.toString() : '-'}"></div>
+        </div>
     </div>
 </div>
 </body>
