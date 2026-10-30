@@ -49,7 +49,7 @@ public class Hcn implements Comparable<Hcn> {
     }
 
     public String getValueFactorString() {
-        return "[" + getLapiIndex() + "]" + " f: " + factor + " v: " + value;
+        return hcnGenerator.getBody().getBodyChain() + " f: " + factor + " v: " + value;
     }
 
     public void removeHunterReference() {

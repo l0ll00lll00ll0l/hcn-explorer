@@ -100,7 +100,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
 
     public void resetReferencedHuntersFromPreviousRecorderBody(Hcn hcn, RecorderBody prayBody) {
         log.debug("RecorderBody passing again at {}: {}", Matrix.getPassingCounter(), this);
-        //RecorderBody.printRecordlist();
+        RecorderBody.printRecordlist();
         RecorderBody oldPrev = previousRecorder;
         RecorderBody oldNext = nextRecorder;
         //log.debug("RecorderBody passing again: oldPrev: {} - this - {} - oldNext: {}", oldPrev, this, oldNext);
@@ -117,9 +117,28 @@ public class RecorderBody implements Comparable<RecorderBody> {
         newPrev.setNextRecorder(this);
         this.previousRecorder = newPrev;
 
+        this.order = previousRecorder.order + 1;
         if (prayBody.equals(firstRecorder)) {
-            //log.debug("Decreasing for resetReferencedHuntersFromPreviousRecorderBody: {}", this.getHcnGenerator());
             decreaseIntervalLapiDistances();
+            RecorderBody recorderJummpedOver = firstRecorder.nextRecorder;
+            while (!recorderJummpedOver.equals(oldNext)) {
+                recorderJummpedOver.order = recorderJummpedOver.previousRecorder.order + 1;
+                recorderJummpedOver = recorderJummpedOver.nextRecorder;
+            }
+            while (recorderJummpedOver != firstRecorder) {
+                recorderJummpedOver.order--;
+                recorderJummpedOver = recorderJummpedOver.nextRecorder;
+            }
+            log.debug("1");
+            RecorderBody.printRecordlist();
+        } else {
+            RecorderBody recorderToShiftOrderNumber = nextRecorder;
+            while (recorderToShiftOrderNumber != oldNext) {
+                recorderToShiftOrderNumber.order = recorderToShiftOrderNumber.previousRecorder.order + 1;
+                recorderToShiftOrderNumber = recorderToShiftOrderNumber.nextRecorder;
+            }
+            log.debug("2");
+            RecorderBody.printRecordlist();
         }
 
         //log.debug("@@: it is HAPPENING ");
@@ -129,7 +148,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
 
     @Override
     public String toString() {
-        return hcnGenerator.getBody().toString() + " intervalLapiDistance: " + intervalLapiDistance;
+        return order + " - " + hcnGenerator.getBody().toString() + " intervalLapiDistance: " + intervalLapiDistance;
     }
 
     public void print() {
@@ -233,18 +252,31 @@ public class RecorderBody implements Comparable<RecorderBody> {
 
     public void deleteRecorderBody() {
         prayHcn.setHcnStatus(HcnStatus.RECORDER_DEACTIVATED);
+        lowerLargerOrderNumbers();
         previousRecorder.setNextRecorder(nextRecorder);
         nextRecorder.setPreviousRecorder(previousRecorder);
+
         if (this.equals(firstRecorder)) {
-            RecorderBody potentialFirstRecorder = nextRecorder;
-            while (potentialFirstRecorder.getIntervalLapiDistance() > 0) {
+            int recorderListSize = previousRecorder.order;
+            int movingRecorderCount = 0;
+            firstRecorder = nextRecorder;
+            while (firstRecorder.getIntervalLapiDistance() > 0) {
                 //potentialFirstRecorder.setIntervalLapiDistance(potentialFirstRecorder.getIntervalLapiDistance() - 1);
                 //log.debug("Decreasing for deleteRecorderBody: {}", this.getHcnGenerator());
-                potentialFirstRecorder.decreaseIntervalLapiDistances();
-                potentialFirstRecorder = potentialFirstRecorder.getNextRecorder();
+                firstRecorder.decreaseIntervalLapiDistances();
+                firstRecorder.order = firstRecorder.previousRecorder.order;
+                firstRecorder.lowerLargerOrderNumbers();
+                firstRecorder = firstRecorder.getNextRecorder();
+                movingRecorderCount++;
+                log.debug("delete");
+                RecorderBody.printRecordlist();
             }
-            firstRecorder = potentialFirstRecorder;
+            if (movingRecorderCount > 0) {
+                //resetOrderNumbersAfterMovingRecorders(recorderListSize, movingRecorderCount);
+            }
         }
+
+
         previousRecorder = null;
         nextRecorder = null;
         hcnGenerator.getBody().deactivate();
@@ -256,7 +288,25 @@ public class RecorderBody implements Comparable<RecorderBody> {
         Passing.removePassingFromStaticChain(passing);
     }
 
+    private void resetOrderNumbersAfterMovingRecorders(int recorderListSize, int movingRecorderCount) {
+        firstRecorder.order = 1;
+        RecorderBody recorderToShiftOrderNumber = firstRecorder.nextRecorder;
+        while (recorderToShiftOrderNumber != firstRecorder) {
+            recorderToShiftOrderNumber.order = recorderToShiftOrderNumber.order - movingRecorderCount;
+            if (recorderToShiftOrderNumber.order > 1) {
+                recorderToShiftOrderNumber.order = recorderToShiftOrderNumber.order + recorderListSize;
+            }
+            recorderToShiftOrderNumber = recorderToShiftOrderNumber.nextRecorder;
+        }
+    }
 
+    private void lowerLargerOrderNumbers() {
+        RecorderBody recorderToLowerOrderNumber = nextRecorder;
+        while (recorderToLowerOrderNumber != firstRecorder) {
+            recorderToLowerOrderNumber.order--;
+            recorderToLowerOrderNumber = recorderToLowerOrderNumber.nextRecorder;
+        }
+    }
 
 
     // EX-PASSING_ZONE

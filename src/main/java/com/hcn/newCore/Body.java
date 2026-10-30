@@ -130,6 +130,12 @@ public class Body implements Comparable<Body>{
         return sb.toString();
     }
 
+    public String getBodyChain() {
+        StringBuilder sb = new StringBuilder();
+        buildChain(sb);
+        return sb.toString();
+    }
+
     public void buildChain(StringBuilder sb) {
         if (parent != null) {
             parent.buildChain(sb);

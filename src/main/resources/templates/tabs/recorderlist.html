@@ -2,33 +2,28 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <div th:fragment="content">
-    <div style="font-size: 11px; margin-bottom: 12px;">
-        <span>targetValue: <b th:text="${@newCoreController.getCurrentIntervalTargetValue()}"></b></span>
-    </div>
-    <div th:each="rb, bodyStat : ${@newCoreController.getRecorderList()}"
-         style="margin-bottom: 12px; border: 1px solid #333;">
-        <table class="level-table" style="font-size: 11px;">
+    <div th:with="recorderList=${@newCoreController.getRecorderList()},
+                  lastKey=${recorderList[0].hunters.lastKey()}">
+        <table style="font-size: 11px; border-collapse: collapse;">
             <thead>
                 <tr>
-                    <th>#</th>
-                    <th>Body</th>
-                    <th>IntervalLapiDist</th>
+                    <th style="border: 1px solid #555; padding: 2px 6px;">#</th>
+                    <th th:each="col : ${#numbers.sequence(0, lastKey)}"
+                        th:text="${col}"
+                        style="border: 1px solid #555; padding: 2px 6px; text-align: center;"></th>
                 </tr>
             </thead>
             <tbody>
-                <tr th:style="${rb.hcnGenerator.body.deactivated ? 'background:#ff9999;' : 'background:#e8f5e9;'}">
-                    <td th:text="${bodyStat.index}"></td>
-                    <td th:text="${@newCoreController.guiString(rb.hcnGenerator.body)}"></td>
-                    <td th:text="${rb.intervalLapiDistance}"></td>
+                <tr th:each="rb : ${recorderList}">
+                    <td th:text="${rb.order}" style="border: 1px solid #555; padding: 2px 6px;"></td>
+                    <td th:each="col : ${#numbers.sequence(0, lastKey)}"
+                        th:text="${col == rb.intervalLapiDistance ? rb.prayHcn.getValueFactorString() : (rb.hunters.containsKey(col) ? rb.hunters.get(col).getValueFactorString() : '')}"
+                        th:style="${col == rb.intervalLapiDistance ? 'background:#cce5ff;' : (rb.hunters.containsKey(col) ? 'background:#e8f5e9;' : '')} + 'border: 1px solid #555; padding: 2px 6px;'"
+                        style="border: 1px solid #555; padding: 2px 6px;"></td>
                 </tr>
             </tbody>
         </table>
-        <div style="display: flex; gap: 12px; align-items: flex-start; margin: 4px 8px 8px 8px;">
-            <div th:replace="~{tabs/fragments :: passingZoneBox(${rb})}"></div>
-
-        </div>
     </div>
-
 </div>
 </body>
 </html>
