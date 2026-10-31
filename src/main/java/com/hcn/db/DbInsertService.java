@@ -1,9 +1,9 @@
 package com.hcn.db;
 
 import com.hcn.event.*;
+import com.hcn.newCore.interval.ActiveInterval;
 import com.hcn.newCore.Body;
 import com.hcn.newCore.Hcn;
-import com.hcn.newCore.Interval;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -144,8 +144,8 @@ public class DbInsertService {
         intervalCount = 0;
     }
 
-    public void submit(Interval interval) {
-        mainQueue.add(new DbTask.IntervalTask(interval));
+    public void submit(ActiveInterval activeInterval) {
+        mainQueue.add(new DbTask.IntervalTask(activeInterval));
     }
 
     public void submitBodyDeletionEvent(BodyDeletionEvent event) {
@@ -157,13 +157,13 @@ public class DbInsertService {
             try {
                 DbTask task = mainQueue.take();
                 if (task instanceof DbTask.IntervalTask t) {
-                    Interval interval = t.interval();
-                    process(interval);
+                    ActiveInterval activeInterval = t.activeInterval();
+                    process(activeInterval);
                     if (bodyCount >= THRESHOLD)     flushBody();
                     if (hcnCount >= THRESHOLD)      flushHcn();
                     if (intervalCount >= THRESHOLD) flushInterval();
                     synchronized (this) {
-                        lastProcessedLapi = interval.getLapi();
+                        lastProcessedLapi = activeInterval.getInterval();
                         notifyAll();
                     }
                 } else if (task instanceof DbTask.BodyDeletionTask t) {
@@ -205,20 +205,23 @@ public class DbInsertService {
         }
     }
 
-    private void process(Interval interval) {
+    private void process(ActiveInterval activeInterval) {
+        /*
         int firstHcnId = hcnIdCounter + 1;
         if (!interval.isReferenced()) {
-            /*
+
             interval.getHcnList().forEach(hcn -> {
                 if (hcn.getBody().getDbId() == null) appendBody(hcn.getBody());
                 appendHcn(hcn);
             });
 
-             */
+
         } else {
             hcnIdCounter += interval.getHcnList().size();
         }
         appendInterval(interval, firstHcnId);
+
+         */
     }
 
     private void appendBody(Body body) {
@@ -240,15 +243,19 @@ public class DbInsertService {
         hcnCount++;
     }
 
-    private void appendInterval(Interval interval, int firstHcnId) {
+    private void appendInterval(ActiveInterval activeInterval, int firstHcnId) {
+
+         /*
         if (intervalCount > 0) intervalBuffer.append(",");
-        intervalBuffer.append("(").append(interval.getLapi())
+        intervalBuffer.append("(").append(activeInterval.getInterval())
                 .append(",").append(firstHcnId)
-                .append(",").append(interval.getHcnList().size())
-                .append(",").append(interval.getReferenceInterval().getLapi())
-                .append(",").append(interval.getActiveBodyCount())
+                .append(",").append(activeInterval.getHcnList().size())
+                .append(",").append(activeInterval.getReferenceInterval().getInterval())
+                .append(",").append(activeInterval.getActiveBodyCount())
                 .append(")");
         intervalCount++;
+
+          */
     }
 
     private String toArrayLiteral(int[] arr) {

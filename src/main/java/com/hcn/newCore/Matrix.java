@@ -2,6 +2,8 @@ package com.hcn.newCore;
 
 import com.hcn.db.DbInsertService;
 import com.hcn.event.ActivityCenter;
+import com.hcn.newCore.interval.ActiveInterval;
+import com.hcn.newCore.interval.ReferenceInterval;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -33,18 +35,22 @@ public class Matrix {
     private long generateHcnListTimeMs = 0;
 
     public void initialize() {
+
         Prime.initialize();
         TransitionNode.initialize();
         Body.initialize();
         HcnGenerator.initialize();
+        ActiveInterval.initialize();
+        ReferenceInterval.initialize();
         RecorderBody.initialize();
+
 
         lowestProvedLapiWithinInterval = 1;
         provedCount = 2;
         provedLimit = new ScientificNumber(6, 0);
 
         if (dbMode) {
-            dbInsertService.submit(Interval.getGlobalReferenceInterval());
+            dbInsertService.submit(ActiveInterval.getCurrentActiveInterval());
         }
     }
 

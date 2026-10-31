@@ -355,15 +355,18 @@ public class MatrixDeserializer {
         ActivityCenter.setTotalNanos(totalNanos);
         ActivityCenter.setTotalMatrixNanos(totalMatrixNanos);
 
+        /*
         Integer refLapi = (Integer) row.get("reference_interval_lapi");
         if (refLapi != null) {
             Interval ri = Interval.builder()
-                    .lapi(refLapi)
+                    .interval(refLapi)
                     .hcnList(referenceIntervalHcns)
                     .build();
             ri.setReferenceInterval(ri);
             Interval.setGlobalReferenceInterval(ri);
         }
+
+         */
 
         //HcnGeneratorList.initialize(Matrix.lastTransition.getBodyList().getSmallestBody());
         return matrix;

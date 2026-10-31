@@ -3,18 +3,27 @@
 <body>
 <div th:fragment="content">
     <div th:if="${@newCoreController.getPassingZoneList().isEmpty()}" style="font-size: 11px; color: #999;">No passing entries</div>
-    <div th:each="passing : ${@newCoreController.getPassingZoneList()}"
-         style="margin-bottom: 12px; border: 1px solid #333; padding: 6px 8px; display: flex; gap: 12px; font-size: 11px;">
-        <div>
-            <div style="font-weight: bold; margin-bottom: 4px;">passingHcn</div>
-            <div th:text="${passing.passingHcn != null ? passing.passingHcn.toString() : '-'}"></div>
-        </div>
-        <div>
-            <div style="font-weight: bold; margin-bottom: 4px;">passed recorders</div>
-            <div th:if="${passing.recorderBodies.isEmpty()}" style="color: #999;">-</div>
-            <div th:each="rb : ${passing.recorderBodies}" th:text="${rb.prayHcn != null ? rb.prayHcn.toString() : '-'}"></div>
-        </div>
-    </div>
+    <table th:if="${!@newCoreController.getPassingZoneList().isEmpty()}" class="level-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>passingHcn</th>
+                <th>prayHcn</th>
+            </tr>
+        </thead>
+        <tbody>
+            <th:block th:each="passing, pStat : ${@newCoreController.getPassingZoneList()}">
+                <tr th:each="prayHcn, rbStat : ${passing.prayHcns}">
+                    <td th:if="${rbStat.first}" th:rowspan="${passing.prayHcns.size()}"
+                        th:text="${pStat.count}" style="vertical-align: top;"></td>
+                    <td th:if="${rbStat.first}" th:rowspan="${passing.prayHcns.size()}"
+                        th:text="${passing.passingHcn != null ? passing.passingHcn.toString() : '-'}"
+                        style="vertical-align: top;"></td>
+                    <td th:text="${prayHcn.toString()}"></td>
+                </tr>
+            </th:block>
+        </tbody>
+    </table>
 </div>
 </body>
 </html>

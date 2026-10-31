@@ -33,8 +33,8 @@ public class RecorderBody implements Comparable<RecorderBody> {
         firstRecorder.setPreviousRecorder(secondRecorder);
         secondRecorder.setNextRecorder(firstRecorder);
 
-        Hcn hcn1 = firstRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER);
-        Hcn hcn2 = secondRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER);
+        firstRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER);
+        secondRecorder.getRecorderHcn(Prime.getFirstPrime(), HcnStatus.FIRST_RECORDER);
 
         firstRecorder.getRecorderHcn(Prime.getFirstPrime().getNextPrime().calculateNextPrimeIfNeeded(), HcnStatus.RECORDER_IN_PASSINGZONE);
         HcnGenerator thirdGenerator = secondRecorder.getHcnGenerator().getNextHcnGenerator();
@@ -57,7 +57,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
     }
 
     public static void printRecordlist() {
-        log.debug("RecorderList:");
+        //log.debug("RecorderList:");
         firstRecorder.print();
         RecorderBody walker = firstRecorder.nextRecorder;
         while (!walker.equals(firstRecorder)) {
@@ -76,6 +76,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
     private final HcnGenerator hcnGenerator;
 
     public RecorderBody(Hcn triggerHcn) {
+        triggerHcn.setHcnStatus(HcnStatus.FIRST_RECORDER);
         hcnGenerator = triggerHcn.getHcnGenerator();
         nextRecorder = triggerHcn.getPrayBody();
         previousRecorder = nextRecorder.getPreviousRecorder();
@@ -98,8 +99,9 @@ public class RecorderBody implements Comparable<RecorderBody> {
         //log.debug("RecorderBody NEW at {}: {}", Matrix.getPassingCounter(), this);
     }
 
-    public void resetReferencedHuntersFromPreviousRecorderBody(Hcn hcn, RecorderBody prayBody) {
-        log.debug("RecorderBody passing again at {}: {}", Matrix.getPassingCounter(), this);
+    public void resetReferencedHuntersFromPreviousRecorderBody(Hcn hcn, Hcn prayHcn) {
+        //log.debug("RecorderBody passing again at {}: {}", Matrix.getPassingCounter(), this);
+        hcn.setHcnStatus(HcnStatus.RECORDER_HUNTER);
         RecorderBody.printRecordlist();
         RecorderBody oldPrev = previousRecorder;
         RecorderBody oldNext = nextRecorder;
@@ -107,6 +109,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
         oldPrev.setNextRecorder(oldNext);
         oldNext.setPreviousRecorder(oldPrev);
 
+        RecorderBody prayBody = prayHcn.getHcnGenerator().getRecorderBody();
         RecorderBody newNext = prayBody;
         RecorderBody newPrev = prayBody.previousRecorder;
 
@@ -129,7 +132,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
                 recorderJummpedOver.order--;
                 recorderJummpedOver = recorderJummpedOver.nextRecorder;
             }
-            log.debug("1");
+            //log.debug("1");
             RecorderBody.printRecordlist();
         } else {
             RecorderBody recorderToShiftOrderNumber = nextRecorder;
@@ -137,7 +140,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
                 recorderToShiftOrderNumber.order = recorderToShiftOrderNumber.previousRecorder.order + 1;
                 recorderToShiftOrderNumber = recorderToShiftOrderNumber.nextRecorder;
             }
-            log.debug("2");
+            //log.debug("2");
             RecorderBody.printRecordlist();
         }
 
@@ -152,9 +155,9 @@ public class RecorderBody implements Comparable<RecorderBody> {
     }
 
     public void print() {
-        log.debug("{}", this);
+        //log.debug("{}", this);
         hunters.entrySet().forEach(entry -> {
-            log.debug("  [{}] - {}", entry.getKey(), entry.getValue());
+            //log.debug("  [{}] - {}", entry.getKey(), entry.getValue());
         });
     }
 
@@ -268,7 +271,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
                 firstRecorder.lowerLargerOrderNumbers();
                 firstRecorder = firstRecorder.getNextRecorder();
                 movingRecorderCount++;
-                log.debug("delete");
+                //log.debug("delete");
                 RecorderBody.printRecordlist();
             }
             if (movingRecorderCount > 0) {
@@ -423,44 +426,44 @@ public class RecorderBody implements Comparable<RecorderBody> {
                 //log.debug("  suitable hunterHcn generator found for intervaldistance {}:  {}", prevIntervalDistance, hunterWalker);
             }
         });
-        log.debug("  ");
-        log.debug("  hunterBodies: {}", hunterBodies);
-        log.debug(" hunterBodies2: {}", hunterBodies2);
-        log.debug("  ");
+        //log.debug("  ");
+        //log.debug("  hunterBodies: {}", hunterBodies);
+        //log.debug(" hunterBodies2: {}", hunterBodies2);
+        //log.debug("  ");
         return hunterBodies;
     }
 
     private HcnGenerator getHunterCandidateForIntervalDistance(int intervalDistanceKey) {
         RecorderBody hcnGeneratorProvider = previousRecorder;
-        log.debug("  hcnGeneratorProvider: {}", hcnGeneratorProvider);
+        //log.debug("  hcnGeneratorProvider: {}", hcnGeneratorProvider);
         while (hcnGeneratorProvider.intervalLapiDistance > intervalDistanceKey) {
             hcnGeneratorProvider = hcnGeneratorProvider.previousRecorder;
-            log.debug("   provider had to be skipped: {}", hcnGeneratorProvider);
+            //log.debug("   provider had to be skipped: {}", hcnGeneratorProvider);
         }
 
         if (intervalDistanceKey == hcnGeneratorProvider.intervalLapiDistance) {
-            log.debug("   provider return itself: {}", hcnGeneratorProvider);
+            //log.debug("   provider return itself: {}", hcnGeneratorProvider);
             return hcnGeneratorProvider.getHcnGenerator();
         } else {
-            log.debug("   provider returning for intervalDistanceKey {}, Hcn reference: {}", intervalDistanceKey, hcnGeneratorProvider.hunters.get(intervalDistanceKey).getHcnGenerator());
+            //log.debug("   provider returning for intervalDistanceKey {}, Hcn reference: {}", intervalDistanceKey, hcnGeneratorProvider.hunters.get(intervalDistanceKey).getHcnGenerator());
             return hcnGeneratorProvider.hunters.get(intervalDistanceKey).getHcnGenerator();
         }
     }
 
     private void createPassingZone(TreeMap<Integer, HcnGenerator> hunterBodies) {
-        log.debug(" && createPassingZone with hunterBodies {} --------------------------", hunterBodies);
+        //log.debug(" && createPassingZone with hunterBodies {} --------------------------", hunterBodies);
 
         TreeMap<ScientificNumber, Integer> hunterValuesByIntervalDistance = new TreeMap<>();
         Prime basePrayPrimeBefore = prayHcn.getLastActivePrime();
 
         Prime basePrayPrimeAfter = identifyNextPassing(hunterBodies, basePrayPrimeBefore, hunterValuesByIntervalDistance);
 
-        log.debug("  hunterBodies: {}, hunters: {}", hunterBodies.keySet(), hunters.keySet());
+        //log.debug("  hunterBodies: {}, hunters: {}", hunterBodies.keySet(), hunters.keySet());
 
         hunters.values().forEach(Hcn::removeHunterReference);
 
         if (hunterBodies.size() < hunters.size()) {
-            log.debug("  hunters.lastkey toRemove {}", hunters.lastEntry().getValue());
+            //log.debug("  hunters.lastkey toRemove {}", hunters.lastEntry().getValue());
             hunters.remove(hunters.lastKey());
         }
 
@@ -469,12 +472,12 @@ public class RecorderBody implements Comparable<RecorderBody> {
             int intervalDistance = iterator.next();
             innerHunterWalker = innerHunterWalker.getPreviousPrime();
             hunters.put(intervalDistance, hunterBodies.get(intervalDistance).generateReferencedHcn(innerHunterWalker,this, intervalDistance));
-            log.debug("  hunterHcn: {}", hunters.get(intervalDistance));
+            //log.debug("  hunterHcn: {}", hunters.get(intervalDistance));
         }
 
         passingHcn = hunters.get(hunterValuesByIntervalDistance.firstEntry().getValue());
-        log.debug("passingHcn: {}", passingHcn);
-        log.debug("");
+        //log.debug("passingHcn: {}", passingHcn);
+        //log.debug("");
 
         passing = new Passing(this);
         //Passing.placePassingInStaticChain(Passing.builder().lowestPassingHcn(passingHcn).build());
@@ -485,18 +488,18 @@ public class RecorderBody implements Comparable<RecorderBody> {
 
         Prime prayPrimeWalker = prayHcn.getLastActivePrime();
         Prime hunterPrimeWalker = hunterPrime;
-        log.debug("    % prayPrimeWalker: {} hunterPrimeWalker : {}", prayPrimeWalker, hunterPrimeWalker);
+        //log.debug("    % prayPrimeWalker: {} hunterPrimeWalker : {}", prayPrimeWalker, hunterPrimeWalker);
         ScientificNumber prayHcnValue = prayHcn.getValue();
         ScientificNumber hunterHcnValue = hunterValue;
-        log.debug("      prayHcnValue: {} hunterHcnValue : {}", prayHcnValue, hunterHcnValue);
+        //log.debug("      prayHcnValue: {} hunterHcnValue : {}", prayHcnValue, hunterHcnValue);
 
         while (hunterHcnValue.isSmallerThan(prayHcnValue)) {
             prayPrimeWalker = prayPrimeWalker.getPreviousPrime();
             hunterPrimeWalker = hunterPrimeWalker.getPreviousPrime();
-            log.debug("      % prayPrimeWalker: {} hunterPrimeWalker : {}", prayPrimeWalker, hunterPrimeWalker);
+            //log.debug("      % prayPrimeWalker: {} hunterPrimeWalker : {}", prayPrimeWalker, hunterPrimeWalker);
             prayHcnValue = hcnGenerator.getHcnValue(prayPrimeWalker);
             hunterHcnValue = hunter.getHcnValue(hunterPrimeWalker);
-            log.debug("        prayHcnValue: {} hunterHcnValue : {}", prayHcnValue, hunterHcnValue);
+            //log.debug("        prayHcnValue: {} hunterHcnValue : {}", prayHcnValue, hunterHcnValue);
         }
         return prayPrimeWalker.getNextPrime();
     }
@@ -505,7 +508,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
         ScientificNumber prayValue;
         do {
             prayValue = hcnGenerator.getHcnValue(basePrayPrime);
-            log.debug("  prayValue: {} with : {}", prayValue, basePrayPrime);
+            //log.debug("  prayValue: {} with : {}", prayValue, basePrayPrime);
             hunterValuesByIntervalDistance.clear();
 
             Prime innerHunterWalker = basePrayPrime;
@@ -516,7 +519,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
                 hunterValuesByIntervalDistance.put(hunterValue, intervalDistance);
             }
 
-            log.debug("  prayValue: {}, hunterValuesByIntervalDistance): {}", prayValue, hunterValuesByIntervalDistance);
+            //log.debug("  prayValue: {}, hunterValuesByIntervalDistance): {}", prayValue, hunterValuesByIntervalDistance);
 
             basePrayPrime = basePrayPrime.calculateNextPrimeIfNeeded();
         } while (prayValue.isSmallerThan(hunterValuesByIntervalDistance.firstKey()));
@@ -577,16 +580,15 @@ public class RecorderBody implements Comparable<RecorderBody> {
 
     }
 
-    public TreeSet<Hcn> generatePassingHcns() {
+    public void generatePassingHcns(Passing currentPassing) {
 
-        TreeSet<Hcn> passingHcns = new TreeSet<>();
         hunters.keySet().forEach(intervalDistance -> {
             Hcn hunterHcn = hunters.get(intervalDistance);
             ScientificNumber potentialPasserValue = hunterHcn.getValue();
             HcnGenerator potentialPasser = hunterHcn.getHcnGenerator();
             while (potentialPasserValue.isSmallerThan(prayHcn.getValue())) {
                 Hcn passingCandidate = potentialPasser.generateTempHcn(hunterHcn.getLastActivePrime(), this, intervalDistance);
-                passingHcns.add(passingCandidate);
+                currentPassing.getPassingHcns().add(passingCandidate);
                 potentialPasser = potentialPasser.getNextHcnGenerator();
                 potentialPasserValue = potentialPasser.getHcnValue(hunterHcn.getLastActivePrime());
             }
@@ -594,7 +596,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
 
         ScientificNumber factorLimit = new ScientificNumber(1, 0);
         Set<Hcn> notSuperiorHcns = new HashSet<>();
-        for (Hcn passingCandidate : passingHcns) {
+        for (Hcn passingCandidate : currentPassing.getPassingHcns()) {
             if (passingCandidate.getFactor().isBiggerThan(factorLimit)) {
                 factorLimit = passingCandidate.getFactor();
             } else {
@@ -602,8 +604,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
                 notSuperiorHcns.add(passingCandidate);
             }
         }
-        notSuperiorHcns.forEach(passingHcns::remove);
-        return passingHcns;
+        notSuperiorHcns.forEach(currentPassing.getPassingHcns()::remove);
     }
 
     @Override

@@ -4,22 +4,19 @@
 <div th:fragment="content">
     <div th:with="recorderList=${@newCoreController.getRecorderList()},
                   lastKey=${recorderList[0].hunters.lastKey()}">
-        <table style="font-size: 11px; border-collapse: collapse;">
+        <table class="level-table">
             <thead>
                 <tr>
-                    <th style="border: 1px solid #555; padding: 2px 6px;">#</th>
-                    <th th:each="col : ${#numbers.sequence(0, lastKey)}"
-                        th:text="${col}"
-                        style="border: 1px solid #555; padding: 2px 6px; text-align: center;"></th>
+                    <th>#</th>
+                    <th th:each="col : ${#numbers.sequence(0, lastKey)}" th:text="${col}"></th>
                 </tr>
             </thead>
             <tbody>
                 <tr th:each="rb : ${recorderList}">
-                    <td th:text="${rb.order}" style="border: 1px solid #555; padding: 2px 6px;"></td>
+                    <td th:text="${rb.order}"></td>
                     <td th:each="col : ${#numbers.sequence(0, lastKey)}"
                         th:text="${col == rb.intervalLapiDistance ? rb.prayHcn.getValueFactorString() : (rb.hunters.containsKey(col) ? rb.hunters.get(col).getValueFactorString() : '')}"
-                        th:style="${col == rb.intervalLapiDistance ? 'background:#cce5ff;' : (rb.hunters.containsKey(col) ? 'background:#e8f5e9;' : '')} + 'border: 1px solid #555; padding: 2px 6px;'"
-                        style="border: 1px solid #555; padding: 2px 6px;"></td>
+                        th:style="${col == rb.intervalLapiDistance ? 'background:#cce5ff;' : (rb.hunters.containsKey(col) ? 'background:#e8f5e9;' : '')}"></td>
                 </tr>
             </tbody>
         </table>

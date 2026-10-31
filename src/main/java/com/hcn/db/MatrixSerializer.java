@@ -1,10 +1,10 @@
 package com.hcn.db;
 
 import com.hcn.event.ActivityCenter;
+import com.hcn.newCore.interval.ActiveInterval;
 import com.hcn.newCore.Body;
 import com.hcn.newCore.BodyNode;
 import com.hcn.newCore.Hcn;
-import com.hcn.newCore.Interval;
 import com.hcn.newCore.Matrix;
 import com.hcn.newCore.MatrixNode;
 import com.hcn.newCore.Prime;
@@ -38,10 +38,13 @@ public class MatrixSerializer {
          */
     }
 
-    private void reassignRefIntervalBodiesAndHcns(Interval referenceInterval) {
-        if (referenceInterval != null) {
-            assignHcnIdsAndDeletedBodyIds(referenceInterval.getHcnList());
+    private void reassignRefIntervalBodiesAndHcns(ActiveInterval referenceActiveInterval) {
+        /*
+        if (referenceActiveInterval != null) {
+            assignHcnIdsAndDeletedBodyIds(referenceActiveInterval.getHcnList());
         }
+
+         */
     }
 /*
     private void reassignLapiBodiesAndHcns(Lapi lowestLapi) {
@@ -98,7 +101,7 @@ public class MatrixSerializer {
     }
 
     private void resetRefIntervalBodiesAndHcns(Matrix matrix) {
-        if (Interval.getGlobalReferenceInterval() != null) {
+        if (ActiveInterval.getCurrentActiveInterval() != null) {
             /*
             for (Hcn hcn : Interval.getGlobalReferenceInterval().getHcnList()) {
                 hcn.getBody().setTempId(null);
@@ -398,16 +401,21 @@ public class MatrixSerializer {
     }
 
     public String buildReferenceIntervalHcnInsert(Matrix matrix) {
-        Interval ri = Interval.getGlobalReferenceInterval();
-        if (ri == null || ri.getHcnList().isEmpty()) return null;
+
+        ActiveInterval ri = ActiveInterval.getCurrentActiveInterval();
+        //if (ri == null || ri.getHcnList().isEmpty()) return null;
         StringBuilder sb = new StringBuilder("INSERT INTO tmp_reference_interval_hcn (list_position, hcn) VALUES ");
+        /*
         List<Hcn> hcnList = ri.getHcnList();
         for (int i = 0; i < hcnList.size(); i++) {
             Hcn hcn = hcnList.get(i);
             if (i > 0) sb.append(", ");
             sb.append(String.format("(%d, %d)", i, hcn.getTempId()));
         }
+
+         */
         return sb.toString();
+
     }
 
     public String buildMatrixInsert(Matrix matrix) {

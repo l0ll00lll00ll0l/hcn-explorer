@@ -70,11 +70,11 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
     }
 
     public static void printGeneratorList() {
-        log.debug("HcnGeneratorList:");
-        log.debug("{}", firstHcnGenerator.printString());
+        //log.debug("HcnGeneratorList:");
+        //log.debug("{}", firstHcnGenerator.printString());
         HcnGenerator walker = firstHcnGenerator.nextHcnGenerator;
         while (walker != null) {
-            log.debug("{}", walker.printString());
+            //log.debug("{}", walker.printString());
             walker = walker.nextHcnGenerator;
         }
     }

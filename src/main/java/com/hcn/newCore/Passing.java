@@ -1,12 +1,10 @@
 package com.hcn.newCore;
 
-import lombok.Builder;
+import com.hcn.newCore.interval.ActiveInterval;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.TreeSet;
 
 @Getter
@@ -20,71 +18,29 @@ public class Passing {
     public static void setLowestPassing(Passing lowestPassing) {Passing.lowestPassing = lowestPassing;}
 
     public static void processNextPassing() {
-        log.debug("[PROCESS PASSING ZONE]]");
 
         Passing currentPassing = lowestPassing;
-        TreeSet<Hcn> passingHcns = currentPassing.recorderBodies.first().generatePassingHcns();
-
-        //log.debug("[PROCESS PASSING ZONE]]");
-        log.debug("passingHcns: {}", passingHcns);
-
-
-        passingHcns.forEach(hcn -> {
+        currentPassing.prayHcns.first().getHcnGenerator().getRecorderBody().generatePassingHcns(currentPassing);
+        currentPassing.passingHcns.forEach(hcn -> {
             Extension.extend(hcn);
             if (hcn.getHcnGenerator().getRecorderBody() == null) {
-                log.debug("HCN creates new Body: {}", hcn);
-                RecorderBody newRecorderBody = new RecorderBody(hcn);
+                new RecorderBody(hcn);
             } else {
-                log.debug("HCN belongs to an already recorderBody: {}", hcn);
-                hcn.getHcnGenerator().getRecorderBody().resetReferencedHuntersFromPreviousRecorderBody(hcn, currentPassing.recorderBodies.first());
+                hcn.getHcnGenerator().getRecorderBody().resetReferencedHuntersFromPreviousRecorderBody(hcn, currentPassing.prayHcns.first());
             }
         });
 
-        ScientificNumber factorRecord = passingHcns.last().getFactor();
-
-        for (RecorderBody passedRecorder : currentPassing.recorderBodies) {
-            if (factorRecord.isNotSmallerThan(passedRecorder.getPrayHcn().getFactor())) {
-                log.debug("deleting passedRecorder: {}", passedRecorder);
-                passedRecorder.deleteRecorderBody();
+        ScientificNumber factorRecord = currentPassing.passingHcns.last().getFactor();
+        for (Hcn prayHcn : currentPassing.prayHcns) {
+            if (factorRecord.isNotSmallerThan(prayHcn.getFactor())) {
+                prayHcn.getHcnGenerator().getRecorderBody().deleteRecorderBody();
             } else {
-                log.debug("surviving passedRecorder: {}", passedRecorder);
-                passedRecorder.createPassingZoneAfterSurvival(passingHcns.last());
-                factorRecord = passedRecorder.getPrayHcn().getFactor();
+                prayHcn.getHcnGenerator().getRecorderBody().createPassingZoneAfterSurvival(currentPassing.passingHcns.last());
+                factorRecord = prayHcn.getFactor();
             }
         }
 
-        /*
-        for (Hcn hcn : globalNextPassingZone.getPassingZone()) {
-            //log.debug("processNextPassingZone - {}", hcn);
-            if (hcn.getHcnStatus().equals(HcnStatus.HUNTER_IN_PASSINGZONE)) {
-
-                //globalNextPassingZone.removeFromHunters(hcn.getHcnGenerator());
-                if (hcn.getFactor().isBiggerThan(previousRecorderFactor)) {
-                    //log.info(" matrixMaintainCheck ofr hcn: {}", hcn);
-                    hcn.getHcnGenerator().getBody().matrixMaintainCheck();
-                    RecorderBody newRecorderBody = new RecorderBody(hcn);
-                    previousRecorderFactor = hcn.getFactor();
-                } else {
-                    //TODO hunter switching pray implementation required
-                    //log.debug("hunter switching pray implementation required :{}", activityHcn);
-                }
-            } else if (hcn.getHcnStatus() == HcnStatus.RECORDER_IN_PASSINGZONE) {
-                //PassingZone passingZone = PassingZone.getGlobalNextPassingZone();
-                if (hcn.getFactor().isBiggerThan(previousRecorderFactor)) {
-                    globalNextPassingZone.createPassingZoneAfterSurvival();
-                    //globalNextPassingZone.prayBodySurvivedCreateNewPassingZone();
-                    previousRecorderFactor = hcn.getFactor();
-                } else {
-                    //log.info(" deleteRecorderBody hcn: {}", hcn);
-                    hcn.getHcnGenerator().getRecorderBody().deleteRecorderBody(hcn);
-                    //RecorderList.recorderToDeactivate(hcn);
-                    //globalNextPassingZone.prayBodyDeactivated();
-                }
-            }
-        }
-
-         */
-        //log.debug("");
+        ActiveInterval.processPassing(currentPassing);
     }
 
 
@@ -103,9 +59,9 @@ public class Passing {
 
         if (firstNotSmallerPassing != null) {
             if (firstNotSmallerPassing.passingHcn.getValue().isNotBiggerThan(passingZoneToPlace.passingHcn.getValue())) {
-                firstNotSmallerPassing.recorderBodies.addAll(passingZoneToPlace.recorderBodies);
-                for (RecorderBody recorderBody : passingZoneToPlace.getRecorderBodies()) {
-                    recorderBody.setPassing(firstNotSmallerPassing);
+                firstNotSmallerPassing.prayHcns.addAll(passingZoneToPlace.prayHcns);
+                for (Hcn prayHcn : passingZoneToPlace.getPrayHcns()) {
+                    prayHcn.getHcnGenerator().getRecorderBody().setPassing(firstNotSmallerPassing);
                 }
                 //log.debug(" firstNotSmallerPassing EXTENDED {}", firstNotSmallerPassing.recorderBodies);
             } else {
@@ -156,13 +112,14 @@ public class Passing {
         }
     }
 
-    private final TreeSet<RecorderBody> recorderBodies = new TreeSet<>();
+    private final TreeSet<Hcn> prayHcns = new TreeSet<>();
     private final Hcn passingHcn;
+    private final TreeSet<Hcn> passingHcns = new TreeSet<>();
     private Passing prevPassing;
     private Passing nextPassing;
 
     public Passing (RecorderBody prayBody) {
-        this.recorderBodies.add(prayBody);
+        this.prayHcns.add(prayBody.getPrayHcn());
         this.passingHcn = prayBody.getPassingHcn();
         Passing.placePassingInStaticChain(this);
     }
@@ -170,7 +127,7 @@ public class Passing {
     public Passing(Passing nextPassing, Passing prevPassing, RecorderBody prayBody) {
         this.nextPassing = nextPassing;
         this.prevPassing = prevPassing;
-        this.recorderBodies.add(prayBody);
+        this.prayHcns.add(prayBody.getPrayHcn());
         this.passingHcn = prayBody.getPassingHcn();
     }
 }

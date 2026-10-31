@@ -12,6 +12,7 @@ import com.hcn.db.MatrixDeserializer;
 import com.hcn.db.MatrixSerializer;
 import com.hcn.event.ActivityCenter;
 import com.hcn.newCore.*;
+import com.hcn.newCore.interval.ActiveInterval;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -431,18 +432,8 @@ public class NewCoreController {
     }
 
 
-    public Interval getCurrentInterval() {
-        return Interval.getCurrentInterval();
-    }
-
-    public List<Interval> getIntervalList() {
-        List<Interval> list = new ArrayList<>();
-        Interval walker = Interval.getGlobalReferenceInterval();
-        while (walker != null) {
-            list.add(walker);
-            walker = walker.getNextInterval();
-        }
-        return list;
+    public ActiveInterval getCurrentInterval() {
+        return ActiveInterval.getCurrentActiveInterval();
     }
 
     public List<Passing> getPassingZoneList() {
@@ -462,6 +453,41 @@ public class NewCoreController {
 
     public ScientificNumber getCurrentIntervalTargetValue() {
         return Matrix.getTargetValue();
+    }
+
+    public record ProcessedPassingRow(Integer interval, Integer passingNo, String passingHcn, String recorderHcn, String hcn) {}
+
+    public List<ProcessedPassingRow> getProcessedPassings() {
+        List<ProcessedPassingRow> rows = new ArrayList<>();
+        List<com.hcn.newCore.interval.ActiveInterval> activeIntervals =
+                com.hcn.newCore.interval.ReferenceInterval.getCurrentReferenceInterval().getActiveIntervals();
+        for (com.hcn.newCore.interval.ActiveInterval activeInterval : activeIntervals) {
+            int interval = activeInterval.getInterval();
+            List<Hcn> hcns = activeInterval.getHcns();
+            int passingNo = 1;
+            int rowIndex = 0;
+            for (Passing passing : activeInterval.getPassings()) {
+                List<Hcn> phcns = new ArrayList<>(passing.getPassingHcns());
+                List<Hcn> prayHcns = new ArrayList<>(passing.getPrayHcns());
+                int maxRows = Math.max(phcns.size(), prayHcns.size());
+                for (int i = 0; i < maxRows; i++) {
+                    rows.add(new ProcessedPassingRow(
+                        (rowIndex == 0) ? interval : null,
+                        i == 0 ? passingNo : null,
+                        i < phcns.size() ? phcns.get(i).toString() : null,
+                        i < prayHcns.size() ? prayHcns.get(i).toString() : null,
+                        rowIndex < hcns.size() ? hcns.get(rowIndex).toString() : null
+                    ));
+                    rowIndex++;
+                }
+                passingNo++;
+            }
+            while (rowIndex < hcns.size()) {
+                rows.add(new ProcessedPassingRow(null, null, null, null, hcns.get(rowIndex).toString()));
+                rowIndex++;
+            }
+        }
+        return rows;
     }
 
     public List<RecorderBody> getRecorderList() {
