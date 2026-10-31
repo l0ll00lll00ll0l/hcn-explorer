@@ -31,6 +31,20 @@ public class ActivityCenter {
     private static volatile int proveTarget = 0;
     private static volatile int proveProgress = 0;
 
+    public static void reset() {
+        nanoReference = 0;
+        lastMatrixMainActivity = null;
+        lastMatrixExtensionActivity = null;
+        lastHcnGenerationActivity = null;
+        currentLapi = 1;
+        dbMode = false;
+        proving = false;
+        proveTarget = 0;
+        proveProgress = 0;
+        totalNanos = 0;
+        totalMatrixNanos = 0;
+    }
+
     public static void initialize(int firstLapiParam, boolean dbModeParam) {
         dbMode = dbModeParam;
         if (!dbMode) return;

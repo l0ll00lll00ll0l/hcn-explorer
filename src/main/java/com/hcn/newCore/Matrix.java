@@ -18,6 +18,12 @@ public class Matrix {
     //public static TransitionNode lastTransition;
     private static ScientificNumber targetValue;
     private static ScientificNumber provedLimit;
+
+    public static void reset() {
+        targetValue = null;
+        provedLimit = null;
+        passingCounter = 0;
+    }
     private int lowestProvedLapiWithinInterval;
     private int provedCount;
     @Builder.Default

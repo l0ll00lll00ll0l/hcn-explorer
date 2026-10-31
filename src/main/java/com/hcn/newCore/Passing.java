@@ -17,6 +17,8 @@ public class Passing {
     public static Passing getLowestPassing() {return lowestPassing;}
     public static void setLowestPassing(Passing lowestPassing) {Passing.lowestPassing = lowestPassing;}
 
+    public static void reset() { lowestPassing = null; }
+
     public static void processNextPassing() {
 
         Passing currentPassing = lowestPassing;

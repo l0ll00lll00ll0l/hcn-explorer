@@ -17,6 +17,8 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
     private static HcnGenerator firstHcnGenerator;
     public static HcnGenerator getFirstHcnGenerator() { return firstHcnGenerator; }
 
+    public static void reset() { firstHcnGenerator = null; }
+
     public static void initialize() {
 
         Body firstBody = TransitionNode.getLastTransition().getBodyList().getSmallestBody();

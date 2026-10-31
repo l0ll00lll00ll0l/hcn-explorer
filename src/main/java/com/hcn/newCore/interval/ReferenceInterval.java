@@ -19,6 +19,8 @@ public class ReferenceInterval {
 
     public static ReferenceInterval getCurrentReferenceInterval() {return currentReferenceInterval;}
 
+    public static void reset() { currentReferenceInterval = null; }
+
     public static void initialize() {
         currentReferenceInterval = ReferenceInterval.builder().build();
         currentReferenceInterval.getActiveIntervals().add(ActiveInterval.getCurrentActiveInterval());

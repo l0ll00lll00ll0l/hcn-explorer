@@ -19,9 +19,12 @@ import java.util.List;
 public class ActiveInterval {
 
     private static ActiveInterval currentActiveInterval;
-    private static ActiveInterval globalReferenceActiveInterval;
 
     public static ActiveInterval getCurrentActiveInterval() {return currentActiveInterval;}
+
+    public static void reset() {
+        currentActiveInterval = null;
+    }
 
     public static void initialize() {
         currentActiveInterval = ActiveInterval.builder().interval(0).build();

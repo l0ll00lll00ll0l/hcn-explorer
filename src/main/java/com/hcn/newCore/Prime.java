@@ -26,6 +26,11 @@ public class Prime {
         return firstPrime;
     }
 
+    public static void reset() {
+        firstPrime = null;
+        largestPrime = null;
+    }
+
     public static void initialize() {
         Prime fakePreviousPrime = Prime.builder().index(-1).intValue(1).value(new ScientificNumber(2, -1))
                 .previousPrime(null).factorMultiplier(new ScientificNumber(0.25, 0)).valueMultiplier(new ScientificNumber((double) 1 / 3, 0)).build();

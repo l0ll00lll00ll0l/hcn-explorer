@@ -23,6 +23,8 @@ public class RecorderBody implements Comparable<RecorderBody> {
     private static RecorderBody firstRecorder;
     public static RecorderBody getFirstRecorder() {return firstRecorder;}
 
+    public static void reset() { firstRecorder = null; }
+
     public static void initialize() {
         firstRecorder = RecorderBody.builder().hcnGenerator(HcnGenerator.getFirstHcnGenerator()).intervalLapiDistance(0).order(1).build();
         RecorderBody secondRecorder = RecorderBody.builder().hcnGenerator(HcnGenerator.getFirstHcnGenerator().getNextHcnGenerator()).intervalLapiDistance(0).order(2).build();

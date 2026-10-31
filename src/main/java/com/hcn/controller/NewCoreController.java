@@ -267,6 +267,16 @@ public class NewCoreController {
 
     @GetMapping("/newcore/quit")
     public String quit() {
+        Prime.reset();
+        Passing.reset();
+        RecorderBody.reset();
+        TransitionNode.reset();
+        HcnGenerator.reset();
+        Extension.reset();
+        com.hcn.newCore.interval.ActiveInterval.reset();
+        com.hcn.newCore.interval.ReferenceInterval.reset();
+        Matrix.reset();
+        ActivityCenter.reset();
         matrix = null;
         activeTab = "matrix";
         activeSubTab = null;

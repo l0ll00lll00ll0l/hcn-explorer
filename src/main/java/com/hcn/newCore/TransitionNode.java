@@ -38,6 +38,8 @@ public class TransitionNode extends MatrixNode{
         return lastTransition;
     }
 
+    public static void reset() { lastTransition = null; }
+
     public static TransitionNode initialize() {
 
         ApiNode p0 = ApiNode.builder().prevMatrixNode(null).build();

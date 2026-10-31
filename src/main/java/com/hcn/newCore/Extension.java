@@ -15,6 +15,11 @@ public class Extension {
     private static Extension currentExtension = null;
     private static ArrayList<Extension> historicalExtensions = new ArrayList<>();
 
+    public static void reset() {
+        currentExtension = null;
+        historicalExtensions = new ArrayList<>();
+    }
+
     public static void extend(Hcn passingHcns) {
 
         historicalExtensions.clear();
