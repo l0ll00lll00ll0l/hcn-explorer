@@ -19,6 +19,8 @@ public class Hcn implements Comparable<Hcn> {
     private HcnStatus hcnStatus;
     private RecorderBody prayBody;
     private int intervalDistance;
+    @Builder.Default
+    private Integer order = null;
 
     public int getLapiIndex() {
         return lastActivePrime.getIndex();

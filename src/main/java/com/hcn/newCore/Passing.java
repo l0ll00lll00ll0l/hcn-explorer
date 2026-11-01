@@ -1,6 +1,7 @@
 package com.hcn.newCore;
 
 import com.hcn.newCore.interval.ActiveInterval;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,9 @@ public class Passing {
 
         Passing currentPassing = lowestPassing;
         currentPassing.prayHcns.first().getHcnGenerator().getRecorderBody().generatePassingHcns(currentPassing);
+
+        //ActiveInterval.registerPassing(currentPassing);
+
         currentPassing.passingHcns.forEach(hcn -> {
             Extension.extend(hcn);
             if (hcn.getHcnGenerator().getRecorderBody() == null) {
@@ -42,7 +46,7 @@ public class Passing {
             }
         }
 
-        ActiveInterval.processPassing(currentPassing);
+        //ActiveInterval.processActivityHcns(currentPassing);
     }
 
 
@@ -131,5 +135,11 @@ public class Passing {
         this.prevPassing = prevPassing;
         this.prayHcns.add(prayBody.getPrayHcn());
         this.passingHcn = prayBody.getPassingHcn();
+    }
+
+    public Passing(Hcn passingHcn) {
+        this.passingHcn = passingHcn;
+        this.nextPassing = null;
+        this.prevPassing = null;
     }
 }

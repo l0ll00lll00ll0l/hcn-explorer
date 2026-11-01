@@ -367,6 +367,13 @@ public class NewCoreController {
         return sb.append("]").toString();
     }
 
+    @GetMapping("/newcore/hcnprojection")
+    @ResponseBody
+    public String hcnProjection() {
+        Object data = com.hcn.newCore.interval.ReferenceInterval.getCurrentReferenceInterval().getHcnProjections();
+        return data != null ? data.toString() : "";
+    }
+
     @GetMapping("/newcore/progress")
     @ResponseBody
     public String progress() {
@@ -465,36 +472,20 @@ public class NewCoreController {
         return Matrix.getTargetValue();
     }
 
-    public record ProcessedPassingRow(Integer interval, Integer passingNo, String passingHcn, String recorderHcn, String hcn) {}
+    public record ProcessedPassingRow(Integer interval, Integer order, String hcn) {}
 
     public List<ProcessedPassingRow> getProcessedPassings() {
         List<ProcessedPassingRow> rows = new ArrayList<>();
         List<com.hcn.newCore.interval.ActiveInterval> activeIntervals =
                 com.hcn.newCore.interval.ReferenceInterval.getCurrentReferenceInterval().getActiveIntervals();
         for (com.hcn.newCore.interval.ActiveInterval activeInterval : activeIntervals) {
-            int interval = activeInterval.getInterval();
-            List<Hcn> hcns = activeInterval.getHcns();
-            int passingNo = 1;
-            int rowIndex = 0;
-            for (Passing passing : activeInterval.getPassings()) {
-                List<Hcn> phcns = new ArrayList<>(passing.getPassingHcns());
-                List<Hcn> prayHcns = new ArrayList<>(passing.getPrayHcns());
-                int maxRows = Math.max(phcns.size(), prayHcns.size());
-                for (int i = 0; i < maxRows; i++) {
-                    rows.add(new ProcessedPassingRow(
-                        (rowIndex == 0) ? interval : null,
-                        i == 0 ? passingNo : null,
-                        i < phcns.size() ? phcns.get(i).toString() : null,
-                        i < prayHcns.size() ? prayHcns.get(i).toString() : null,
-                        rowIndex < hcns.size() ? hcns.get(rowIndex).toString() : null
-                    ));
-                    rowIndex++;
-                }
-                passingNo++;
-            }
-            while (rowIndex < hcns.size()) {
-                rows.add(new ProcessedPassingRow(null, null, null, null, hcns.get(rowIndex).toString()));
-                rowIndex++;
+            List<Hcn> hcns = activeInterval.getActivityHcn();
+            for (int i = 0; i < hcns.size(); i++) {
+                Hcn hcn = hcns.get(i);
+                rows.add(new ProcessedPassingRow(
+                    i == 0 ? activeInterval.getInterval() : null,
+                    hcn.getOrder(),
+                    hcn.toString()));
             }
         }
         return rows;

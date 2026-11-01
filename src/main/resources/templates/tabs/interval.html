@@ -12,18 +12,14 @@
             <thead>
                 <tr>
                     <th>interval</th>
-                    <th>passing No</th>
-                    <th>passingHcns</th>
-                    <th>recorderHcns</th>
-                    <th>hcns</th>
+                    <th>order</th>
+                    <th>hcn</th>
                 </tr>
             </thead>
             <tbody>
                 <tr th:each="row : ${@newCoreController.getProcessedPassings()}">
                     <td th:text="${row.interval()}"></td>
-                    <td th:text="${row.passingNo()}"></td>
-                    <td th:text="${row.passingHcn()}"></td>
-                    <td th:text="${row.recorderHcn()}"></td>
+                    <td th:text="${row.order()}"></td>
                     <td th:text="${row.hcn()}"></td>
                 </tr>
             </tbody>
@@ -38,6 +34,11 @@
                 document.getElementById('interval-' + t).style.display = t === name ? '' : 'none';
                 document.getElementById('subtab-btn-' + t).classList.toggle('active', t === name);
             });
+            if (name === 'hcnprojection') {
+                fetch('/newcore/hcnprojection').then(r => r.text()).then(function(html) {
+                    document.getElementById('interval-hcnprojection').innerHTML = html;
+                });
+            }
         }
     </script>
 </div>

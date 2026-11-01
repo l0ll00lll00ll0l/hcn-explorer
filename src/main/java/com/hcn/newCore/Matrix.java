@@ -40,6 +40,7 @@ public class Matrix {
     @Builder.Default
     private long generateHcnListTimeMs = 0;
 
+
     public void initialize() {
 
         Prime.initialize();
