@@ -12,6 +12,9 @@
             <thead>
                 <tr>
                     <th>interval</th>
+                    <th>offset</th>
+                    <th>postRecorderListSize</th>
+                    <th>orderGroup</th>
                     <th>order</th>
                     <th>hcn</th>
                 </tr>
@@ -19,6 +22,9 @@
             <tbody>
                 <tr th:each="row : ${@newCoreController.getProcessedPassings()}">
                     <td th:text="${row.interval()}"></td>
+                    <td th:text="${row.offset()}"></td>
+                    <td th:text="${row.postRecorderListSize()}"></td>
+                    <td th:text="${row.hcnOrderGroup()}"></td>
                     <td th:text="${row.order()}"></td>
                     <td th:text="${row.hcn()}"></td>
                 </tr>
@@ -26,7 +32,22 @@
         </table>
     </div>
 
-    <div id="interval-hcnprojection" style="display:none;"></div>
+    <div id="interval-hcnprojection" style="display:none;">
+        <select id="hcnprojection-select" onchange="loadHcnProjections(this.value)"></select>
+        <table class="level-table" id="hcnprojection-table" style="margin-top:8px;">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>order</th>
+                    <th>lapi</th>
+                    <th>body</th>
+                    <th>value</th>
+                    <th>factor</th>
+                </tr>
+            </thead>
+            <tbody id="hcnprojection-tbody"></tbody>
+        </table>
+    </div>
 
     <script>
         window.selectIntervalSubTab = function(name) {
@@ -35,8 +56,12 @@
                 document.getElementById('subtab-btn-' + t).classList.toggle('active', t === name);
             });
             if (name === 'hcnprojection') {
-                fetch('/newcore/hcnprojection').then(r => r.text()).then(function(html) {
-                    document.getElementById('interval-hcnprojection').innerHTML = html;
+                fetch('/newcore/hcnprojection/intervals').then(r => r.json()).then(function(labels) {
+                    var sel = document.getElementById('hcnprojection-select');
+                    sel.innerHTML = labels.map(function(label, i) {
+                        return '<option value="' + i + '">' + label + '</option>';
+                    }).join('');
+                    if (labels.length > 0) loadHcnProjections(0);
                 });
             }
         }

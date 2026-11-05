@@ -114,6 +114,16 @@
             activeTab = tab;
         }
 
+        function loadHcnProjections(index) {
+            fetch('/newcore/hcnprojection/hcns?index=' + index).then(r => r.json()).then(function(rows) {
+                var tbody = document.getElementById('hcnprojection-tbody');
+                if (!tbody) return;
+                tbody.innerHTML = rows.map(function(r) {
+                    return '<tr><td>' + r.index + '</td><td>' + r.order + '</td><td>' + r.lapi + '</td><td>' + r.body + '</td><td>' + r.value + '</td><td>' + r.factor + '</td></tr>';
+                }).join('');
+            });
+        }
+
         function openBodyList(idx) {
             fetch('/newcore/tab?tab=bodynodes&matrixNodeIdx=' + idx)
                 .then(r => r.text()).then(function(html) {

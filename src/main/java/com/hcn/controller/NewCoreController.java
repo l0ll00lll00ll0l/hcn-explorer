@@ -367,12 +367,28 @@ public class NewCoreController {
         return sb.append("]").toString();
     }
 
-    @GetMapping("/newcore/hcnprojection")
+    @GetMapping("/newcore/hcnprojection/intervals")
     @ResponseBody
-    public String hcnProjection() {
-        Object data = com.hcn.newCore.interval.ReferenceInterval.getCurrentReferenceInterval().getHcnProjections();
-        return data != null ? data.toString() : "";
+    public List<String> hcnProjectionIntervals() {
+        return com.hcn.newCore.interval.ReferenceInterval.getCurrentReferenceInterval().getActiveIntervals()
+                .stream().map(Object::toString).toList();
     }
+
+    public record HcnProjectionRow(int index, Integer order, int lapi, String body, String value, String factor) {}
+
+    @GetMapping("/newcore/hcnprojection/hcns")
+    @ResponseBody
+    public List<HcnProjectionRow> hcnProjectionHcns(@RequestParam int index) {
+        List<com.hcn.newCore.Hcn> hcns = com.hcn.newCore.interval.ReferenceInterval.getHcnProjections(index);
+        List<HcnProjectionRow> rows = new ArrayList<>();
+        for (int i = 0; i < hcns.size(); i++) {
+            com.hcn.newCore.Hcn hcn = hcns.get(i);
+            rows.add(new HcnProjectionRow(i + 1, hcn.getOrder(), hcn.getLapiIndex(), hcn.getHcnGenerator().getBody().getBodyChain(),
+                    hcn.getValue().toString(), hcn.getFactor().toString()));
+        }
+        return rows;
+    }
+
 
     @GetMapping("/newcore/progress")
     @ResponseBody
@@ -472,20 +488,27 @@ public class NewCoreController {
         return Matrix.getTargetValue();
     }
 
-    public record ProcessedPassingRow(Integer interval, Integer order, String hcn) {}
+    public record ProcessedPassingRow(Integer interval, Integer offset, Integer postRecorderListSize, Integer hcnOrderGroup, Integer order, String hcn) {}
 
     public List<ProcessedPassingRow> getProcessedPassings() {
         List<ProcessedPassingRow> rows = new ArrayList<>();
         List<com.hcn.newCore.interval.ActiveInterval> activeIntervals =
                 com.hcn.newCore.interval.ReferenceInterval.getCurrentReferenceInterval().getActiveIntervals();
         for (com.hcn.newCore.interval.ActiveInterval activeInterval : activeIntervals) {
-            List<Hcn> hcns = activeInterval.getActivityHcn();
-            for (int i = 0; i < hcns.size(); i++) {
-                Hcn hcn = hcns.get(i);
-                rows.add(new ProcessedPassingRow(
-                    i == 0 ? activeInterval.getInterval() : null,
-                    hcn.getOrder(),
-                    hcn.toString()));
+            for (int i = 0; i < activeInterval.getActivity().size(); i++) {
+                List<Hcn> hcns = activeInterval.getActivity().get(i);
+
+                int interval = activeInterval.getInterval();
+                for (int j = 0; j < hcns.size(); j++) {
+                    Hcn hcn = hcns.get(j);
+                    rows.add(new ProcessedPassingRow(
+                            interval,
+                            activeInterval.getOffset(),
+                            activeInterval.getPostRecorderListSize(),
+                            activeInterval.getHcnsIdsForActivity().get(i),
+                            hcn.getOrder(),
+                            hcn.toString()));
+                }
             }
         }
         return rows;

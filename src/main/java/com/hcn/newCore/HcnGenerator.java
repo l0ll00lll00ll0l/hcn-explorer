@@ -126,6 +126,9 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
     public Hcn generateTempHcn(Prime prime, RecorderBody prayBody, int intervalDistance) {
         return Hcn.builder().hcnGenerator(this).value(getHcnValue(prime)).factor(getHcnFactor(prime)).lastActivePrime(prime).prayBody(prayBody).intervalDistance(intervalDistance).build();
     }
+    public Hcn generateHcnProjection(Prime prime, int hcnOrder) {
+        return Hcn.builder().hcnGenerator(this).value(getHcnValue(prime)).factor(getHcnFactor(prime)).lastActivePrime(prime).order(hcnOrder).build();
+    }
     public ScientificNumber getHcnValue(Prime prime) {
         return body.getValue().multiply(prime.getValueMultiplier());
     }
