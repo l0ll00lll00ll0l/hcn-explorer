@@ -76,6 +76,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
         ReferenceInterval.getCurrentReferenceInterval().setLastHcnOrder(2);
         ReferenceInterval.getCurrentReferenceInterval().setLastActiveInterval(0);
         ReferenceInterval.getCurrentReferenceInterval().setLastActiveRecorder(secondRecorder);
+        ActiveInterval.getCurrentActiveInterval().setFirstRecorder(firstRecorder);
     }
 
     public static void printRecordlist() {
@@ -288,7 +289,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
             int recorderListSize = previousRecorder.order;
             int movingRecorderCount = 0;
             firstRecorder = nextRecorder;
-            ActiveInterval.increaseOffset();
+            //ActiveInterval.increaseOffset();
             currentPassing.setInterval(currentPassing.getInterval() - 1);
             while (firstRecorder.getIntervalLapiDistance() > 0) {
                 //potentialFirstRecorder.setIntervalLapiDistance(potentialFirstRecorder.getIntervalLapiDistance() - 1);
@@ -297,7 +298,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
                 firstRecorder.order = firstRecorder.previousRecorder.order;
                 firstRecorder.lowerLargerOrderNumbers();
                 firstRecorder = firstRecorder.getNextRecorder();
-                ActiveInterval.increaseOffset();
+                //ActiveInterval.increaseOffset();
                 //ReferenceInterval.getCurrentReferenceInterval().setLastHcnOrder(ReferenceInterval.getCurrentReferenceInterval().getLastHcnOrder() + 1);
                 movingRecorderCount++;
                 //log.debug("delete");

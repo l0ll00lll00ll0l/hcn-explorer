@@ -488,24 +488,25 @@ public class NewCoreController {
         return Matrix.getTargetValue();
     }
 
-    public record ProcessedPassingRow(Integer interval, Integer offset, Integer postRecorderListSize, Integer hcnOrderGroup, Integer order, String hcn) {}
+    public record ProcessedPassingRow(Integer interval, String offset, Integer postRecorderListSize, Integer hcnOrderGroup, Integer skippingCount, Integer order, String hcn) {}
 
     public List<ProcessedPassingRow> getProcessedPassings() {
         List<ProcessedPassingRow> rows = new ArrayList<>();
         List<com.hcn.newCore.interval.ActiveInterval> activeIntervals =
                 com.hcn.newCore.interval.ReferenceInterval.getCurrentReferenceInterval().getActiveIntervals();
         for (com.hcn.newCore.interval.ActiveInterval activeInterval : activeIntervals) {
-            for (int i = 0; i < activeInterval.getActivity().size(); i++) {
-                List<Hcn> hcns = activeInterval.getActivity().get(i);
+            for (int i = 0; i < activeInterval.getActivityZones().size(); i++) {
+                List<Hcn> hcns = activeInterval.getActivityZones().get(i).getHcns();
 
                 int interval = activeInterval.getInterval();
                 for (int j = 0; j < hcns.size(); j++) {
                     Hcn hcn = hcns.get(j);
                     rows.add(new ProcessedPassingRow(
                             interval,
-                            activeInterval.getOffset(),
+                            activeInterval.getFirstRecorder().getHcnGenerator().getBody().getBodyChain(),
                             activeInterval.getPostRecorderListSize(),
-                            activeInterval.getHcnsIdsForActivity().get(i),
+                            activeInterval.getActivityZones().get(i).getHcnOrder(),
+                            activeInterval.getActivityZones().get(i).getSkippingCount(),
                             hcn.getOrder(),
                             hcn.toString()));
                 }

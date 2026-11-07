@@ -2,7 +2,7 @@ package com.hcn.newCore.interval;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.hcn.newCore.Hcn;
-import com.hcn.newCore.HcnStatus;
+import com.hcn.newCore.RecorderBody;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,10 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.IntStream;
 
 @Getter
 @Setter
@@ -31,101 +28,112 @@ public class ActiveInterval {
     }
 
     public static void initialize() {
-        currentActiveInterval = ActiveInterval.builder().interval(0).offset(0).build();
-    }
-
-    public static void increaseOffset() {
-        currentActiveInterval.offset++;
+        currentActiveInterval = ActiveInterval.builder().interval(0).build();
     }
 
 
-    private int interval;
+
+    private final int interval;
+    private RecorderBody firstRecorder;
     @JsonIgnore
-    private final List<Hcn> activityHcns = new ArrayList<>();
-    private final List<List<Hcn>> activity = new ArrayList<>();
-    private final List<Integer> hcnsIdsForActivity = new ArrayList<>();
-    //private final Map<Integer, List<Hcn>> activityMap = new LinkedHashMap<>();
+    private final List<ActivityZone> activityZones = new ArrayList<>();
     @JsonIgnore
     private final List<Hcn> hcnProjections = new ArrayList<>();
-    private int offset;
     @Builder.Default
     private Integer postRecorderListSize = null;
 
     public void generateHcnProjections(ActiveInterval referenceInterval) {
+
 
         int hcnOrder = referenceInterval.hcnProjections.get(referenceInterval.hcnProjections.size() - 1).getOrder() + 1;
         int lapiDistance = interval - referenceInterval.interval;
         boolean referenceList;
 
         Iterator<Hcn> previousHcnBaseIterator = referenceInterval.getHcnProjections().iterator();
-        Iterator<Hcn> activityIterator = activityHcns.iterator();
+        Iterator<ActivityZone> activityIterator = activityZones.iterator();
 
         Hcn nextPrevHcnProjection = previousHcnBaseIterator.next();
         log.debug(" nextPrevHcnProjection initial: {}", nextPrevHcnProjection);
+        while (!nextPrevHcnProjection.getHcnGenerator().equals(firstRecorder.getHcnGenerator())) {
+            nextPrevHcnProjection = previousHcnBaseIterator.next();
+        }
+        /*
         for (int i = 0; i < referenceInterval.offset; i++) {
             nextPrevHcnProjection = previousHcnBaseIterator.next();
         }
+
+         */
         log.debug(" with offset adjust: {}", nextPrevHcnProjection);
-        Hcn nextActivityHcn = activityIterator.hasNext() ? activityIterator.next() : null;
-        log.debug(" nextActivityHcn initial: {}", nextActivityHcn);
+        ActivityZone nextActivityZone = activityIterator.next();
+        log.debug(" nextActivityZone initial: {}", nextActivityZone.getHcns());
 
         while (nextPrevHcnProjection != null) {
 
-            if (nextActivityHcn != null) {
-                if (hcnOrder < nextActivityHcn.getOrder()) {
+            if (nextActivityZone != null) {
+                if (hcnOrder < nextActivityZone.getHcnOrder()) {
                     hcnProjections.add(generateTempHcnBasedOnReference(nextPrevHcnProjection, lapiDistance, hcnOrder));
                     log.debug(" nextPrevHcnProjection: {} - {}", hcnProjections.get(hcnProjections.size() - 1), hcnOrder);
                     hcnOrder++;
                     nextPrevHcnProjection = previousHcnBaseIterator.hasNext() ? previousHcnBaseIterator.next() : null;
-                    log.debug(" nextPrevHcnProjection moves To 1: {}", nextPrevHcnProjection);
+                    log.debug(" nextPrevHcnProjection moves To 1: {}, hcnOrder: {}", nextPrevHcnProjection, hcnOrder);
                 } else {
-                    if (nextActivityHcn.getHcnStatus().equals(HcnStatus.FIRST_RECORDER)) {
-                        hcnProjections.add(nextActivityHcn);
-                        log.debug(" nextActivityHcn: {}", nextActivityHcn);
-                        hcnOrder++;
-                        nextActivityHcn = activityIterator.hasNext() ? activityIterator.next() : null;
-                        log.debug(" nextActivityHcn moves To: {}", nextActivityHcn);
+                    hcnProjections.addAll(nextActivityZone.getHcns());
+                    log.debug(" nextActivityZone: {}", nextActivityZone.getHcns());
+                    hcnOrder = hcnOrder + nextActivityZone.getHcns().size();
+                    for (int i = 0; i < nextActivityZone.getSkippingCount(); i++) {
+                        nextPrevHcnProjection = previousHcnBaseIterator.hasNext() ? previousHcnBaseIterator.next() : null;
+                    }
+
+                    nextActivityZone = activityIterator.hasNext() ? activityIterator.next() : null;
+                    log.debug(" nextActivityZone moves To 1: {}, hcnOrder: {}", nextActivityZone == null ? nextActivityZone : nextActivityZone.getHcns() , hcnOrder);
+                    /*
+                    if (nextActivityZone.getHcnStatus().equals(HcnStatus.FIRST_RECORDER)) {
+                        //hcnProjections.add(nextActivityZone);
+                        //log.debug(" nextActivityZone: {}", nextActivityZone);
+                        //hcnOrder++;
+
+                        log.debug(" nextActivityZone moves To: {}", nextActivityZone);
                     } else {
                         nextPrevHcnProjection = previousHcnBaseIterator.hasNext() ? previousHcnBaseIterator.next() : null;
-                        nextActivityHcn = activityIterator.hasNext() ? activityIterator.next() : null;
+                        nextActivityZone = activityIterator.hasNext() ? activityIterator.next() : null;
                         log.debug(" nextPrevHcnProjection moves To 2: {}", nextPrevHcnProjection);
                     }
+
+                     */
                 }
             } else {
                 hcnProjections.add(generateTempHcnBasedOnReference(nextPrevHcnProjection, lapiDistance, hcnOrder));
                 log.debug(" nextPrevHcnProjection: {} - {}", hcnProjections.get(hcnProjections.size() - 1), hcnOrder);
                 hcnOrder++;
                 nextPrevHcnProjection = previousHcnBaseIterator.hasNext() ? previousHcnBaseIterator.next() : null;
-                log.debug(" nextPrevHcnProjection moves To: {}", nextPrevHcnProjection);
+                log.debug(" nextPrevHcnProjection moves To 2: {}, hcnOrder: {}", nextPrevHcnProjection, hcnOrder);
             }
         }
 
-        if (nextActivityHcn != null) {
+        if (nextActivityZone != null) {
             lapiDistance = 1;
             int shiftingHcnIndex = 0;
 
-            while (nextActivityHcn != null)  {
+            while (nextActivityZone != null)  {
 
-                if (hcnOrder == nextActivityHcn.getOrder()) {
-                    if (nextActivityHcn.getHcnStatus().equals(HcnStatus.FIRST_RECORDER)) {
-                        hcnProjections.add(nextActivityHcn);
-                        log.debug(" nextActivityHcn lower: {}", nextActivityHcn);
-                        hcnOrder++;
-                        nextActivityHcn = activityIterator.hasNext() ? activityIterator.next() : null;
-                        log.debug(" nextActivityHcn lower moves To: {}", nextActivityHcn);
-                    } else {
+                if (hcnOrder == nextActivityZone.getHcnOrder()) {
+
+                    hcnProjections.addAll(nextActivityZone.getHcns());
+                    log.debug(" nextActivityZone: {}", nextActivityZone.getHcns());
+                    hcnOrder = hcnOrder + nextActivityZone.getHcns().size();
+                    for (int i = 0; i < nextActivityZone.getSkippingCount(); i++) {
                         shiftingHcnIndex++;
-                        nextActivityHcn = activityIterator.hasNext() ? activityIterator.next() : null;
-                        log.debug(" nextActivityHcn lower moves To 2: {}", nextActivityHcn);
-                        log.debug(" nshiftingHcnIndex: {}", shiftingHcnIndex);
                     }
+                    nextActivityZone = activityIterator.hasNext() ? activityIterator.next() : null;
+
+                    log.debug(" nextActivityZone moves To 1: {}, hcnOrder: {}, shiftingHcnIndex: {}", nextActivityZone == null ? nextActivityZone : nextActivityZone.getHcns() , hcnOrder, shiftingHcnIndex);
 
                 } else {
                     hcnProjections.add(generateTempHcnBasedOnReference(hcnProjections.get(shiftingHcnIndex), lapiDistance, hcnOrder));
                     log.debug(" nextHcnProjection lower: {} - {}", hcnProjections.get(hcnProjections.size() - 1), hcnOrder);
                     hcnOrder++;
                     shiftingHcnIndex++;
-                    log.debug(" shiftingHcnIndex: {}", shiftingHcnIndex);
+                    log.debug(" shiftingHcnIndex: {}, hcnOrder: {}", shiftingHcnIndex, hcnOrder);
                 }
             }
         }
@@ -137,7 +145,12 @@ public class ActiveInterval {
 
     @Override
     public String toString() {
-        return "[" + interval + "] - " + activityHcns.size();
+        return "[" + interval + "] - " + activityZones.size();
     }
+
+    public void addActivityZone(List<Hcn> activityHcns, int hcnOrder, int skippingCount) {
+        activityZones.add(ActivityZone.builder().hcns(activityHcns).hcnOrder(hcnOrder).skippingCount(skippingCount).build());
+    }
+
 
 }

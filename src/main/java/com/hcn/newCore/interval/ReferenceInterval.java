@@ -62,37 +62,21 @@ public class ReferenceInterval {
     private int lastHcnOrder;
     private int lastActiveInterval;
     private RecorderBody lastActiveRecorder;
+    private final TreeSet<RecorderBody> preRecorderBodies = new TreeSet<>();
 
 
     public void preCalculations(Passing passing) {
 
         log.debug("preCalculations: lastHcnOrder: {}, lastActiveInterval: {}, lastActiveRecorder.order: {}", lastHcnOrder, lastActiveInterval, lastActiveRecorder.getOrder());
 
-        TreeSet<RecorderBody> preRecorderBodies = new TreeSet<>();
+        preRecorderBodies.clear();
         passing.getPassingHcns().stream().filter(hcn -> hcn.getHcnGenerator().getRecorderBody() != null)
                 .forEach(recorderHunterHcn -> preRecorderBodies.add(recorderHunterHcn.getHcnGenerator().getRecorderBody()));
         passing.getPrayHcns().forEach(recorderHcn -> preRecorderBodies.add(recorderHcn.getHcnGenerator().getRecorderBody()));
 
         log.debug("preRecorderBodies: {}", preRecorderBodies);
 
-        Hcn smallestOrderHcn = passing.getPrayHcns().first();
-        Hcn largestOrderHcn = passing.getPrayHcns().first();
-
-        for (Hcn hcn : passing.getPrayHcns()) {
-            if (hcn.getHcnGenerator().getRecorderBody().getOrder() < smallestOrderHcn.getHcnGenerator().getRecorderBody().getOrder()) smallestOrderHcn = hcn;
-            if (hcn.getHcnGenerator().getRecorderBody().getOrder() > largestOrderHcn.getHcnGenerator().getRecorderBody().getOrder()) largestOrderHcn = hcn;
-        }
-
-        for (Hcn hcn : passing.getPassingHcns()) {
-            if (hcn.getHcnGenerator().getRecorderBody() != null) {
-                if (hcn.getHcnGenerator().getRecorderBody().getOrder() > largestOrderHcn.getHcnGenerator().getRecorderBody().getOrder()) largestOrderHcn = hcn;
-            }
-        }
-
-        log.debug("smallestOrderHcn: {}", smallestOrderHcn);
-        log.debug("largestOrderHcn: {}", largestOrderHcn);
-
-        int order = smallestOrderHcn.getHcnGenerator().getRecorderBody().getOrder();
+        int order = preRecorderBodies.first().getHcnGenerator().getRecorderBody().getOrder();
         log.debug(" order {}", order);
         int hcnOrderAdvancement = order - lastActiveRecorder.getOrder();
         log.debug(" hcnOrderAdvancement: {}", hcnOrderAdvancement);
@@ -137,19 +121,19 @@ public class ReferenceInterval {
             lastActiveRecorder = passingHcn.getHcnGenerator().getRecorderBody();
             //}
         }
-        for (Hcn prayHcn : currentPassing.getPrayHcns()) {
-            if (prayHcn.getHcnStatus().equals(HcnStatus.RECORDER_DEACTIVATED)) {
-                activityHcns.add(prayHcn);
-                log.debug("prayHcn: {}", prayHcn);
-            } else {
-                lastHcnOrder++;
-                lastActiveRecorder = prayHcn.getHcnGenerator().getRecorderBody();
-            }
-        }
+        lastHcnOrder--;
 
         log.debug("lastActiveRecorder: {}", lastActiveRecorder);
-        ActiveInterval.getCurrentActiveInterval().getActivity().add(activityHcns);
-        ActiveInterval.getCurrentActiveInterval().getHcnsIdsForActivity().add(currentPassing.getHcnOrder());
+
+        int skippingCount = 0;
+        for (RecorderBody preRecorder : preRecorderBodies) {
+            if (preRecorder.getPrayHcn().getHcnStatus().equals(HcnStatus.RECORDER_DEACTIVATED)) {
+                skippingCount++;
+            }
+        }
+        ActiveInterval.getCurrentActiveInterval().addActivityZone(activityHcns, currentPassing.getHcnOrder(), skippingCount);
+        //ActiveInterval.getCurrentActiveInterval().getActivity().add(activityHcns);
+        //ActiveInterval.getCurrentActiveInterval().getHcnsIdsForActivity().add(currentPassing.getHcnOrder());
         log.debug("");
     }
 
@@ -216,7 +200,7 @@ public class ReferenceInterval {
 
     private void createNextActiveInterval(int interval) {
         ActiveInterval.getCurrentActiveInterval().setPostRecorderListSize(RecorderBody.getRecorderListSize());
-        ActiveInterval.setCurrentActiveInterval(ActiveInterval.builder().interval(interval).build());
+        ActiveInterval.setCurrentActiveInterval(ActiveInterval.builder().interval(interval).firstRecorder(RecorderBody.getFirstRecorder()).build());
         activeIntervals.add(ActiveInterval.getCurrentActiveInterval());
     }
 
