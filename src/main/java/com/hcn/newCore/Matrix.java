@@ -70,18 +70,6 @@ public class Matrix {
         ActivityCenter.setProving(false);
     }
 
-    /*
-    private void deactivateMaintain() {
-        List<Body> deletedHcnGenerators = lastTransition.deactivatedMaintain();
-        ActivityCenter.submitBodyDeletionEvent(deletedHcnGenerators);
-        MatrixNode potentialApiNode = lastTransition.prevMatrixNode;
-        while (potentialApiNode != null) {
-            potentialApiNode.transitionNodeTriggerCheck();
-            potentialApiNode = potentialApiNode.prevMatrixNode;
-        }
-    }
-
-     */
 
     public static ScientificNumber getTargetValue() {
         return targetValue;

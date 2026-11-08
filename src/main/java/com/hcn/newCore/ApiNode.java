@@ -77,7 +77,9 @@ public class ApiNode extends MatrixNode {
 
     @Override
     public void transitionNodeTriggerCheck() {
+        log.debug("Checking: {}, bodyNodes.size() {}, deactivatedBodyNodes: {}" , this, bodyNodes.size(), deactivatedBodyNodes.size());
         if (bodyNodes.size() == 1 && deactivatedBodyNodes.isEmpty()) {
+            log.debug("HERE {}", this);
             new TransitionNodeCreator(this).create();
         }
     }

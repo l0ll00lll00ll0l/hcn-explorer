@@ -25,21 +25,6 @@ public class Extension {
         historicalExtensions.clear();
         passingHcns.getHcnGenerator().getBody().matrixMaintainCheck();
 
-        /*
-        passingHcns.forEach(passingHcn -> {
-            passingHcn.getHcnGenerator().getBody().matrixMaintainCheck();
-
-        });
-
-
-        historicalExtensions.forEach(extension -> {
-            //log.debug("Extension #{} completed", extension.newBodyNode);
-            //log.debug(" successfullyAddedNewBodies {}", extension.successfullyAddedNewBodies);
-            //log.debug(" dominatedSuperiorBodies {}", extension.dominatedSuperiorBodies);
-        });
-
-         */
-        //historicalExtensions.forEach(Extension::maintainRecorderList);
 
     }
 
@@ -60,7 +45,21 @@ public class Extension {
         currentExtension.gatherBodyListChanges();
         historicalExtensions.add(currentExtension);
         currentExtension.maintainRecorderList();
+        bodyListDeletionMaintain();
         currentExtension = null;
+    }
+
+    private static void bodyListDeletionMaintain() {
+        List<Body> deletedHcnGenerators = TransitionNode.getLastTransition().deactivatedMaintain();
+        ActivityCenter.submitBodyDeletionEvent(deletedHcnGenerators);
+        /*
+        MatrixNode potentialApiNode = TransitionNode.getLastTransition().getPrevMatrixNode();
+        while (potentialApiNode != null) {
+            potentialApiNode.transitionNodeTriggerCheck();
+            potentialApiNode = potentialApiNode.getPrevMatrixNode();
+        }
+
+         */
     }
 
     private void gatherBodyListChanges() {
@@ -71,13 +70,6 @@ public class Extension {
 
     private void maintainRecorderList() {
 
-        //log.debug("[CREATED NEW HCN GENERATORS]");
-        //log.debug(" successfullyAddedNewBodies {}", successfullyAddedNewBodies);
-        //log.debug(" dominatedSuperiorBodies {}", dominatedSuperiorBodies);
-        //RecorderBody.printRecordlist();
-        //HcnGenerator.printGeneratorList();
-        //log.debug(" bodylist {}", TransitionNode.getLastTransition().getBodyList());
-        //log.debug("");
         Iterator<Body> delIt = dominatedSuperiorBodies.iterator();
         Iterator<Body> addIt = successfullyAddedNewBodies.iterator();
         Body del = delIt.hasNext() ? delIt.next() : null;
@@ -85,17 +77,14 @@ public class Extension {
 
         while (del != null || add != null) {
             if (add == null || (del != null && del.compareTo(add) <= 0)) {
-                //log.debug(" DELETING: {}", del);
                 del.getHcnGenerator().deleteHcnGenerator();
                 del = delIt.hasNext() ? delIt.next() : null;
             } else {
-                //log.debug(" ADDING: {}", add);
                 new HcnGenerator(add);
                 add = addIt.hasNext() ? addIt.next() : null;
             }
         }
-        //log.debug(" [AFTER:]");
-        //RecorderList.print();
+
         if (ActivityCenter.isDbMode()) {
             MatrixExtensionActivity mea = ActivityCenter.getLastMatrixExtensionActivity();
             mea.setCreatedActiveBodyCount(successfullyAddedNewBodies.size());

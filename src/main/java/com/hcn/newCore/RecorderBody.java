@@ -138,7 +138,9 @@ public class RecorderBody implements Comparable<RecorderBody> {
         RecorderBody newNext = prayBody;
         RecorderBody newPrev = prayBody.previousRecorder;
 
-        //log.debug("RecorderBody passing again: newPrev: {} - this - {} - newNext: {}", newPrev, this, newNext);
+        log.debug("RecorderBody passing again: newPrev: {} - this - {} - newNext: {}", newPrev, this, newNext);
+
+        log.debug("Currentinterval: {}", ActiveInterval.getCurrentActiveInterval().getInterval());
 
         newNext.setPreviousRecorder(this);
         this.nextRecorder = newNext;
