@@ -105,13 +105,10 @@ public class RecorderBody implements Comparable<RecorderBody> {
         intervalLapiDistance = triggerHcn.getIntervalDistance() + (triggerHcn.getPrayBody().equals(firstRecorder) ? -1 : 0);
         this.order = triggerHcn.getPrayBody().previousRecorder.order + 1;
 
-        //ReferenceInterval.getCurrentReferenceInterval().setHcnOrderForNewRecorder(triggerHcn);
-
         nextRecorder = triggerHcn.getPrayBody();
         previousRecorder = nextRecorder.getPreviousRecorder();
         nextRecorder.setPreviousRecorder(this);
         previousRecorder.setNextRecorder(this);
-        //log.debug("creating new Passing Zone for {}", triggerHcn);
         getRecorderHcn(triggerHcn.getLastActivePrime(), HcnStatus.FIRST_RECORDER);
 
         RecorderBody recorderToRaiseOrderNumber = nextRecorder;
@@ -119,7 +116,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
             recorderToRaiseOrderNumber.order++;
             recorderToRaiseOrderNumber = recorderToRaiseOrderNumber.nextRecorder;
         }
-
+        //log.debug("creating new Passing Zone for {}", triggerHcn);
         createPassingZone(initiateHcnGeneratorsBasedOnPreviousPassingZone());
         //log.debug("RecorderBody NEW at {}: {}", Matrix.getPassingCounter(), this);
     }
@@ -138,9 +135,9 @@ public class RecorderBody implements Comparable<RecorderBody> {
         RecorderBody newNext = prayBody;
         RecorderBody newPrev = prayBody.previousRecorder;
 
-        log.debug("RecorderBody passing again: newPrev: {} - this - {} - newNext: {}", newPrev, this, newNext);
+        //log.debug("RecorderBody passing again: newPrev: {} - this - {} - newNext: {}", newPrev, this, newNext);
 
-        log.debug("Currentinterval: {}", ActiveInterval.getCurrentActiveInterval().getInterval());
+        //log.debug("Currentinterval: {}", ActiveInterval.getCurrentActiveInterval().getInterval());
 
         newNext.setPreviousRecorder(this);
         this.nextRecorder = newNext;
@@ -172,7 +169,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
         }
 
         //log.debug("@@: it is HAPPENING ");
-        Passing.removePassingFromStaticChain(passing);
+        passing.removeRecorderBody(this);
         createPassingZone(initiateHcnGeneratorsBasedOnPreviousPassingZone());
     }
 
@@ -257,18 +254,17 @@ public class RecorderBody implements Comparable<RecorderBody> {
             //log.debug(" NO findSmallestPassingHcn found for hunter: {} and pray: {}", passingHcn, prayHcn);
             hunters.get(intervalDistance).removeHunterReference();
             hunters.put(intervalDistance, hunter.generateReferencedHcn(hunterPrime,this, intervalDistance));
-            passingHcn = hunters.get(intervalDistance);
-            Passing.removePassingFromStaticChain(passing);
-            Passing.placePassingInStaticChain(new Passing(this));
         } else {
             //log.debug(" YEEEEEEEEEEEEEES findSmallestPassingHcn found for hunter: {} and pray: {}", passingHcn, prayHcn);
             replaceHunterHcns(prayPrimeWalker.getNextPrime());
             hunters.get(intervalDistance).removeHunterReference();
             hunters.put(intervalDistance, hunter.generateReferencedHcn(hunterPrimeWalker.getNextPrime(),this, intervalDistance));
-            passingHcn = hunters.get(intervalDistance);
-            Passing.removePassingFromStaticChain(passing);
-            Passing.placePassingInStaticChain(new Passing(this));
         }
+
+        passingHcn = hunters.get(intervalDistance);
+        passing.removeRecorderBody(this);
+        passing = Passing.assignPassing(this);
+        //Passing.placePassingInStaticChain(new Passing(this));
     }
 
     private void replaceHunterHcns(Prime prayHcnPrime) {
@@ -281,8 +277,9 @@ public class RecorderBody implements Comparable<RecorderBody> {
     }
 
     public void deleteRecorderBody(Passing currentPassing) {
+
+        //log.debug("Deleting: {}", this);
         prayHcn.setHcnStatus(HcnStatus.RECORDER_DEACTIVATED);
-        //ReferenceInterval.getCurrentReferenceInterval().addDeleteHcn(prayHcn, currentPassing);
         lowerLargerOrderNumbers();
         previousRecorder.setNextRecorder(nextRecorder);
         nextRecorder.setPreviousRecorder(previousRecorder);
@@ -291,7 +288,6 @@ public class RecorderBody implements Comparable<RecorderBody> {
             int recorderListSize = previousRecorder.order;
             int movingRecorderCount = 0;
             firstRecorder = nextRecorder;
-            //ActiveInterval.increaseOffset();
             currentPassing.setInterval(currentPassing.getInterval() - 1);
             while (firstRecorder.getIntervalLapiDistance() > 0) {
                 //potentialFirstRecorder.setIntervalLapiDistance(potentialFirstRecorder.getIntervalLapiDistance() - 1);
@@ -300,7 +296,6 @@ public class RecorderBody implements Comparable<RecorderBody> {
                 firstRecorder.order = firstRecorder.previousRecorder.order;
                 firstRecorder.lowerLargerOrderNumbers();
                 firstRecorder = firstRecorder.getNextRecorder();
-                //ActiveInterval.increaseOffset();
                 //ReferenceInterval.getCurrentReferenceInterval().setLastHcnOrder(ReferenceInterval.getCurrentReferenceInterval().getLastHcnOrder() + 1);
                 movingRecorderCount++;
                 //log.debug("delete");
@@ -320,7 +315,6 @@ public class RecorderBody implements Comparable<RecorderBody> {
             hunterHcn.setPrayBody(null);
         });
         hunters.clear();
-        Passing.removePassingFromStaticChain(passing);
     }
 
     private void resetOrderNumbersAfterMovingRecorders(int recorderListSize, int movingRecorderCount) {
@@ -352,8 +346,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
     public void createPassingZoneAfterSurvival(Hcn factorReferenceHcn) {
         //log.debug("&&&&&&&&&&&&&&&&&&&&&&&& createPassingZoneAfterSurvival for prayHcn {} &&&&&&&&&&&&&&&&&&&&&&&&&", prayBody.getPrayHcn());
         prayHcn.setHcnStatus(HcnStatus.RECORDER_SURVIVED);
-        Passing.removePassingFromStaticChain(passing);
-        //removeFromStaticChain();
+        //passing.removePrayHcn(prayHcn);
         createPassingZone(initiateHcnGeneratorsBasedOnLocalPassingZone(factorReferenceHcn));
     }
 
@@ -511,7 +504,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
         //log.debug("passingHcn: {}", passingHcn);
         //log.debug("");
 
-        passing = new Passing(this);
+        passing = Passing.assignPassing(this);
         //Passing.placePassingInStaticChain(Passing.builder().lowestPassingHcn(passingHcn).build());
         //placePassingZoneInStaticChain(this);
     }

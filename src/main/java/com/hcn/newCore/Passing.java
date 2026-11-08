@@ -51,60 +51,65 @@ public class Passing {
         }
 
         ReferenceInterval.getCurrentReferenceInterval().postCalculations(currentPassing);
+        removePassingFromStaticChain(currentPassing);
     }
 
 
-    public static void placePassingInStaticChain(Passing passingZoneToPlace) {
-        //log.debug("   :::::::::::::::::::  placePassingZoneInStaticChain {}  :::::::::::::::::::: ", passingZoneToPlace.passingHcn);
+    private static Passing placePassingInStaticChain(RecorderBody prayBody) {
+        //log.debug("   :::::::::::::::::::  placePassingZoneInStaticChain {}  :::::::::::::::::::: ", prayBody.getPassingHcn());
 
         Passing firstNotSmallerPassing = lowestPassing;
         Passing previousPassingZone = null;
         //log.debug(" firstNotSmallerPassing {}", firstNotSmallerPassing.passingHcn);
         while (firstNotSmallerPassing != null
-                && firstNotSmallerPassing.passingHcn.getValue().isSmallerThan(passingZoneToPlace.passingHcn.getValue())) {
+                && firstNotSmallerPassing.passingHcn.getValue().isSmallerThan(prayBody.getPassingHcn().getValue())) {
             previousPassingZone = firstNotSmallerPassing;
             firstNotSmallerPassing = firstNotSmallerPassing.nextPassing;
             //log.debug(" previousPassingZone: {}",  previousPassingZone.passingHcn);
         }
 
         if (firstNotSmallerPassing != null) {
-            if (firstNotSmallerPassing.passingHcn.getValue().isNotBiggerThan(passingZoneToPlace.passingHcn.getValue())) {
-                firstNotSmallerPassing.prayHcns.addAll(passingZoneToPlace.prayHcns);
-                for (Hcn prayHcn : passingZoneToPlace.getPrayHcns()) {
-                    prayHcn.getHcnGenerator().getRecorderBody().setPassing(firstNotSmallerPassing);
-                }
-                //log.debug(" firstNotSmallerPassing EXTENDED {}", firstNotSmallerPassing.recorderBodies);
+            if (firstNotSmallerPassing.passingHcn.getValue().isNotBiggerThan(prayBody.getPassingHcn().getValue())) {
+                firstNotSmallerPassing.prayHcns.add(prayBody.getPrayHcn());
+                //log.debug(" firstNotSmallerPassing EXTENDED {}", firstNotSmallerPassing.prayHcns);
+                return firstNotSmallerPassing;
             } else {
+
+                Passing newPassing = new Passing(prayBody);
                 if (previousPassingZone != null) {
-                    previousPassingZone.nextPassing = passingZoneToPlace;
+                    previousPassingZone.nextPassing = newPassing;
                 } else {
-                    lowestPassing = passingZoneToPlace;
+                    lowestPassing = newPassing;
                 }
-                passingZoneToPlace.prevPassing = previousPassingZone;
-                firstNotSmallerPassing.prevPassing = passingZoneToPlace;
-                passingZoneToPlace.nextPassing = firstNotSmallerPassing;
+                newPassing.prevPassing = previousPassingZone;
+                firstNotSmallerPassing.prevPassing = newPassing;
+                newPassing.nextPassing = firstNotSmallerPassing;
                 String prev = "null";
-                if (passingZoneToPlace.prevPassing != null) {
+                if (newPassing.prevPassing != null) {
                     prev = previousPassingZone.passingHcn.toString();
                 }
                 String next = "null";
-                if (passingZoneToPlace.nextPassing != null) {
-                    next = passingZoneToPlace.nextPassing.passingHcn.toString();
+                if (newPassing.nextPassing != null) {
+                    next = newPassing.nextPassing.passingHcn.toString();
                 }
-                //log.debug("   ::::::::::::::::::: {} - {} - {} :::::::::::::::::::: ", prev, passingZoneToPlace.passingHcn, next);
+                //log.debug("   ::::::::::::::::::: {} - {} - {} :::::::::::::::::::: ", prev, prayBody.passingHcn, next);
+                return newPassing;
             }
-            firstNotSmallerPassing.prevPassing = passingZoneToPlace;
         } else {
-            passingZoneToPlace.prevPassing = previousPassingZone;
-            previousPassingZone.nextPassing = passingZoneToPlace;
-            passingZoneToPlace.nextPassing = firstNotSmallerPassing;
+            Passing newPassing = new Passing(prayBody);
+            newPassing.prevPassing = previousPassingZone;
+            previousPassingZone.nextPassing = newPassing;
+            newPassing.nextPassing = firstNotSmallerPassing;
+            return newPassing;
         }
-
     }
 
     public static void removePassingFromStaticChain(Passing passingZoneToRemove) {
-        //log.debug("   -----_______------ removeFromStaticChain {}   ---------____________-------", prayHcn);
+        //log.debug("   -----_______------ removeFromStaticChain {}   ---------____________-------", passingZoneToRemove.passingHcn);
+        //printFirstNpassings(3);
+
         if (passingZoneToRemove.equals(lowestPassing)) {
+            //log.debug("lowerMovedTo: {}", passingZoneToRemove.nextPassing.passingHcn);
             setLowestPassing(passingZoneToRemove.nextPassing);
         }
 
@@ -115,10 +120,26 @@ public class Passing {
         passingZoneToRemove.setNextPassing(null);
 
         if (prev != null) {
+            //log.debug("prev: {}", prev.passingHcn);
             prev.nextPassing = next;
         }
         if (next != null) {
+            //log.debug("next: {}", next.passingHcn);
             next.prevPassing = prev;
+        }
+
+        //printFirstNpassings(3);
+        //log.debug("");
+    }
+
+    private static void printFirstNpassings(int count) {
+        Passing toPrint = lowestPassing;
+        int order = 0;
+
+        while (toPrint != null && order < count) {
+            order++;
+            log.debug("[{}] - {}", order, toPrint);
+            toPrint = toPrint.nextPassing;
         }
     }
 
@@ -133,9 +154,9 @@ public class Passing {
     public Passing (RecorderBody prayBody) {
         this.prayHcns.add(prayBody.getPrayHcn());
         this.passingHcn = prayBody.getPassingHcn();
-        Passing.placePassingInStaticChain(this);
     }
 
+    //only in initialize
     public Passing(Passing nextPassing, Passing prevPassing, RecorderBody prayBody) {
         this.nextPassing = nextPassing;
         this.prevPassing = prevPassing;
@@ -143,13 +164,30 @@ public class Passing {
         this.passingHcn = prayBody.getPassingHcn();
     }
 
-    public Passing(Hcn passingHcn) {
-        this.passingHcn = passingHcn;
-        this.nextPassing = null;
-        this.prevPassing = null;
+    public static Passing assignPassing(RecorderBody recorderBody) {
+       Passing passing = Passing.placePassingInStaticChain(recorderBody);
+       log.debug("Generated passing for {}, passing: {}", recorderBody, passing.getPrayHcns());
+        return passing;
     }
 
     public boolean prayHcnsContainFirstRecorder() {
         return prayHcns.stream().anyMatch(hcn -> hcn.getHcnGenerator().getRecorderBody().equals(RecorderBody.getFirstRecorder()));
+    }
+
+    @Override
+    public String toString() {
+        return "passingHcn=" + passingHcn +
+                ", prayHcns=" + prayHcns +
+                ", passingHcns=" + passingHcns;
+    }
+
+    public void removeRecorderBody(RecorderBody prayBody) {
+        if (prayHcns.size() > 1) {
+            log.debug("HERE WE GO {}");
+            Hcn prayHcnToRemove = prayHcns.stream().filter(prayHcn -> prayHcn.getHcnGenerator().equals(prayBody.getHcnGenerator())).findFirst().get();
+            prayHcns.remove(prayHcnToRemove);
+        } else {
+            removePassingFromStaticChain(this);
+        }
     }
 }
