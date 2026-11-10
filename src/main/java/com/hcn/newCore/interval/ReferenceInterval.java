@@ -90,14 +90,7 @@ public class ReferenceInterval {
             lastActiveRecorder = passingHcn.getHcnGenerator().getRecorderBody();
         }
         lastHcnOrder--;
-
-        int skippingCount = 0;
-        for (Hcn prayHcn : currentPassing.getPrayHcns()) {
-            if (prayHcn.getHcnStatus().equals(HcnStatus.RECORDER_DEACTIVATED)) {
-                skippingCount++;
-            }
-        }
-        ActiveInterval.getCurrentActiveInterval().addActivityZone(activityHcns, currentPassing.getHcnOrder(), skippingCount);
+        ActiveInterval.getCurrentActiveInterval().addActivityZone(activityHcns, currentPassing);
     }
 
     private void createNextActiveInterval(int interval) {

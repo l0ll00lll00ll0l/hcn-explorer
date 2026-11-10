@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.TreeSet;
 
 @Slf4j
 public class Extension {
@@ -21,11 +20,8 @@ public class Extension {
     }
 
     public static void extend(Hcn passingHcns) {
-
         historicalExtensions.clear();
         passingHcns.getHcnGenerator().getBody().matrixMaintainCheck();
-
-
     }
 
     public static void reportExtension(BodyNode newBodyNode) {
@@ -52,14 +48,6 @@ public class Extension {
     private static void bodyListDeletionMaintain() {
         List<Body> deletedHcnGenerators = TransitionNode.getLastTransition().deactivatedMaintain();
         ActivityCenter.submitBodyDeletionEvent(deletedHcnGenerators);
-        /*
-        MatrixNode potentialApiNode = TransitionNode.getLastTransition().getPrevMatrixNode();
-        while (potentialApiNode != null) {
-            potentialApiNode.transitionNodeTriggerCheck();
-            potentialApiNode = potentialApiNode.getPrevMatrixNode();
-        }
-
-         */
     }
 
     private void gatherBodyListChanges() {

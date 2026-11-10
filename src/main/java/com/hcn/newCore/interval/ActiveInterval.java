@@ -2,6 +2,7 @@ package com.hcn.newCore.interval;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.hcn.newCore.Hcn;
+import com.hcn.newCore.Passing;
 import com.hcn.newCore.RecorderBody;
 import lombok.Builder;
 import lombok.Getter;
@@ -114,7 +115,7 @@ public class ActiveInterval {
         return "[" + interval + "] - " + activityZones.size();
     }
 
-    public void addActivityZone(List<Hcn> activityHcns, int hcnOrder, int skippingCount) {
-        activityZones.add(ActivityZone.builder().hcns(activityHcns).hcnOrder(hcnOrder).skippingCount(skippingCount).build());
+    public void addActivityZone(List<Hcn> activityHcns, Passing passing) {
+        activityZones.add(ActivityZone.builder().hcns(activityHcns).hcnOrder(passing.getHcnOrder()).skippingCount(passing.getSkippingCount()).build());
     }
 }

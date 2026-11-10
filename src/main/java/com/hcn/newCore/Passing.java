@@ -146,6 +146,7 @@ public class Passing {
     private int hcnOrder;
     private int interval;
     private final TreeSet<RecorderBody> preRecorderBodies = new TreeSet<>();
+    private int skippingCount = 0;
 
     public Passing (RecorderBody prayBody) {
         this.prayHcns.add(prayBody.getPrayHcn());
@@ -184,6 +185,19 @@ public class Passing {
             prayHcns.remove(prayHcnToRemove);
         } else {
             removePassingFromStaticChain(this);
+        }
+    }
+
+    public void calculateSkipCount(ScientificNumber factorLimit) {
+        for (Hcn prayHcn : prayHcns) {
+            if (factorLimit.isNotSmallerThan(prayHcn.getFactor())) {
+                prayHcn.setHcnStatus(HcnStatus.RECORDER_DEACTIVATED);
+                preRecorderBodies.add(prayHcn.getHcnGenerator().getRecorderBody());
+                skippingCount++;
+            } else {
+                prayHcn.setHcnStatus(HcnStatus.RECORDER_SURVIVED);
+                preRecorderBodies.add(prayHcn.getHcnGenerator().getRecorderBody());
+            }
         }
     }
 }

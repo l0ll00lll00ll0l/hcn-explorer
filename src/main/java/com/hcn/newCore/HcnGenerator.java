@@ -50,7 +50,6 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
     private RecorderBody recorderBody;
 
     public HcnGenerator(Body newHunterBody) {
-        //log.debug("$$$$$$$$$$$$$$$$$$$$$  new HunterBody: {}", newHunterBody);
 
         this.body = newHunterBody;
         this.previousHcnGenerator = body.getPrevActiveBody();
@@ -65,45 +64,23 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
 
         Hcn referenceHunterHcn = getReferenceHcnForFindPray();
         RecorderBody prayCandidate = referenceHunterHcn.getPrayBody();
-        //log.debug(" ################################ createHcnGenerator: {}", this);
-        //log.debug(" referenceHunterHcn: {}, prayCandidate: {}", referenceHunterHcn, prayCandidate);
         prayCandidate.findPrayCheck(this, referenceHunterHcn.getIntervalDistance());
-        //log.debug("");
-    }
-
-    public static void printGeneratorList() {
-        //log.debug("HcnGeneratorList:");
-        //log.debug("{}", firstHcnGenerator.printString());
-        HcnGenerator walker = firstHcnGenerator.nextHcnGenerator;
-        while (walker != null) {
-            //log.debug("{}", walker.printString());
-            walker = walker.nextHcnGenerator;
-        }
     }
 
     public void deleteHcnGenerator() {
-        //log.debug("deleteHcnGenerator: {}", this);
-        //log.debug(" previous: {}, next: {}", previousHcnGenerator, nextHcnGenerator);
 
         if (previousHcnGenerator != null) previousHcnGenerator.setNextHcnGenerator(nextHcnGenerator);
         else firstHcnGenerator = nextHcnGenerator;
 
         if (nextHcnGenerator != null) nextHcnGenerator.setPreviousHcnGenerator(previousHcnGenerator);
-        //else largestBody = prev;
 
         previousHcnGenerator = null;
         nextHcnGenerator = null;
 
-        //og.debug(" ÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷ RECORDERLIST before delete ÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷");
-        //RecorderBody.printRecordlist();
         for (Hcn referenceHcn : referencedHcns) {
             referenceHcn.getPrayBody().deleteHunterHcn(referenceHcn);
         }
         referencedHcns.clear();
-        //log.debug(" ÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷ RECORDERLIST after delete ÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷÷");
-        //RecorderList.print();
-        //deletedBody.getHcnGenerator().getHunterPassingZone().deleteHunterBodyFromBodyList(deletedBody.getHcnGenerator());
-        //print();
     }
 
     protected Hcn getHcn(Prime prime, HcnStatus status, RecorderBody prayBody, int intervalDistance) {
@@ -140,15 +117,6 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
     public String toString() {
         return body.toString();
     }
-
-    public String printString() {
-        if (recorderBody == null) {
-            return body.toString() + " - referenceHcns: " + referencedHcns;
-        } else {
-            return body.toString() + " [R] prayHcn: " + recorderBody.getPrayHcn() + ", passngHcn: " + recorderBody.getPassingHcn();
-        }
-    }
-
 
     @Override
     public int compareTo(HcnGenerator other) {
