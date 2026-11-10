@@ -25,17 +25,13 @@ public class Passing {
 
         Passing currentPassing = lowestPassing;
         currentPassing.prayHcns.first().getHcnGenerator().getRecorderBody().generatePassingHcns(currentPassing);
-        ReferenceInterval.getCurrentReferenceInterval().preCalculations(currentPassing);
-
-        List<Hcn> activityHcns = new ArrayList<>();
 
         currentPassing.passingHcns.forEach(hcn -> {
             Extension.extend(hcn);
-            if (hcn.getHcnGenerator().getRecorderBody() == null) {
+            if (hcn.getHcnStatus().equals(HcnStatus.FIRST_RECORDER)) {
                 new RecorderBody(hcn);
-                activityHcns.add(hcn);
             } else {
-                hcn.getHcnGenerator().getRecorderBody().resetReferencedHuntersFromPreviousRecorderBody(hcn, currentPassing.prayHcns.first());
+                hcn.getHcnGenerator().getRecorderBody().resetReferencedHuntersFromPreviousRecorderBody(currentPassing.prayHcns.first());
             }
         });
 
@@ -43,7 +39,6 @@ public class Passing {
         for (Hcn prayHcn : currentPassing.prayHcns) {
             if (factorRecord.isNotSmallerThan(prayHcn.getFactor())) {
                 prayHcn.getHcnGenerator().getRecorderBody().deleteRecorderBody(currentPassing);
-                activityHcns.add(prayHcn);
             } else {
                 prayHcn.getHcnGenerator().getRecorderBody().createPassingZoneAfterSurvival(currentPassing.passingHcns.last());
                 factorRecord = prayHcn.getFactor();
@@ -150,6 +145,7 @@ public class Passing {
     private Passing nextPassing;
     private int hcnOrder;
     private int interval;
+    private final TreeSet<RecorderBody> preRecorderBodies = new TreeSet<>();
 
     public Passing (RecorderBody prayBody) {
         this.prayHcns.add(prayBody.getPrayHcn());

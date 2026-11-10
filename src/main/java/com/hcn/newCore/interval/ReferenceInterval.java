@@ -28,12 +28,10 @@ public class ReferenceInterval {
     public static void initialize() {
         currentReferenceInterval = ReferenceInterval.builder().build();
         currentReferenceInterval.getActiveIntervals().add(ActiveInterval.getCurrentActiveInterval());
-        //hcns added in recorderList initialize
     }
 
     public static List<Hcn> getHcnProjections(int index) {
 
-        //log.info("!activeInterval.getHcnProjections().isEmpty() for {}", !currentReferenceInterval.activeIntervals.get(index).getHcnProjections().isEmpty());
         if (!currentReferenceInterval.activeIntervals.get(index).getHcnProjections().isEmpty()) {
             return currentReferenceInterval.activeIntervals.get(index).getHcnProjections();
         }
@@ -46,15 +44,11 @@ public class ReferenceInterval {
             }
         }
 
-        //log.info("firstMissingInterval {}", firstMissingInterval);
-
-            for (int i = firstMissingInterval; i < index + 1; i++) {
-                if (currentReferenceInterval.activeIntervals.get(i).getHcnProjections().isEmpty()) {
-                    //log.info(" generating for: {}", currentReferenceInterval.activeIntervals.get(i).getInterval());
-                    currentReferenceInterval.activeIntervals.get(i).generateHcnProjections(currentReferenceInterval.activeIntervals.get(i - 1));
-                }
+        for (int i = firstMissingInterval; i < index + 1; i++) {
+            if (currentReferenceInterval.activeIntervals.get(i).getHcnProjections().isEmpty()) {
+                currentReferenceInterval.activeIntervals.get(i).generateHcnProjections(currentReferenceInterval.activeIntervals.get(i - 1));
             }
-
+        }
         return currentReferenceInterval.activeIntervals.get(index).getHcnProjections();
     }
 
@@ -62,146 +56,51 @@ public class ReferenceInterval {
     private int lastHcnOrder;
     private int lastActiveInterval;
     private RecorderBody lastActiveRecorder;
-    private final TreeSet<RecorderBody> preRecorderBodies = new TreeSet<>();
 
+    public void preCalculatePassing(Passing passing) {
 
-    public void preCalculations(Passing passing) {
-
-        //log.debug("preCalculations: lastHcnOrder: {}, lastActiveInterval: {}, lastActiveRecorder.order: {}", lastHcnOrder, lastActiveInterval, lastActiveRecorder.getOrder());
-
-        preRecorderBodies.clear();
-        passing.getPassingHcns().stream().filter(hcn -> hcn.getHcnGenerator().getRecorderBody() != null)
-                .forEach(recorderHunterHcn -> preRecorderBodies.add(recorderHunterHcn.getHcnGenerator().getRecorderBody()));
-        passing.getPrayHcns().forEach(recorderHcn -> preRecorderBodies.add(recorderHcn.getHcnGenerator().getRecorderBody()));
-
-        //log.debug("preRecorderBodies: {}", preRecorderBodies);
-
-        int order = preRecorderBodies.first().getHcnGenerator().getRecorderBody().getOrder();
-        //log.debug(" order {}", order);
+        int order = passing.getPreRecorderBodies().first().getHcnGenerator().getRecorderBody().getOrder();
         int hcnOrderAdvancement = order - lastActiveRecorder.getOrder();
-        //log.debug(" hcnOrderAdvancement: {}", hcnOrderAdvancement);
-
         Hcn firstPrayHcn = passing.getPrayHcns().first();
         int interval = firstPrayHcn.getLapiIndex() + firstPrayHcn.getHcnGenerator().getRecorderBody().getIntervalLapiDistance();
         if (passing.prayHcnsContainFirstRecorder()) {
             interval--;
-            //log.debug(" interval down {}", interval);
             hcnOrderAdvancement += RecorderBody.getRecorderListSize();
-            //log.debug(" hcnOrderAdvancement: {}", hcnOrderAdvancement);
         }
-        //log.debug(" interval {}", interval);
-
         if (interval != lastActiveInterval) {
             createNextActiveInterval(interval);
-            //log.debug(" interval changed to: {}", interval);
             int extra = (interval - lastActiveInterval) * RecorderBody.getRecorderListSize();
             hcnOrderAdvancement = hcnOrderAdvancement + extra;
             lastActiveInterval = interval;
-            //log.debug(" hcnOrderAdvancement: {}", hcnOrderAdvancement);
         }
         lastHcnOrder = lastHcnOrder + hcnOrderAdvancement;
-        //log.debug(" lastHcnOrder {}", lastHcnOrder);
         passing.setHcnOrder(lastHcnOrder);
         passing.setInterval(interval);
-        //passing.setLasrgestOrderPrev(largestOrderHcn);
-        //log.debug("");
     }
 
     public void postCalculations(Passing currentPassing) {
 
-        //log.debug("postCalculations: lastHcnOrder: {}, lastActiveInterval: {}, lastActiveRecorder.order: {}", lastHcnOrder, lastActiveInterval, lastActiveRecorder.getOrder());
-
         List<Hcn> activityHcns = new ArrayList<>();
         for (Hcn passingHcn : currentPassing.getPassingHcns()) {
-            //if (passingHcn.getHcnStatus().equals(HcnStatus.FIRST_RECORDER)) {
-                passingHcn.setOrder(lastHcnOrder);
-            //log.debug("passingHcn: {}, lastHcnOrder: {}", passingHcn, lastHcnOrder);
-                lastHcnOrder++;
-                activityHcns.add(passingHcn);
+            passingHcn.setOrder(lastHcnOrder);
+            lastHcnOrder++;
+            activityHcns.add(passingHcn);
             lastActiveRecorder = passingHcn.getHcnGenerator().getRecorderBody();
-            //}
         }
         lastHcnOrder--;
 
-        //log.debug("lastActiveRecorder: {}", lastActiveRecorder);
-
-        int skippingCount = preRecorderBodies.size();
+        int skippingCount = currentPassing.getPreRecorderBodies().size();
         for (Hcn prayHcn : currentPassing.getPrayHcns()) {
             if (prayHcn.getHcnStatus().equals(HcnStatus.RECORDER_SURVIVED)) {
                 skippingCount--;
             }
         }
         ActiveInterval.getCurrentActiveInterval().addActivityZone(activityHcns, currentPassing.getHcnOrder(), skippingCount);
-        //ActiveInterval.getCurrentActiveInterval().getActivity().add(activityHcns);
-        //ActiveInterval.getCurrentActiveInterval().getHcnsIdsForActivity().add(currentPassing.getHcnOrder());
-        //log.debug("");
     }
-
-/*
-    public void setHcnOrderForNewRecorder(Hcn triggerHcn) {
-        log.debug("TriggerHcn: {}", triggerHcn);
-        int interval = triggerHcn.getLapiIndex() + triggerHcn.getHcnGenerator().getRecorderBody().getIntervalLapiDistance();
-
-        int order = triggerHcn.getHcnGenerator().getRecorderBody().getOrder();
-        int hcnOrderAdvancement = order - lastActiveRecorder.getOrder();
-        log.debug(" interval {}, order: {}, hcnOrderAdvancement: {}", interval, order, hcnOrderAdvancement);
-
-        if (interval != lastActiveInterval) {
-            createNextActiveInterval(interval);
-            int extra = (interval - lastActiveInterval) * RecorderBody.getRecorderListSize();
-            hcnOrderAdvancement = hcnOrderAdvancement + extra;
-            log.debug(" hcnOrderAdvancement: {}", hcnOrderAdvancement);
-        }
-
-        lastHcnOrder = lastHcnOrder + hcnOrderAdvancement;
-        triggerHcn.setOrder(lastHcnOrder);
-        //ActiveInterval.getCurrentActiveInterval().getActivityHcns().add(triggerHcn);
-        //ActiveInterval.getCurrentActiveInterval().addHcnToActivityMap(triggerHcn);
-
-        lastActiveInterval = interval;
-        lastActiveRecorder = triggerHcn.getHcnGenerator().getRecorderBody();
-        log.debug("setHcnOrderForNewRecorder {}, lastHcnOrder: {}, lastActiveRecorder: {}, lastActiveInterval: {}", triggerHcn, lastHcnOrder, lastActiveRecorder, lastActiveInterval);
-    }
-
-    public void addDeleteHcn(Hcn prayHcn, Passing currentPassing) {
-        //log.debug("prayHcn {}, getAdvancingRecorderHunterCount: {}, getNewRecorderCountCount: {}", prayHcn, currentPassing.getAdvancingRecorderHunterCount(), currentPassing.getNewRecorderCountCount());
-        int interval = prayHcn.getLapiIndex() + prayHcn.getHcnGenerator().getRecorderBody().getIntervalLapiDistance();
-        int order = prayHcn.getHcnGenerator().getRecorderBody().getOrder();
-        int hcnOrderAdvancement = order - lastActiveRecorder.getOrder();
-        log.debug(" interval {}, order: {}, hcnOrderAdvancement: {}", interval, order, hcnOrderAdvancement);
-        if (prayHcn.getHcnGenerator().getRecorderBody().equals(RecorderBody.getFirstRecorder())) {
-            interval--;
-            hcnOrderAdvancement += RecorderBody.getRecorderListSize();
-            log.debug(" interval {}, hcnOrderAdvancement: {}", interval, hcnOrderAdvancement);
-        }
-
-        if (interval != lastActiveInterval) {
-            createNextActiveInterval(interval);
-            hcnOrderAdvancement += (interval - lastActiveInterval) * RecorderBody.getRecorderListSize();
-            log.debug(" hcnOrderAdvancement {}", hcnOrderAdvancement);
-        }
-
-        //if (killerHcn.getHcnStatus().equals(H))
-        lastHcnOrder += hcnOrderAdvancement -1;
-        log.debug(" lastHcnOrder {}", lastHcnOrder);
-        //TODO whatever
-        int orderToSet = lastHcnOrder + 1;
-        prayHcn.setOrder(orderToSet);
-
-        //ActiveInterval.getCurrentActiveInterval().getActivityHcns().add(prayHcn);
-        //ActiveInterval.getCurrentActiveInterval().addHcnToActivityMap(prayHcn);
-        lastActiveRecorder = prayHcn.getHcnGenerator().getRecorderBody().getPreviousRecorder();
-        lastActiveInterval = interval;
-        log.debug(" addDeleteHcn {}, lastHcnOrder: {}, lastActiveRecorder: {}, lastActiveInterval: {}, orderToSet: {}", prayHcn, lastHcnOrder, lastActiveRecorder, lastActiveInterval, orderToSet);
-    }
-
- */
-
 
     private void createNextActiveInterval(int interval) {
         ActiveInterval.getCurrentActiveInterval().setPostRecorderListSize(RecorderBody.getRecorderListSize());
         ActiveInterval.setCurrentActiveInterval(ActiveInterval.builder().interval(interval).firstRecorder(RecorderBody.getFirstRecorder()).build());
         activeIntervals.add(ActiveInterval.getCurrentActiveInterval());
     }
-
 }

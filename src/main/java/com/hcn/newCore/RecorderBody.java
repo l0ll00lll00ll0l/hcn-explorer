@@ -99,7 +99,6 @@ public class RecorderBody implements Comparable<RecorderBody> {
     private final HcnGenerator hcnGenerator;
 
     public RecorderBody(Hcn triggerHcn) {
-        triggerHcn.setHcnStatus(HcnStatus.FIRST_RECORDER);
         hcnGenerator = triggerHcn.getHcnGenerator();
         hcnGenerator.setRecorderBody(this);
         intervalLapiDistance = triggerHcn.getIntervalDistance() + (triggerHcn.getPrayBody().equals(firstRecorder) ? -1 : 0);
@@ -121,10 +120,8 @@ public class RecorderBody implements Comparable<RecorderBody> {
         //log.debug("RecorderBody NEW at {}: {}", Matrix.getPassingCounter(), this);
     }
 
-    public void resetReferencedHuntersFromPreviousRecorderBody(Hcn hcn, Hcn prayHcn) {
+    public void resetReferencedHuntersFromPreviousRecorderBody(Hcn prayHcn) {
         //log.debug("RecorderBody passing again at {}: {}", Matrix.getPassingCounter(), this);
-        hcn.setHcnStatus(HcnStatus.RECORDER_HUNTER);
-
         RecorderBody oldPrev = previousRecorder;
         RecorderBody oldNext = nextRecorder;
         //log.debug("RecorderBody passing again: oldPrev: {} - this - {} - oldNext: {}", oldPrev, this, oldNext);
@@ -278,8 +275,6 @@ public class RecorderBody implements Comparable<RecorderBody> {
 
     public void deleteRecorderBody(Passing currentPassing) {
 
-        //log.debug("Deleting: {}", this);
-        prayHcn.setHcnStatus(HcnStatus.RECORDER_DEACTIVATED);
         lowerLargerOrderNumbers();
         previousRecorder.setNextRecorder(nextRecorder);
         nextRecorder.setPreviousRecorder(previousRecorder);
@@ -345,7 +340,6 @@ public class RecorderBody implements Comparable<RecorderBody> {
 
     public void createPassingZoneAfterSurvival(Hcn factorReferenceHcn) {
         //log.debug("&&&&&&&&&&&&&&&&&&&&&&&& createPassingZoneAfterSurvival for prayHcn {} &&&&&&&&&&&&&&&&&&&&&&&&&", prayBody.getPrayHcn());
-        prayHcn.setHcnStatus(HcnStatus.RECORDER_SURVIVED);
         //passing.removePrayHcn(prayHcn);
         createPassingZone(initiateHcnGeneratorsBasedOnLocalPassingZone(factorReferenceHcn));
     }
@@ -623,13 +617,30 @@ public class RecorderBody implements Comparable<RecorderBody> {
         Set<Hcn> notSuperiorHcns = new HashSet<>();
         for (Hcn passingCandidate : currentPassing.getPassingHcns()) {
             if (passingCandidate.getFactor().isBiggerThan(factorLimit)) {
+                if (passingCandidate.getHcnGenerator().getRecorderBody() != null) {
+                    passingCandidate.setHcnStatus(HcnStatus.RECORDER_HUNTER);
+                    currentPassing.getPreRecorderBodies().add(passingCandidate.getHcnGenerator().getRecorderBody());
+                } else {
+                    passingCandidate.setHcnStatus(HcnStatus.FIRST_RECORDER);
+                }
                 factorLimit = passingCandidate.getFactor();
             } else {
-                //passingCandidate.setHcnStatus(HcnStatus.NONPASSING_HCN);
                 notSuperiorHcns.add(passingCandidate);
             }
         }
         notSuperiorHcns.forEach(currentPassing.getPassingHcns()::remove);
+
+        for (Hcn prayHcn : currentPassing.getPrayHcns()) {
+            if (factorLimit.isNotSmallerThan(prayHcn.getFactor())) {
+                prayHcn.setHcnStatus(HcnStatus.RECORDER_DEACTIVATED);
+                currentPassing.getPreRecorderBodies().add(prayHcn.getHcnGenerator().getRecorderBody());
+            } else {
+                prayHcn.setHcnStatus(HcnStatus.RECORDER_SURVIVED);
+                currentPassing.getPreRecorderBodies().add(prayHcn.getHcnGenerator().getRecorderBody());
+            }
+        }
+
+        ReferenceInterval.getCurrentReferenceInterval().preCalculatePassing(currentPassing);
     }
 
     @Override

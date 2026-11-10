@@ -86,20 +86,6 @@ public class ActiveInterval {
 
                     nextActivityZone = activityIterator.hasNext() ? activityIterator.next() : null;
                     //log.debug(" nextActivityZone moves To 1: {}, hcnOrder: {}", nextActivityZone == null ? nextActivityZone : nextActivityZone.getHcns() , hcnOrder);
-                    /*
-                    if (nextActivityZone.getHcnStatus().equals(HcnStatus.FIRST_RECORDER)) {
-                        //hcnProjections.add(nextActivityZone);
-                        //log.debug(" nextActivityZone: {}", nextActivityZone);
-                        //hcnOrder++;
-
-                        log.debug(" nextActivityZone moves To: {}", nextActivityZone);
-                    } else {
-                        nextPrevHcnProjection = previousHcnBaseIterator.hasNext() ? previousHcnBaseIterator.next() : null;
-                        nextActivityZone = activityIterator.hasNext() ? activityIterator.next() : null;
-                        log.debug(" nextPrevHcnProjection moves To 2: {}", nextPrevHcnProjection);
-                    }
-
-                     */
                 }
             } else {
                 hcnProjections.add(generateTempHcnBasedOnReference(nextPrevHcnProjection, lapiDistance, hcnOrder));
@@ -159,6 +145,4 @@ public class ActiveInterval {
     public void addActivityZone(List<Hcn> activityHcns, int hcnOrder, int skippingCount) {
         activityZones.add(ActivityZone.builder().hcns(activityHcns).hcnOrder(hcnOrder).skippingCount(skippingCount).build());
     }
-
-
 }
