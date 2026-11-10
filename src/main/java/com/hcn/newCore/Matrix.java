@@ -44,6 +44,7 @@ public class Matrix {
     public void initialize() {
 
         Prime.initialize();
+        ApiNode.initialize();
         TransitionNode.initialize();
         Body.initialize();
         HcnGenerator.initialize();

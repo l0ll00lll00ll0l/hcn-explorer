@@ -22,6 +22,11 @@ public class Extension {
     public static void extend(Hcn passingHcns) {
         historicalExtensions.clear();
         passingHcns.getHcnGenerator().getBody().matrixMaintainCheck();
+        ApiNode apiToTransitionCandidate = ApiNode.getLastApiNode();
+        while (apiToTransitionCandidate.getPrevMatrixNode() != null) {
+            apiToTransitionCandidate.transitionNodeTriggerCheck();
+            apiToTransitionCandidate = (ApiNode) apiToTransitionCandidate.getPrevMatrixNode();
+        }
     }
 
     public static void reportExtension(BodyNode newBodyNode) {

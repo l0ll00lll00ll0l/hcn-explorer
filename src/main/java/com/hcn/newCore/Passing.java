@@ -5,8 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.TreeSet;
 
 @Getter
@@ -50,23 +48,19 @@ public class Passing {
     }
 
 
-    private static Passing placePassingInStaticChain(RecorderBody prayBody) {
-        //log.debug("   :::::::::::::::::::  placePassingZoneInStaticChain {}  :::::::::::::::::::: ", prayBody.getPassingHcn());
+    public static Passing placePassingInStaticChain(RecorderBody prayBody) {
 
         Passing firstNotSmallerPassing = lowestPassing;
         Passing previousPassingZone = null;
-        //log.debug(" firstNotSmallerPassing {}", firstNotSmallerPassing.passingHcn);
         while (firstNotSmallerPassing != null
                 && firstNotSmallerPassing.passingHcn.getValue().isSmallerThan(prayBody.getPassingHcn().getValue())) {
             previousPassingZone = firstNotSmallerPassing;
             firstNotSmallerPassing = firstNotSmallerPassing.nextPassing;
-            //log.debug(" previousPassingZone: {}",  previousPassingZone.passingHcn);
         }
 
         if (firstNotSmallerPassing != null) {
             if (firstNotSmallerPassing.passingHcn.getValue().isNotBiggerThan(prayBody.getPassingHcn().getValue())) {
                 firstNotSmallerPassing.prayHcns.add(prayBody.getPrayHcn());
-                //log.debug(" firstNotSmallerPassing EXTENDED {}", firstNotSmallerPassing.prayHcns);
                 return firstNotSmallerPassing;
             } else {
 
@@ -79,15 +73,6 @@ public class Passing {
                 newPassing.prevPassing = previousPassingZone;
                 firstNotSmallerPassing.prevPassing = newPassing;
                 newPassing.nextPassing = firstNotSmallerPassing;
-                String prev = "null";
-                if (newPassing.prevPassing != null) {
-                    prev = previousPassingZone.passingHcn.toString();
-                }
-                String next = "null";
-                if (newPassing.nextPassing != null) {
-                    next = newPassing.nextPassing.passingHcn.toString();
-                }
-                //log.debug("   ::::::::::::::::::: {} - {} - {} :::::::::::::::::::: ", prev, prayBody.passingHcn, next);
                 return newPassing;
             }
         } else {
@@ -100,11 +85,8 @@ public class Passing {
     }
 
     public static void removePassingFromStaticChain(Passing passingZoneToRemove) {
-        //log.debug("   -----_______------ removeFromStaticChain {}   ---------____________-------", passingZoneToRemove.passingHcn);
-        //printFirstNpassings(3);
 
         if (passingZoneToRemove.equals(lowestPassing)) {
-            //log.debug("lowerMovedTo: {}", passingZoneToRemove.nextPassing.passingHcn);
             setLowestPassing(passingZoneToRemove.nextPassing);
         }
 
@@ -115,16 +97,11 @@ public class Passing {
         passingZoneToRemove.setNextPassing(null);
 
         if (prev != null) {
-            //log.debug("prev: {}", prev.passingHcn);
             prev.nextPassing = next;
         }
         if (next != null) {
-            //log.debug("next: {}", next.passingHcn);
             next.prevPassing = prev;
         }
-
-        //printFirstNpassings(3);
-        //log.debug("");
     }
 
     private static void printFirstNpassings(int count) {
@@ -161,12 +138,6 @@ public class Passing {
         this.passingHcn = prayBody.getPassingHcn();
     }
 
-    public static Passing assignPassing(RecorderBody recorderBody) {
-       Passing passing = Passing.placePassingInStaticChain(recorderBody);
-       log.debug("Generated passing for {}, passing: {}", recorderBody, passing.getPrayHcns());
-        return passing;
-    }
-
     public boolean prayHcnsContainFirstRecorder() {
         return prayHcns.stream().anyMatch(hcn -> hcn.getHcnGenerator().getRecorderBody().equals(RecorderBody.getFirstRecorder()));
     }
@@ -180,7 +151,6 @@ public class Passing {
 
     public void removeRecorderBody(RecorderBody prayBody) {
         if (prayHcns.size() > 1) {
-            log.debug("HERE WE GO {}");
             Hcn prayHcnToRemove = prayHcns.stream().filter(prayHcn -> prayHcn.getHcnGenerator().equals(prayBody.getHcnGenerator())).findFirst().get();
             prayHcns.remove(prayHcnToRemove);
         } else {

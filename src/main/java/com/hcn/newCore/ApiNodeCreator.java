@@ -22,7 +22,7 @@ public class ApiNodeCreator {
         this.transitionNode = transitionNode;
     }
 
-    public void create() {
+    public ApiNode create() {
         Prime newIndex = transitionNode.indexes.get(0);
         ApiNodeCreationActivity activity = ActivityCenter.isDbMode() ? new ApiNodeCreationActivity(newIndex.getIndex()) : null;
 
@@ -39,6 +39,8 @@ public class ApiNodeCreator {
         parentApiNode.setNextMatrixNode(newApiNode);
         transitionNode.setPrevMatrixNode(newApiNode);
         if (activity != null) activity.finish();
+
+        return newApiNode;
     }
 
     private void createTransitionToRemove(Prime newIndex) {

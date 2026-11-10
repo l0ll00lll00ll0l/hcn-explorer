@@ -9,6 +9,26 @@ import lombok.extern.slf4j.Slf4j;
 @Getter @Setter @SuperBuilder @Slf4j
 public class ApiNode extends MatrixNode {
 
+    private static ApiNode lastApiNode;
+    public static ApiNode getLastApiNode() {return lastApiNode;}
+
+    public static void initialize() {
+        lastApiNode = ApiNode.builder().prevMatrixNode(null).build();
+        lastApiNode.getIndexes().add(Prime.getFirstPrime());
+        BodyNode pip01 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(1).proved(true)
+                .value(new ScientificNumber(2,0))
+                .factor(new ScientificNumber(2, 0)).build();
+        BodyNode pip02 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(2).proved(true)
+                .value(new ScientificNumber(4,0))
+                .factor(new ScientificNumber(3, 0)).build();
+        BodyNode pip03 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(3)
+                .value(new ScientificNumber(8,0))
+                .factor(new ScientificNumber(4, 0)).build();
+        lastApiNode.getBodyNodes().put(1, pip01);
+        lastApiNode.getBodyNodes().put(2, pip02);
+        lastApiNode.getBodyNodes().put(3, pip03);
+    }
+
     @Override
     protected BodyNode provideNextBodyNode() {
         return BodyNode.builder().parentNode(this).bodyNodeId(bodyNodes.lastKey() + 1)
@@ -65,7 +85,7 @@ public class ApiNode extends MatrixNode {
     @Override
     public void extensionCheck() {
         if (transitionReleaseRequired()) {
-            new ApiNodeCreator(this, (TransitionNode) nextMatrixNode).create();
+            lastApiNode = new ApiNodeCreator(this, (TransitionNode) nextMatrixNode).create();
         }
         if (isLocalExtensionRequired()) {
             createNextBodyNode();
@@ -75,11 +95,10 @@ public class ApiNode extends MatrixNode {
         }
     }
 
-    @Override
     public void transitionNodeTriggerCheck() {
-        log.debug("Checking: {}, bodyNodes.size() {}, deactivatedBodyNodes: {}" , this, bodyNodes.size(), deactivatedBodyNodes.size());
+        //log.debug("Checking: {}, bodyNodes.size() {}, deactivatedBodyNodes: {}" , this, bodyNodes.size(), deactivatedBodyNodes.size());
         if (bodyNodes.size() == 1 && deactivatedBodyNodes.isEmpty()) {
-            log.debug("HERE {}", this);
+            //log.debug("HERE {}", this);
             new TransitionNodeCreator(this).create();
         }
     }
