@@ -15,13 +15,10 @@ import lombok.extern.slf4j.Slf4j;
 @Builder
 public class Matrix {
 
-    //public static TransitionNode lastTransition;
     private static ScientificNumber targetValue;
-    private static ScientificNumber provedLimit;
 
     public static void reset() {
         targetValue = null;
-        provedLimit = null;
         passingCounter = 0;
     }
     private int lowestProvedLapiWithinInterval;
@@ -55,16 +52,16 @@ public class Matrix {
 
         lowestProvedLapiWithinInterval = 1;
         provedCount = 2;
-        provedLimit = new ScientificNumber(6, 0);
 
         if (dbMode) {
             dbInsertService.submit(ActiveInterval.getCurrentActiveInterval());
         }
     }
 
-    public void proveNextLapi(int passingCount) {
+    public void proveNextLapi(int intervalAdvancement) {
 
-        for (int i = 0; i < passingCount; i++) {
+        int targetInterval = getLastInterval() + intervalAdvancement;
+        while (getLastInterval() < targetInterval){
             Passing.processNextPassing();
             this.passingCounter++;
         }
@@ -75,17 +72,10 @@ public class Matrix {
     public static ScientificNumber getTargetValue() {
         return targetValue;
     }
-
-    public static ScientificNumber getProvedLimit() {
-        return provedLimit;
-    }
-
-    public static void setProvedLimit(ScientificNumber proved) {
-        provedLimit = proved;
-    }
-
     public static int getPassingCounter() {
         return passingCounter;
     }
-
+    public static int getLastInterval() {
+        return ActiveInterval.getCurrentActiveInterval().getInterval();
+    }
 }

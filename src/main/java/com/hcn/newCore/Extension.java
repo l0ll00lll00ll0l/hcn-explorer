@@ -22,11 +22,7 @@ public class Extension {
     public static void extend(Hcn passingHcns) {
         historicalExtensions.clear();
         passingHcns.getHcnGenerator().getBody().matrixMaintainCheck();
-        ApiNode apiToTransitionCandidate = ApiNode.getLastApiNode();
-        while (apiToTransitionCandidate.getPrevMatrixNode() != null) {
-            apiToTransitionCandidate.transitionNodeTriggerCheck();
-            apiToTransitionCandidate = (ApiNode) apiToTransitionCandidate.getPrevMatrixNode();
-        }
+        TransitionNode.deleteMaintainStatic();
     }
 
     public static void reportExtension(BodyNode newBodyNode) {
@@ -46,13 +42,7 @@ public class Extension {
         currentExtension.gatherBodyListChanges();
         historicalExtensions.add(currentExtension);
         currentExtension.maintainRecorderList();
-        bodyListDeletionMaintain();
         currentExtension = null;
-    }
-
-    private static void bodyListDeletionMaintain() {
-        List<Body> deletedHcnGenerators = TransitionNode.getLastTransition().deactivatedMaintain();
-        ActivityCenter.submitBodyDeletionEvent(deletedHcnGenerators);
     }
 
     private void gatherBodyListChanges() {

@@ -1,7 +1,5 @@
 package com.hcn.newCore;
 
-import com.hcn.event.ActivityCenter;
-import com.hcn.event.MatrixExtensionActivity;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -149,7 +147,7 @@ public class BodyList implements Iterable<Body> {
         return sb.toString();
     }
 
-    public List<Body> deactivatedMaintain(ScientificNumber smallestPossibleExtension) {
+    public List<Body> deleteMaintain(ScientificNumber smallestPossibleExtension) {
 
         List<Body> deletedBodies = new ArrayList<>();
         Body bodyToDelete = smallestBody;

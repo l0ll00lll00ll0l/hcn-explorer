@@ -419,6 +419,7 @@ public class MatrixSerializer {
     }
 
     public String buildMatrixInsert(Matrix matrix) {
+        /*
         return String.format("INSERT INTO tmp_matrix (last_transition, next_lapi, lowest_lapi, highest_lapi, lowest_proved_lapi_within_interval, proved_count, proved_limit_mantissa, proved_limit_exponent, total_time_ms, matrix_maintain_time_ms, generate_hcn_list_time_ms, db_mode, total_nanos, total_matrix_nanos, reference_interval_lapi) VALUES (%d, %s, %s, %s, %d, %d, %s, %d, %d, %d, %d, %b, %d, %d, %s)",
                 TransitionNode.lastTransition.getTempId(),
                 "NULL",
@@ -436,5 +437,8 @@ public class MatrixSerializer {
                 ActivityCenter.getTotalMatrixNanos())
                 //Interval.getGlobalReferenceInterval() != null ? Interval.getGlobalReferenceInterval().getLapi() : "NULL")
                 ;
+
+         */
+        return null;
     }
 }

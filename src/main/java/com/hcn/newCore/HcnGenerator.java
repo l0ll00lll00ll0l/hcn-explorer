@@ -136,4 +136,13 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
         referencedHcns.forEach(acitveHcn -> returnList.add(acitveHcn.getIntervalDistance()));
         return returnList;
     }
+
+    public void deactivateCheck() {
+        if (!this.equals(RecorderBody.getFirstRecorder().getHunters().get(1).getHcnGenerator())) {
+            if (recorderBody == null) {
+                body.deactivate();
+            }
+            this.nextHcnGenerator.deactivateCheck();
+        }
+    }
 }

@@ -18,6 +18,16 @@ import java.util.stream.Collectors;
 @Slf4j
 public abstract class MatrixNode {
 
+    public static void deleteMaintainStatic() {
+        TransitionNode.getLastTransition().deleteMaintain();
+
+        ApiNode apiToTransitionCandidate = ApiNode.getLastApiNode();
+        while (apiToTransitionCandidate != null) {
+            apiToTransitionCandidate.transitionNodeTriggerCheck();
+            apiToTransitionCandidate = (ApiNode) apiToTransitionCandidate.getPrevMatrixNode();
+        }
+    }
+
     protected MatrixNode prevMatrixNode = null;
     protected MatrixNode nextMatrixNode= null;
     protected Integer tempId = null;
@@ -48,11 +58,11 @@ public abstract class MatrixNode {
         return counter;
     }
 
-    public List<Body> deactivatedMaintain() {
+    public void deleteMaintain() {
         ArrayList<Body> deactivatedHcnGenerators = new ArrayList<>();
         if (needsDeactivateMaintain) {
             ScientificNumber smallestPossibleExtension = getSmallestPossibleExtension();
-            List<Body> deletedBodies = bodyList.deactivatedMaintain(smallestPossibleExtension);
+            List<Body> deletedBodies = bodyList.deleteMaintain(smallestPossibleExtension);
             if (nextMatrixNode == null) {
                 deactivatedHcnGenerators.addAll(deletedBodies);
             }
@@ -60,9 +70,9 @@ public abstract class MatrixNode {
         }
 
         if (prevMatrixNode != null) {
-            prevMatrixNode.deactivatedMaintain();
+            prevMatrixNode.deleteMaintain();
         }
-        return deactivatedHcnGenerators;
+        ActivityCenter.submitBodyDeletionEvent(deactivatedHcnGenerators);
     }
 
     protected BodyNode getLargestProvedBodyNode() {

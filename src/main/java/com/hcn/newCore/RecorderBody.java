@@ -229,10 +229,14 @@ public class RecorderBody implements Comparable<RecorderBody> {
         lowerLargerOrderNumbers();
         previousRecorder.setNextRecorder(nextRecorder);
         nextRecorder.setPreviousRecorder(previousRecorder);
+        HcnGenerator smallestHcnGeneratorForDeactivateCheck = null;
+        boolean isFirstRecorderDeleted = this.equals(firstRecorder);
 
-        if (this.equals(firstRecorder)) {
+        if (isFirstRecorderDeleted) {
             firstRecorder = nextRecorder;
             currentPassing.setInterval(currentPassing.getInterval() - 1);
+            smallestHcnGeneratorForDeactivateCheck = hunters.get(1).getHcnGenerator();
+
             while (firstRecorder.getIntervalLapiDistance() > 0) {
                 firstRecorder.decreaseIntervalLapiDistances();
                 firstRecorder.order = firstRecorder.previousRecorder.order;
@@ -241,9 +245,16 @@ public class RecorderBody implements Comparable<RecorderBody> {
             }
         }
 
+        if (smallestHcnGeneratorForDeactivateCheck != null) {
+            smallestHcnGeneratorForDeactivateCheck.deactivateCheck();
+        }
+
         previousRecorder = null;
         nextRecorder = null;
         hcnGenerator.getBody().deactivate();
+        if (isFirstRecorderDeleted) {
+            TransitionNode.deleteMaintainStatic();
+        }
         hunters.values().forEach(hunterHcn -> {
             hunterHcn.removeHunterReference();
             hunterHcn.setPrayBody(null);
@@ -270,7 +281,14 @@ public class RecorderBody implements Comparable<RecorderBody> {
     }
 
     public void createPassingZoneAfterSurvival(Hcn factorReferenceHcn) {
+        HcnGenerator smallestHcnGeneratorForDeactivateCheck = null;
+        if (this.equals(firstRecorder)) {
+            smallestHcnGeneratorForDeactivateCheck = hunters.get(1).getHcnGenerator();
+        }
         createPassingZone(initiateHcnGeneratorsBasedOnLocalPassingZone(factorReferenceHcn));
+        if (smallestHcnGeneratorForDeactivateCheck != null) {
+            smallestHcnGeneratorForDeactivateCheck.deactivateCheck();
+        }
     }
 
     private TreeMap<Integer, HcnGenerator> initiateHcnGeneratorsBasedOnLocalPassingZone(Hcn factorReferenceHcn) {

@@ -337,7 +337,7 @@ public class MatrixDeserializer {
                 .generateHcnListTimeMs(generateHcnListTimeMs)
                 .dbMode(dbMode)
                 .build();
-        Matrix.setProvedLimit(new ScientificNumber(provedLimitMantissa, provedLimitExponent));
+        //Matrix.setProvedLimit(new ScientificNumber(provedLimitMantissa, provedLimitExponent));
 
         if (dbMode) {
             Integer lastFirstHcn = dbTemplate.queryForObject("SELECT first_hcn FROM interval ORDER BY lapi DESC LIMIT 1", Integer.class);
