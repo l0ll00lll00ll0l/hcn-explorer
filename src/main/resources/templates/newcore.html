@@ -74,6 +74,7 @@
         <div class="tab-bar">
             <button class="tab-btn" th:classappend="${activeTab == 'matrix' ? ' active' : ''}"        onclick="loadTab('matrix')">Matrix</button>
             <button class="tab-btn" th:classappend="${activeTab == 'bodynodes' ? ' active' : ''}"     onclick="loadTab('bodynodes')">BodyList</button>
+            <button class="tab-btn" th:classappend="${activeTab == 'bodybuffer' ? ' active' : ''}"   onclick="loadTab('bodybuffer')">BodyBuffer</button>
             <button class="tab-btn" th:classappend="${activeTab == 'bodynode' ? ' active' : ''}"      onclick="loadTab('bodynode')">BodyNode</button>
             <button class="tab-btn" th:classappend="${activeTab == 'hcngen' ? ' active' : ''}"        onclick="loadTab('hcngen')">Hcn Generation</button>
             <button class="tab-btn" th:classappend="${activeTab == 'passingzone' ? ' active' : ''}"          onclick="loadTab('passingzone')">Passing</button>

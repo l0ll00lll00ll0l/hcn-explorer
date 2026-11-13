@@ -17,6 +17,8 @@ public class BodyNode {
     private final int bodyNodeId;
     @Builder.Default
     private boolean proved = false;
+    @Builder.Default
+    private boolean hasHunterBody = false;
     private ScientificNumber value;
     private ScientificNumber factor;
     private final TreeSet<Body> activeBodies = new TreeSet<>();
@@ -26,9 +28,14 @@ public class BodyNode {
 
 
     public void extensionCheck() {
+        if (hasHunterBody) { return; }
+        hasHunterBody = true;
+        parentNode.extensionCheck();
+    }
+
+    public void setProvedRecursive() {
         if (proved) { return; }
         proved = true;
-        parentNode.extensionCheck();
     }
 
     public boolean isActive() {
@@ -41,13 +48,10 @@ public class BodyNode {
 
     @Override
     public String toString() {
-        return "BodyNode{" +
-                "parentNode=" + parentNode +
-                ", bodyNodeId=" + bodyNodeId +
-                ", proved=" + proved +
-                ", value=" + value +
-                ", factor=" + factor +
-                ", activeBodies=" + activeBodies +
-                '}';
+        if (parentNode instanceof ApiNode) {
+            return "p" + parentNode.indexes.get(0).getIndex() + "^" + bodyNodeId;
+        } else {
+            return "t" + bodyNodeId;
+        }
     }
 }

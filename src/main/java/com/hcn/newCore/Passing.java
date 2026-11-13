@@ -25,7 +25,7 @@ public class Passing {
         currentPassing.prayHcns.first().getHcnGenerator().getRecorderBody().generatePassingHcns(currentPassing);
 
         currentPassing.passingHcns.forEach(hcn -> {
-            Extension.extend(hcn);
+            //Extension.extend(hcn);
             if (hcn.getHcnStatus().equals(HcnStatus.FIRST_RECORDER)) {
                 new RecorderBody(hcn);
             } else {

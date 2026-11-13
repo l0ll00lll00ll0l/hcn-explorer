@@ -76,6 +76,19 @@ public class NewCoreController {
         return "newcore";
     }
 
+    @GetMapping("/newcore/experimental")
+    public String experimental(Model model) {
+        if (matrix == null) {
+            matrix = Matrix.builder().build();
+            matrix.initializeExperimental();
+        }
+        model.addAttribute("matrix", matrix);
+        model.addAttribute("logLevel", currentLogLevel);
+        model.addAttribute("activeTab", activeTab);
+        model.addAttribute("activeSubTab", activeSubTab);
+        return "newcore";
+    }
+
     @GetMapping("/newcore/bodynode-detail")
     public String bodynodeDetail(Model model,
                                  @RequestParam(defaultValue = "0") int matrixNodeIdx,
@@ -406,6 +419,16 @@ public class NewCoreController {
         }
         Collections.reverse(chain);
         return chain;
+    }
+
+    public List<Body> getBufferBodies() {
+        List<Body> bodies = new ArrayList<>();
+        Body current = Body.getSmallestBufferBody();
+        while (current != null) {
+            bodies.add(current);
+            current = current.getLargerBody();
+        }
+        return bodies;
     }
 
     public List<Body> getBodies(BodyList bodyList) {

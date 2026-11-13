@@ -47,6 +47,7 @@ public class ApiNodeCreator {
         if (transitionNode.getBodyNodes().containsKey(newIndex.getIndex())) {
             transitionToRemove = transitionNode.getBodyNodes().get(newIndex.getIndex());
             pipLower.setProved(transitionToRemove.isProved());
+            pipLower.setHasHunterBody(transitionToRemove.isHasHunterBody());
             newApiNode.getBodyNodes().put(pipLower.getBodyNodeId(), pipLower);
         }
     }
@@ -55,14 +56,15 @@ public class ApiNodeCreator {
         pipLower = BodyNode.builder().parentNode(newApiNode)
                 .value(newApiNode.indexes.get(0).getValue().pow(transitionNode.getTransitionTo()))
                 .factor(new ScientificNumber(transitionNode.getTransitionTo() + 1, 0))
-                .bodyNodeId(transitionNode.getTransitionTo()).proved(true).build();
+                .bodyNodeId(transitionNode.getTransitionTo()).proved(true).hasHunterBody(true).build();
     }
 
     private void createHigherPip() {
         pipHigher = BodyNode.builder().parentNode(newApiNode)
                 .value(newApiNode.indexes.get(0).getValue().pow(transitionNode.getTransitionFrom()))
                 .factor(new ScientificNumber(transitionNode.getTransitionFrom() + 1, 0))
-                .bodyNodeId(transitionNode.getTransitionFrom()).proved(nextLowerTransition.isProved()).build();
+                .bodyNodeId(transitionNode.getTransitionFrom()).proved(nextLowerTransition.isProved())
+                .hasHunterBody(nextLowerTransition.isHasHunterBody()).build();
         newApiNode.getBodyNodes().put(pipHigher.getBodyNodeId(), pipHigher);
     }
 

@@ -82,6 +82,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
     private Hcn passingHcn;
     private final TreeMap<Integer, Hcn> hunters = new TreeMap<>();
     private Passing passing;
+
     @Override
     public int compareTo(RecorderBody other) {return order.compareTo(other.order);}
     @Override
@@ -91,6 +92,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
 
         hcnGenerator = triggerHcn.getHcnGenerator();
         hcnGenerator.setRecorderBody(this);
+        hcnGenerator.getBody().setProvedRecursive();
         intervalLapiDistance = triggerHcn.getIntervalDistance() + (triggerHcn.getPrayBody().equals(firstRecorder) ? -1 : 0);
         this.order = triggerHcn.getPrayBody().previousRecorder.order + 1;
 
@@ -105,6 +107,8 @@ public class RecorderBody implements Comparable<RecorderBody> {
             recorderToRaiseOrderNumber.order++;
             recorderToRaiseOrderNumber = recorderToRaiseOrderNumber.nextRecorder;
         }
+
+        HcnGenerator.createHcnGenerators(this);
         createPassingZone(initiateHcnGeneratorsBasedOnPreviousPassingZone());
     }
 
@@ -174,16 +178,6 @@ public class RecorderBody implements Comparable<RecorderBody> {
             hunters.put(intervalDistance, hunter.generateReferencedHcn(hunterPrime,this, intervalDistance));
             if (hunterValue.isSmallerThan(passingHcn.getValue())) {
                 findSmallestPassingHcn(intervalDistance, hunterPrime, hunterValue, hunter);
-            }
-        } else {
-            Hcn currentHunterHcn = hunters.get(intervalDistance);
-            if (hunterValue.isSmallerThan(currentHunterHcn.getValue())) {
-                if (hunterValue.isSmallerThan(passingHcn.getValue())) {
-                    findSmallestPassingHcn(intervalDistance, hunterPrime, hunterValue, hunter);
-                } else {
-                    hunters.get(intervalDistance).removeHunterReference();
-                    hunters.put(intervalDistance, hunter.generateReferencedHcn(hunterPrime,this, intervalDistance));
-                }
             }
         }
     }
@@ -319,24 +313,25 @@ public class RecorderBody implements Comparable<RecorderBody> {
 
     private TreeMap<Integer, HcnGenerator> initiateHcnGeneratorsBasedOnPreviousPassingZone() {
 
+        log.debug("previousRecorder.prayHcn: {}", previousRecorder.prayHcn);
         Prime previousBasePrime = previousRecorder.prayHcn.getLastActivePrime();
         TreeMap<Integer, HcnGenerator> hunterBodies = new TreeMap<>();
 
         for (int intervalDistanceKey = intervalLapiDistance + 1; intervalDistanceKey < previousRecorder.hunters.lastKey() + 1; intervalDistanceKey++) {
 
             HcnGenerator hunterCandidate = getHunterCandidateForIntervalDistance(intervalDistanceKey);
+            log.debug("previousRecorder.prayHcn.getFactor(): {}", previousRecorder.prayHcn.getFactor());
             Prime hunterPrime = previousBasePrime.getPreviousPrime(intervalDistanceKey - previousRecorder.intervalLapiDistance);
             ScientificNumber hunterFactor = hunterCandidate.getHcnFactor(hunterPrime);
+            log.debug("hunterFactor: {}", hunterFactor);
 
             while (hunterFactor.isNotBiggerThan(previousRecorder.prayHcn.getFactor())) {
                 hunterCandidate = hunterCandidate.getNextHcnGenerator();
-                if (hunterCandidate == null) {
-                    break;
-                } else {
-                    hunterFactor = hunterCandidate.getHcnFactor(hunterPrime);
-                }
+                log.debug("hunterCandidate: {}", hunterCandidate);
+                hunterFactor = hunterCandidate.getHcnFactor(hunterPrime);
+                log.debug("hunterFactor: {}", hunterFactor);
             }
-
+            log.debug("hunterCandidate final: {}", hunterCandidate);
             if(hunterCandidate != null) {
                 hunterBodies.put(intervalDistanceKey, hunterCandidate);
             }

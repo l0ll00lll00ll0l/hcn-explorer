@@ -5,8 +5,6 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
-
 @Getter
 @Setter
 @SuperBuilder
@@ -22,11 +20,11 @@ public class TransitionNode extends MatrixNode{
         lastTransition.indexes.add(Prime.getFirstPrime().getNextPrime());
         BodyNode t1 = BodyNode.builder().parentNode(lastTransition).bodyNodeId(1)
                 .value(new ScientificNumber(1, 0))
-                .factor(new ScientificNumber(1, 0)).proved(true).build();
+                .factor(new ScientificNumber(1, 0)).proved(true).hasHunterBody(true).build();
         lastTransition.getBodyNodes().put(1, t1);
         BodyNode t2 = BodyNode.builder()
                 .parentNode(lastTransition).bodyNodeId(2).value(new ScientificNumber(9, 0))
-                .factor(new ScientificNumber(3, 0)).build();
+                .factor(new ScientificNumber(3, 0)).proved(false).hasHunterBody(false).build();
         lastTransition.getBodyNodes().put(2, t2);
 
         ApiNode.getLastApiNode().setNextMatrixNode(lastTransition);

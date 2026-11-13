@@ -58,10 +58,38 @@ public class Matrix {
         }
     }
 
+    public void initializeExperimental() {
+
+        Prime.initialize();
+        ApiNode.initialize();
+        TransitionNode.initialize();
+        Body.initialize();
+        HcnGenerator.initialize();
+        ActiveInterval.initialize();
+        ReferenceInterval.initialize();
+        RecorderBody.initialize();
+
+        lowestProvedLapiWithinInterval = 1;
+        provedCount = 2;
+
+        if (dbMode) {
+            dbInsertService.submit(ActiveInterval.getCurrentActiveInterval());
+        }
+    }
+
     public void proveNextLapi(int intervalAdvancement) {
 
+        /*
         int targetInterval = getLastInterval() + intervalAdvancement;
         while (getLastInterval() < targetInterval){
+            Passing.processNextPassing();
+            this.passingCounter++;
+        }
+        ActivityCenter.setProving(false);
+
+         */
+        int targetPassingCount = passingCounter + intervalAdvancement;
+        while (passingCounter < targetPassingCount){
             Passing.processNextPassing();
             this.passingCounter++;
         }

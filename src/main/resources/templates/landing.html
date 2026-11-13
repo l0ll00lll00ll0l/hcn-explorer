@@ -23,6 +23,9 @@
             <input type="hidden" name="dbMode" value="true"/>
             <button type="submit">Start dbMode ON</button>
         </form>
+        <form method="get" action="/newcore/experimental" style="display: inline;">
+            <button type="submit">Start Experimental</button>
+        </form>
     </div>
 
     <div class="config-panel" th:unless="${postgresRunning}">

@@ -15,13 +15,13 @@ public class ApiNode extends MatrixNode {
     public static void initialize() {
         lastApiNode = ApiNode.builder().prevMatrixNode(null).build();
         lastApiNode.getIndexes().add(Prime.getFirstPrime());
-        BodyNode pip01 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(1).proved(true)
+        BodyNode pip01 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(1).proved(true).hasHunterBody(true)
                 .value(new ScientificNumber(2,0))
                 .factor(new ScientificNumber(2, 0)).build();
-        BodyNode pip02 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(2).proved(true)
+        BodyNode pip02 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(2).proved(true).hasHunterBody(true)
                 .value(new ScientificNumber(4,0))
                 .factor(new ScientificNumber(3, 0)).build();
-        BodyNode pip03 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(3)
+        BodyNode pip03 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(3).proved(false).hasHunterBody(false)
                 .value(new ScientificNumber(8,0))
                 .factor(new ScientificNumber(4, 0)).build();
         lastApiNode.getBodyNodes().put(1, pip01);
@@ -106,7 +106,7 @@ public class ApiNode extends MatrixNode {
     private boolean nextMatrixNodeExtensionRequired() {
         if (nextMatrixNode instanceof ApiNode apinode) {
             BodyNode lastNode = apinode.getBodyNodes().get(apinode.bodyNodes.lastKey());
-            if (lastNode.isProved() && lastNode.getBodyNodeId() < getLargestProvedBodyNode().getBodyNodeId()) {
+            if (lastNode.isHasHunterBody() && lastNode.getBodyNodeId() < getLargestHasHunterBodyNode().getBodyNodeId()) {
                 return true;
             }
         }
@@ -120,7 +120,7 @@ public class ApiNode extends MatrixNode {
             return true;
         } else {
             int pipToCreate = bodyNodes.lastKey() + 1;
-            int largestPreviousProvedPip = prevMatrixNode.getLargestProvedBodyNode().getBodyNodeId();
+            int largestPreviousProvedPip = prevMatrixNode.getLargestHasHunterBodyNode().getBodyNodeId();
             if (largestPreviousProvedPip < pipToCreate) {return false;} else {return true;}
         }
     }

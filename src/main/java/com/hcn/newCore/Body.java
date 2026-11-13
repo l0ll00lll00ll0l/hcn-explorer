@@ -7,12 +7,21 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.hcn.db.DbBody;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 @Getter @Setter @Builder @Slf4j
 public class Body implements Comparable<Body>{
+
+    private static Body smallestBufferBody;
+    public static Body getSmallestBufferBody() {return smallestBufferBody;}
+
+    public static void shiftNextHcnGeneratorBody() {
+        smallestBufferBody.matrixMaintainCheck();
+        smallestBufferBody = smallestBufferBody.largerBody;
+    }
 
     public static void initialize() {
 
@@ -22,11 +31,11 @@ public class Body implements Comparable<Body>{
         BodyNode pip03 = p0.bodyNodes.get(3);
 
         Body b01 = Body.builder().bodyNode(pip01).parent(null).value(new ScientificNumber(2, 0))
-                .factor(new ScientificNumber(2, 0)).proved(true).build();
+                .factor(new ScientificNumber(2, 0)).proved(true).extended(true).build();
         Body b02 = Body.builder().bodyNode(pip02).parent(null).value(new ScientificNumber(4, 0))
-                .factor(new ScientificNumber(3, 0)).proved(true).build();
+                .factor(new ScientificNumber(3, 0)).proved(true).extended(true).build();
         Body b03 = Body.builder().bodyNode(pip03).parent(null).value(new ScientificNumber(8, 0))
-                .factor(new ScientificNumber(4, 0)).proved(false).build();
+                .factor(new ScientificNumber(4, 0)).proved(false).extended(false).build();
 
         pip01.getActiveBodies().add(b01);
         pip02.getActiveBodies().add(b02);
@@ -45,15 +54,15 @@ public class Body implements Comparable<Body>{
         BodyNode t2 = TransitionNode.getLastTransition().bodyNodes.get(2);
 
         Body b11 = Body.builder().bodyNode(t1).parent(b01).value(new ScientificNumber(6, 0))
-                .factor(new ScientificNumber(4, 0)).proved(true).build();
+                .factor(new ScientificNumber(4, 0)).proved(true).extended(true).build();
         Body b21 = Body.builder().bodyNode(t1).parent(b02).value(new ScientificNumber(12, 0))
-                .factor(new ScientificNumber(6, 0)).proved(true).build();
+                .factor(new ScientificNumber(6, 0)).proved(true).extended(true).build();
         Body b31 = Body.builder().bodyNode(t1).parent(b03).value(new ScientificNumber(24, 0))
-                .factor(new ScientificNumber(8, 0)).build();
+                .factor(new ScientificNumber(8, 0)).proved(false).extended(false).build();
         Body b22 = Body.builder().bodyNode(t2).parent(b02).value(new ScientificNumber(36, 0))
-                .factor(new ScientificNumber(9, 0)).build();
+                .factor(new ScientificNumber(9, 0)).proved(false).extended(false).build();
         Body b32 = Body.builder().bodyNode(t2).parent(b03).value(new ScientificNumber(72, 0))
-                .factor(new ScientificNumber(12, 0)).build();
+                .factor(new ScientificNumber(12, 0)).proved(false).extended(false).build();
 
         t1.getActiveBodies().add(b11);
         t1.getActiveBodies().add(b21);
@@ -78,6 +87,15 @@ public class Body implements Comparable<Body>{
         b03.getOffsprings().add(b32);
 
         TransitionNode.getLastTransition().setBodyList(BodyList.builder().smallestBody(b11).largestBody(b32).size(5).build());
+
+        smallestBufferBody = b11;
+        int currentHcnGeneratorCount = 0;
+
+        while (currentHcnGeneratorCount < 6) {
+            smallestBufferBody.matrixMaintainCheck();
+            smallestBufferBody = smallestBufferBody.largerBody;
+            currentHcnGeneratorCount ++;
+        }
     }
 
     private BodyNode bodyNode;
@@ -88,6 +106,8 @@ public class Body implements Comparable<Body>{
     private final Set<Body> deactivatedOffsprings = new HashSet<>();
     @Builder.Default
     private boolean proved = false;
+    @Builder.Default
+    private boolean extended = false;
     @Builder.Default
     private Integer tempId = null;
     private Integer dbId = null;
@@ -147,6 +167,7 @@ public class Body implements Comparable<Body>{
             sb.append("t").append(bodyNode.getBodyNodeId());
         }
     }
+
     public void deactivate() {
 
         deactivated = true;
@@ -215,10 +236,17 @@ public class Body implements Comparable<Body>{
     }
 
     public void matrixMaintainCheck() {
-        if (proved) { return; }
-        proved = true;
+        if (extended) { return; }
+        extended = true;
         bodyNode.extensionCheck();
         if (parent != null) { parent.matrixMaintainCheck(); }
+    }
+
+    public void setProvedRecursive() {
+        if (proved) { return; }
+        proved = true;
+        bodyNode.setProvedRecursive();
+        if (parent != null) { parent.setProvedRecursive(); }
     }
 
     public int getActiveHcnGeneratorCount() {
@@ -237,4 +265,17 @@ public class Body implements Comparable<Body>{
         }
     }
 
+    //only GUI
+    public List<BodyNode> getNonHunterBodyNodes() {
+        List<BodyNode> nonHunterBodyNodes = new ArrayList<>();
+        Body nonHunterCandidate = this;
+        while (nonHunterCandidate != null) {
+            if (!nonHunterCandidate.bodyNode.isHasHunterBody()) {
+                nonHunterBodyNodes.add(nonHunterCandidate.bodyNode);
+            }
+            nonHunterCandidate = nonHunterCandidate.parent;
+        }
+        Collections.reverse(nonHunterBodyNodes);
+        return nonHunterBodyNodes;
+    }
 }

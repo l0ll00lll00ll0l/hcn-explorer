@@ -75,8 +75,8 @@ public abstract class MatrixNode {
         ActivityCenter.submitBodyDeletionEvent(deactivatedHcnGenerators);
     }
 
-    protected BodyNode getLargestProvedBodyNode() {
-        if (bodyNodes.get(bodyNodes.lastKey()).isProved()) {return bodyNodes.get(bodyNodes.lastKey());}
+    protected BodyNode getLargestHasHunterBodyNode() {
+        if (bodyNodes.get(bodyNodes.lastKey()).isHasHunterBody()) {return bodyNodes.get(bodyNodes.lastKey());}
         return bodyNodes.get(bodyNodes.lastKey() - 1);
     }
 
@@ -96,7 +96,7 @@ public abstract class MatrixNode {
         if (nextMatrixNode != null) {
             nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());
         } else {
-            Extension.finished();
+            //Extension.finished();
         }
     }
 
@@ -128,7 +128,7 @@ public abstract class MatrixNode {
         if (nextMatrixNode != null) {
             nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());
         } else {
-            Extension.finished();
+            //Extension.finished();
         }
         ActivityCenter.finishMatrixExtensionActivity();
     }
