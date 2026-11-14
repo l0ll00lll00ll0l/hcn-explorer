@@ -79,7 +79,6 @@ public class Matrix {
 
     public void proveNextLapi(int intervalAdvancement) {
 
-        /*
         int targetInterval = getLastInterval() + intervalAdvancement;
         while (getLastInterval() < targetInterval){
             Passing.processNextPassing();
@@ -87,13 +86,14 @@ public class Matrix {
         }
         ActivityCenter.setProving(false);
 
-         */
+         /*
         int targetPassingCount = passingCounter + intervalAdvancement;
         while (passingCounter < targetPassingCount){
             Passing.processNextPassing();
             this.passingCounter++;
         }
         ActivityCenter.setProving(false);
+        */
     }
 
 

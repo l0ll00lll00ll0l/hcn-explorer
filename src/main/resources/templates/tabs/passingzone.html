@@ -7,19 +7,32 @@
         <thead>
             <tr>
                 <th>#</th>
-                <th>passingHcn</th>
-                <th>prayHcn</th>
+                <th>Order</th>
+                <th>PrayBody</th>
+                <th>Lapi</th>
+                <th>Value</th>
+                <th>Factor</th>
+                <th style="width: 10px; min-width: 10px; background-color: #333; padding: 0;"></th>
+                <th>PassingHcn</th>
+                <th>Lapi</th>
+                <th>Value</th>
+                <th>Factor</th>
             </tr>
         </thead>
         <tbody>
             <th:block th:each="passing, pStat : ${@newCoreController.getPassingZoneList()}">
                 <tr th:each="prayHcn, rbStat : ${passing.prayHcns}">
-                    <td th:if="${rbStat.first}" th:rowspan="${passing.prayHcns.size()}"
-                        th:text="${pStat.count}" style="vertical-align: top;"></td>
-                    <td th:if="${rbStat.first}" th:rowspan="${passing.prayHcns.size()}"
-                        th:text="${passing.passingHcn != null ? passing.passingHcn.toString() : '-'}"
-                        style="vertical-align: top;"></td>
-                    <td th:text="${prayHcn.toString()}"></td>
+                    <td th:if="${rbStat.first}" th:rowspan="${passing.prayHcns.size()}" th:text="${pStat.count}" style="vertical-align: middle;"></td>
+                    <td th:if="${rbStat.first}" th:rowspan="${passing.prayHcns.size()}" th:text="${passing.prayHcns.first().getHcnGenerator().getRecorderBody().getOrder()}" style="vertical-align: middle; background-color: #333; color: white; font-weight: bold;"></td>
+                    <td th:text="${prayHcn.getHcnGenerator().getBody().getBodyChain()}" th:style="${prayHcn.getFactor().isNotBiggerThan(passing.passingHcn.getFactor()) ? 'background-color: #ffa500;' : 'background-color: #90EE90;'}"></td>
+                    <td th:text="${'[' + prayHcn.getLapiIndex() + ']'}"></td>
+                    <td th:text="${prayHcn.getValue()}"></td>
+                    <td th:text="${prayHcn.getFactor()}"></td>
+                    <td th:if="${rbStat.first}" th:rowspan="${passing.prayHcns.size()}" style="vertical-align: middle; width: 10px; min-width: 10px; background-color: #333; padding: 0;"></td>
+                    <td th:if="${rbStat.first}" th:rowspan="${passing.prayHcns.size()}" th:text="${passing.passingHcn != null ? passing.passingHcn.getHcnGenerator().getBody().getBodyChain() : '-'}" th:style="${passing.passingHcn != null ? (passing.passingHcn.getHcnGenerator().getRecorderBody() != null ? 'vertical-align: middle; background-color: #90EE90;' : 'vertical-align: middle; background-color: #add8e6;') : 'vertical-align: middle;'}"></td>
+                    <td th:if="${rbStat.first}" th:rowspan="${passing.prayHcns.size()}" th:text="${passing.passingHcn != null ? '[' + passing.passingHcn.getLapiIndex() + ']' : '-'}" style="vertical-align: middle;"></td>
+                    <td th:if="${rbStat.first}" th:rowspan="${passing.prayHcns.size()}" th:text="${passing.passingHcn != null ? passing.passingHcn.getValue() : '-'}" style="vertical-align: middle;"></td>
+                    <td th:if="${rbStat.first}" th:rowspan="${passing.prayHcns.size()}" th:text="${passing.passingHcn != null ? passing.passingHcn.getFactor() : '-'}" style="vertical-align: middle;"></td>
                 </tr>
             </th:block>
         </tbody>

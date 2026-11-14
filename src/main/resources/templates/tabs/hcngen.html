@@ -2,23 +2,46 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <div th:fragment="content">
-    <table class="level-table">
+    <label style="font-size: 12px; display: block; margin: 0;">
+        <input type="checkbox" id="showDeactivatedRecorder" onclick="toggleDeactivated(this)"> Show deactivated RecorderBody
+    </label>
+    <table class="level-table" style="margin-top: 0;">
         <thead>
-            <tr><th>#</th><th th:if="${matrix.dbMode}">dbId</th><th>Body</th><th>IntervalDistance</th><th>recorder hcns</th><th>generated Hcns</th><th>referenced Hcns</th></tr>
+            <tr><th>#</th><th th:if="${matrix.dbMode}">dbId</th><th>Body</th><th>Depth</th><th>recorder hcns</th><th>generated Hcns</th><th>referenced Hcns</th></tr>
         </thead>
         <tbody>
+            <tr class="deactivated-row" th:each="hcnGenerator : ${@newCoreController.getDeactivatedHcnGenerators()}" style="display:none; background-color: #333; color: white;">
+                <td style="border-bottom: 1px solid #555;"></td>
+                <td th:if="${matrix.dbMode}" th:text="${hcnGenerator.body.dbId}" style="border-bottom: 1px solid #555;"></td>
+                <td th:text="${@newCoreController.guiString(hcnGenerator.body)}" style="border-bottom: 1px solid #555;"></td>
+                <td th:if="${hcnGenerator.recorderBody != null}" th:text="${hcnGenerator.recorderBody.intervalLapiDistance}" style="border-bottom: 1px solid #555; font-weight: bold;"></td>
+                <td th:if="${hcnGenerator.recorderBody == null}" style="border-bottom: 1px solid #555; font-weight: bold;"><span th:each="d, s : ${hcnGenerator.getIntervalDistances()}" th:text="${(s.first ? '' : ', ') + d}"></span></td>
+                <td style="border-bottom: 1px solid #555;"><span th:each="hcn, s : ${@newCoreController.getGeneratedRecorderHcns(hcnGenerator)}" th:text="${(s.first ? '' : ', ') + hcn.getStoredHcnToString()}"></span></td>
+                <td style="border-bottom: 1px solid #555;"><span th:each="hcn, s : ${hcnGenerator.generatedHunterHcns}" th:text="${(s.first ? '' : ', ') + hcn.getStoredHcnToString()}"></span></td>
+                <td style="border-bottom: 1px solid #555;"><span th:each="hcn, s : ${hcnGenerator.referencedHcns}" th:text="${(s.first ? '' : ', ') + hcn.getStoredHcnToString()}"></span></td>
+            </tr>
+            <tr class="deactivated-row" id="deactivatedSeparator" style="display:none;">
+                <td th:colspan="${matrix.dbMode ? 7 : 6}" style="border-top: 2px solid #555; border-bottom: 0; padding: 0;"></td>
+            </tr>
             <tr th:each="hcnGenerator, bIter : ${@newCoreController.getHcnGenerators()}">
                 <td th:text="${bIter.index}"></td>
                 <td th:if="${matrix.dbMode}" th:text="${hcnGenerator.body.dbId}"></td>
-                <td th:text="${@newCoreController.guiString(hcnGenerator.body)}"></td>
-                <td th:if="${hcnGenerator.recorderBody != null}" th:text="${hcnGenerator.recorderBody.intervalLapiDistance}"></td>
-                <td th:if="${hcnGenerator.recorderBody == null}"><span th:each="d, s : ${hcnGenerator.getIntervalDistances()}" th:text="${(s.first ? '' : ', ') + d}"></span></td>
+                <td th:text="${@newCoreController.guiString(hcnGenerator.body)}"
+                    th:style="${hcnGenerator.recorderBody != null ? (hcnGenerator.referencedHcns.isEmpty() ? 'background-color: #4caf50;' : 'background-color: #90EE90;') : (hcnGenerator.referencedHcns.isEmpty() ? '' : 'background-color: #add8e6;')}"></td>
+                <td th:if="${hcnGenerator.recorderBody != null}" th:text="${hcnGenerator.recorderBody.intervalLapiDistance}" style="background: #333; color: white; border-bottom: 1px solid #555; font-weight: bold;"></td>
+                <td th:if="${hcnGenerator.recorderBody == null}" style="background: #333; color: white; border-bottom: 1px solid #555; font-weight: bold;"><span th:each="d, s : ${hcnGenerator.getIntervalDistances()}" th:text="${(s.first ? '' : ', ') + d}"></span></td>
                 <td><span th:each="hcn, s : ${@newCoreController.getGeneratedRecorderHcns(hcnGenerator)}" th:text="${(s.first ? '' : ', ') + hcn.getStoredHcnToString()}"></span></td>
                 <td><span th:each="hcn, s : ${hcnGenerator.generatedHunterHcns}" th:text="${(s.first ? '' : ', ') + hcn.getStoredHcnToString()}"></span></td>
                 <td><span th:each="hcn, s : ${hcnGenerator.referencedHcns}" th:text="${(s.first ? '' : ', ') + hcn.getStoredHcnToString()}"></span></td>
             </tr>
         </tbody>
     </table>
+
+    <script>
+        window.toggleDeactivated = function(cb) {
+            document.querySelectorAll('.deactivated-row').forEach(function(r) { r.style.display = cb.checked ? '' : 'none'; });
+        };
+    </script>
 </div>
 </body>
 </html>

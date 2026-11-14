@@ -8,15 +8,21 @@
             <thead>
                 <tr>
                     <th>#</th>
-                    <th th:each="col : ${#numbers.sequence(0, lastKey)}" th:text="${col}"></th>
+                    <th th:each="col : ${#numbers.sequence(0, lastKey)}" th:text="${col}" colspan="4" style="text-align: center;"></th>
                 </tr>
             </thead>
             <tbody>
                 <tr th:each="rb : ${recorderList}">
                     <td th:text="${rb.order}"></td>
-                    <td th:each="col : ${#numbers.sequence(0, lastKey)}"
-                        th:text="${col == rb.intervalLapiDistance ? rb.prayHcn.getValueFactorString() : (rb.hunters.containsKey(col) ? rb.hunters.get(col).getValueFactorString() : '')}"
-                        th:style="${col == rb.intervalLapiDistance ? 'background:#cce5ff;' : (rb.hunters.containsKey(col) ? 'background:#e8f5e9;' : '')}"></td>
+                    <th:block th:each="col : ${#numbers.sequence(0, lastKey)}">
+                        <th:block th:with="hcn=${col == rb.intervalLapiDistance ? rb.prayHcn : (rb.hunters.containsKey(col) ? rb.hunters.get(col) : null)},
+                                          bg=${col == rb.intervalLapiDistance ? 'background:#90EE90;' : (rb.hunters.containsKey(col) ? (rb.hunters.get(col).getHcnGenerator().getRecorderBody() != null ? 'background:#90EE90;' : 'background:#add8e6;') : '')}">
+                            <td th:style="${bg}" th:text="${hcn != null ? hcn.getHcnGenerator().getBody().getBodyChain() : ''}"></td>
+                            <td th:style="${bg}" th:text="${hcn != null ? '[' + hcn.getLapiIndex() + ']' : ''}"></td>
+                            <td th:style="${bg}" th:text="${hcn != null ? hcn.value : ''}"></td>
+                            <td th:style="${bg}" th:text="${hcn != null ? hcn.factor : ''}"></td>
+                        </th:block>
+                    </th:block>
                 </tr>
             </tbody>
         </table>

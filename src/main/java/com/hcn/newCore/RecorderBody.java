@@ -93,6 +93,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
         hcnGenerator = triggerHcn.getHcnGenerator();
         hcnGenerator.setRecorderBody(this);
         hcnGenerator.getBody().setProvedRecursive();
+        HcnGenerator.createHcnGenerators(this);
         intervalLapiDistance = triggerHcn.getIntervalDistance() + (triggerHcn.getPrayBody().equals(firstRecorder) ? -1 : 0);
         this.order = triggerHcn.getPrayBody().previousRecorder.order + 1;
 
@@ -108,7 +109,6 @@ public class RecorderBody implements Comparable<RecorderBody> {
             recorderToRaiseOrderNumber = recorderToRaiseOrderNumber.nextRecorder;
         }
 
-        HcnGenerator.createHcnGenerators(this);
         createPassingZone(initiateHcnGeneratorsBasedOnPreviousPassingZone());
     }
 
@@ -157,6 +157,11 @@ public class RecorderBody implements Comparable<RecorderBody> {
     }
 
     public void findPrayCheck(HcnGenerator hunter, int intervalDistance) {
+        if (Passing.getLowestPassing().getPreRecorderBodies().contains(this)) {
+            return;
+        }
+
+        log.debug("this: {}, hunter: {}", this, hunter);
         int distDiff = intervalDistance - this.intervalLapiDistance;
         Prime hunterPrime = prayHcn.getLastActivePrime().getPreviousPrime(distDiff);
         ScientificNumber hunterValue = hunter.getHcnValue(hunterPrime);
@@ -313,25 +318,25 @@ public class RecorderBody implements Comparable<RecorderBody> {
 
     private TreeMap<Integer, HcnGenerator> initiateHcnGeneratorsBasedOnPreviousPassingZone() {
 
-        log.debug("previousRecorder.prayHcn: {}", previousRecorder.prayHcn);
+        //log.debug("previousRecorder.prayHcn: {}", previousRecorder.prayHcn);
         Prime previousBasePrime = previousRecorder.prayHcn.getLastActivePrime();
         TreeMap<Integer, HcnGenerator> hunterBodies = new TreeMap<>();
 
         for (int intervalDistanceKey = intervalLapiDistance + 1; intervalDistanceKey < previousRecorder.hunters.lastKey() + 1; intervalDistanceKey++) {
 
             HcnGenerator hunterCandidate = getHunterCandidateForIntervalDistance(intervalDistanceKey);
-            log.debug("previousRecorder.prayHcn.getFactor(): {}", previousRecorder.prayHcn.getFactor());
+            //log.debug("previousRecorder.prayHcn.getFactor(): {}", previousRecorder.prayHcn.getFactor());
             Prime hunterPrime = previousBasePrime.getPreviousPrime(intervalDistanceKey - previousRecorder.intervalLapiDistance);
             ScientificNumber hunterFactor = hunterCandidate.getHcnFactor(hunterPrime);
             log.debug("hunterFactor: {}", hunterFactor);
 
             while (hunterFactor.isNotBiggerThan(previousRecorder.prayHcn.getFactor())) {
                 hunterCandidate = hunterCandidate.getNextHcnGenerator();
-                log.debug("hunterCandidate: {}", hunterCandidate);
+                //log.debug("hunterCandidate: {}", hunterCandidate);
                 hunterFactor = hunterCandidate.getHcnFactor(hunterPrime);
-                log.debug("hunterFactor: {}", hunterFactor);
+                //log.debug("hunterFactor: {}", hunterFactor);
             }
-            log.debug("hunterCandidate final: {}", hunterCandidate);
+            //log.debug("hunterCandidate final: {}", hunterCandidate);
             if(hunterCandidate != null) {
                 hunterBodies.put(intervalDistanceKey, hunterCandidate);
             }
@@ -356,6 +361,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
 
         TreeMap<ScientificNumber, Integer> hunterValuesByIntervalDistance = new TreeMap<>();
         Prime basePrayPrimeBefore = prayHcn.getLastActivePrime();
+        //log.debug("hunterBodies: {}", hunterBodies);
         Prime basePrayPrimeAfter = identifyNextPassing(hunterBodies, basePrayPrimeBefore, hunterValuesByIntervalDistance);
 
         hunters.values().forEach(Hcn::removeHunterReference);

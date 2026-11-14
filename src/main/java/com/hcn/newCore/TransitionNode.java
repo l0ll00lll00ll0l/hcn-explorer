@@ -120,6 +120,17 @@ public class TransitionNode extends MatrixNode{
             body.setValue(body.getValue().multiply(valueMultiplier));
             body.setFactor(body.getFactor().multiply(new ScientificNumber(transitionTo + 1, 0)));
         });
+
+        if (RecorderBody.getFirstRecorder() != null) {
+            HcnGenerator deactivatedRecorderBody = RecorderBody.getFirstRecorder().getHcnGenerator().getPreviousHcnGenerator();
+            while (deactivatedRecorderBody != null) {
+                Body deactivatedRecorder = deactivatedRecorderBody.getBody();
+                deactivatedRecorder.setValue(deactivatedRecorder.getValue().multiply(valueMultiplier));
+                deactivatedRecorder.setFactor(deactivatedRecorder.getFactor().multiply(new ScientificNumber(transitionTo + 1, 0)));
+
+                deactivatedRecorderBody = deactivatedRecorderBody.getPreviousHcnGenerator();
+            }
+        }
     }
 
     @Override

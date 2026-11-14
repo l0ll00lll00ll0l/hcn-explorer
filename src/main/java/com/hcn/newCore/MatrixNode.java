@@ -59,20 +59,16 @@ public abstract class MatrixNode {
     }
 
     public void deleteMaintain() {
-        ArrayList<Body> deactivatedHcnGenerators = new ArrayList<>();
         if (needsDeactivateMaintain) {
             ScientificNumber smallestPossibleExtension = getSmallestPossibleExtension();
-            List<Body> deletedBodies = bodyList.deleteMaintain(smallestPossibleExtension);
-            if (nextMatrixNode == null) {
-                deactivatedHcnGenerators.addAll(deletedBodies);
-            }
+            bodyList.deleteMaintain(smallestPossibleExtension);
             needsDeactivateMaintain = false;
         }
 
         if (prevMatrixNode != null) {
             prevMatrixNode.deleteMaintain();
         }
-        ActivityCenter.submitBodyDeletionEvent(deactivatedHcnGenerators);
+        //ActivityCenter.submitBodyDeletionEvent(deactivatedHcnGenerators);
     }
 
     protected BodyNode getLargestHasHunterBodyNode() {

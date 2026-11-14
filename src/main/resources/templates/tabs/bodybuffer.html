@@ -3,19 +3,24 @@
 <body>
 <div th:fragment="content">
     <table class="level-table">
-        <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>NonHunterBodyNodes</th></tr></thead>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th th:each="node : ${matrixChain}" style="white-space: nowrap; width: 1px;"
+                    th:text="${node instanceof T(com.hcn.newCore.ApiNode) ?
+                        node.indexes.get(0).intValue :
+                        node.transitionFrom}"></th>
+                <th style="padding-left: 40px;">Value</th>
+                <th>Factor</th>
+            </tr>
+        </thead>
         <tbody>
-            <tr th:each="body, bIter : ${@newCoreController.getBufferBodies()}"
-                th:style="${body.deactivated ? (body.proved ? 'background-color: #c8e6c9;' : 'background-color: #e0e0e0;') : (body.proved ? 'background-color: #90EE90;' : '')}">
-                <td th:text="${bIter.index}"></td>
-                <td th:text="${@newCoreController.guiString(body)}"></td>
-                <td th:text="${body.value}"></td>
-                <td th:text="${body.factor}"></td>
-                <td th:with="nonHunters=${body.getNonHunterBodyNodes()}">
-                    <span th:if="${!nonHunters.isEmpty()}" th:each="bn, i : ${nonHunters}">
-                        <span th:text="${(i.index > 0 ? ', ' : '') + bn.toString()}"></span>
-                    </span>
-                </td>
+            <tr th:each="row : ${@newCoreController.getBufferBodies()}"
+                th:style="${row.deactivated() ? (row.proved() ? 'background-color: #c8e6c9;' : 'background-color: #e0e0e0;') : (row.proved() ? 'background-color: #90EE90;' : '')}">
+                <td th:text="${row.index()}"></td>
+                <td th:each="cell : ${row.nodeColumns()}" th:text="${cell.label()}" th:style="${cell.color().equals('black') ? 'white-space: nowrap; width: 1px; background-color: black; color: white;' : (!cell.color().isEmpty() ? 'white-space: nowrap; width: 1px; background-color: ' + cell.color() + ';' : 'white-space: nowrap; width: 1px;')}"></td>
+                <td th:text="${row.value()}" style="padding-left: 40px;"></td>
+                <td th:text="${row.factor()}"></td>
             </tr>
         </tbody>
     </table>

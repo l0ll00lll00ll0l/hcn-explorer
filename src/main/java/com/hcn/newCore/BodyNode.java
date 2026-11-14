@@ -54,4 +54,8 @@ public class BodyNode {
             return "t" + bodyNodeId;
         }
     }
+
+    public boolean isBodyNodeLastActive() {
+        return parentNode.bodyNodes.lastEntry().getValue() == this;
+    }
 }

@@ -120,7 +120,7 @@
                 var tbody = document.getElementById('hcnprojection-tbody');
                 if (!tbody) return;
                 tbody.innerHTML = rows.map(function(r) {
-                    return '<tr><td>' + r.index + '</td><td>' + r.order + '</td><td>' + r.lapi + '</td><td>' + r.body + '</td><td>' + r.value + '</td><td>' + r.factor + '</td></tr>';
+                    return '<tr><td>' + r.index + '</td><td>' + r.order + '</td><td style="' + (r.skipCount != null ? 'color:red;font-weight:bold;' : '') + '">' + (r.skipCount != null ? r.skipCount : '') + '</td><td>[' + r.lapi + ']</td><td style="' + (r.firstRecorder ? 'background:#90EE90;' : '') + '">' + r.body + '</td><td>' + r.value + '</td><td>' + r.factor + '</td></tr>';
                 }).join('');
             });
         }

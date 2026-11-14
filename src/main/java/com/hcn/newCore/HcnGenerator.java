@@ -59,15 +59,14 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
         newHunterBody.setHcnGenerator(this);
         previousHcnGenerator.nextHcnGenerator = this;
 
-        /*
         Hcn referenceHunterHcn = getReferenceHcnForFindPray();
         RecorderBody prayCandidate = referenceHunterHcn.getPrayBody();
         prayCandidate.findPrayCheck(this, referenceHunterHcn.getIntervalDistance());
-         */
+
     }
 
     public static void createHcnGenerators(RecorderBody recorderBody) {
-        while (Body.getSmallestBufferBody().getFactor().isNotBiggerThan(recorderBody.getHcnGenerator().body.getFactor().multiply(new ScientificNumber(2, 0)))) {
+        while (lastHcnGenerator.getBody().getFactor().isSmallerThan(recorderBody.getHcnGenerator().body.getFactor().multiply(new ScientificNumber(2, 0)))) {
             Body newHunterBody = Body.getSmallestBufferBody();
             Body.shiftNextHcnGeneratorBody();
             lastHcnGenerator = new HcnGenerator(newHunterBody);

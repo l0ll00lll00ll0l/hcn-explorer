@@ -26,7 +26,11 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Controller
 public class NewCoreController {
@@ -118,6 +122,9 @@ public class NewCoreController {
         model.addAttribute("matrixChain", chain);
 
         switch (tab) {
+            case "bodybuffer" -> {
+                model.addAttribute("matrixChain", getMatrixChain());
+            }
             case "matrix" -> {}
             case "bodynodes" -> {
                 activeBodyList = matrixNodeIdx == -1 ? (activeBodyList == -1 ? chain.size() - 1 : activeBodyList) : matrixNodeIdx;
@@ -387,17 +394,27 @@ public class NewCoreController {
                 .stream().map(Object::toString).toList();
     }
 
-    public record HcnProjectionRow(int index, Integer order, int lapi, String body, String value, String factor) {}
+    public record HcnProjectionRow(int index, Integer order, Integer skipCount, int lapi, String body, String value, String factor, boolean firstRecorder) {}
 
     @GetMapping("/newcore/hcnprojection/hcns")
     @ResponseBody
     public List<HcnProjectionRow> hcnProjectionHcns(@RequestParam int index) {
+        ActiveInterval activeInterval = com.hcn.newCore.interval.ReferenceInterval.getCurrentReferenceInterval().getActiveIntervals().get(index);
+        Set<Integer> newRecorderdHcnOrders = new HashSet<>();
+        Map<Integer, Integer> skipsAtHcnOrder = new HashMap<>();
+        activeInterval.getActivityZones().forEach(activityZone -> {
+            activityZone.getHcns().forEach(hcn -> newRecorderdHcnOrders.add(hcn.getOrder()));
+            if (activityZone.getSkippingCount() > 0) {
+                skipsAtHcnOrder.put(activityZone.getHcnOrder(), activityZone.getSkippingCount());
+            }
+        });
         List<com.hcn.newCore.Hcn> hcns = com.hcn.newCore.interval.ReferenceInterval.getHcnProjections(index);
         List<HcnProjectionRow> rows = new ArrayList<>();
         for (int i = 0; i < hcns.size(); i++) {
             com.hcn.newCore.Hcn hcn = hcns.get(i);
-            rows.add(new HcnProjectionRow(i + 1, hcn.getOrder(), hcn.getLapiIndex(), hcn.getHcnGenerator().getBody().getBodyChain(),
-                    hcn.getValue().toString(), hcn.getFactor().toString()));
+            int skipCount = skipsAtHcnOrder.containsKey(hcn.getOrder()) ? skipsAtHcnOrder.get(hcn.getOrder()) : 0;
+            rows.add(new HcnProjectionRow(i + 1, hcn.getOrder(), skipCount < 1 ? null : skipCount, hcn.getLapiIndex(), hcn.getHcnGenerator().getBody().getBodyChain(),
+                    hcn.getValue().toString(), hcn.getFactor().toString(), newRecorderdHcnOrders.contains(hcn.getOrder())));
         }
         return rows;
     }
@@ -421,14 +438,39 @@ public class NewCoreController {
         return chain;
     }
 
-    public List<Body> getBufferBodies() {
-        List<Body> bodies = new ArrayList<>();
+    public record BufferBodyCell(String label, String color) {}
+    public record BufferBodyRow(int index, List<BufferBodyCell> nodeColumns, String value, String factor, boolean deactivated, boolean proved) {}
+
+    public List<BufferBodyRow> getBufferBodies() {
+        List<MatrixNode> chain = getMatrixChain();
+        List<Boolean> firstLastActiveSeen = new ArrayList<>(Collections.nCopies(chain.size(), false));
+        List<BufferBodyRow> rows = new ArrayList<>();
         Body current = Body.getSmallestBufferBody();
+        int i = 0;
         while (current != null) {
-            bodies.add(current);
+            List<BufferBodyCell> nodeColumns = new ArrayList<>();
+            List<Body> ancestors = new ArrayList<>();
+            Body ancestor = current;
+            while (ancestor != null) { ancestors.add(ancestor); ancestor = ancestor.getParent(); }
+            Collections.reverse(ancestors);
+            for (int j = 0; j < ancestors.size(); j++) {
+                Body b = ancestors.get(j);
+                boolean lastActive = b.getBodyNode().isBodyNodeLastActive();
+                String color = "";
+                if (lastActive) {
+                    if (!firstLastActiveSeen.get(j)) {
+                        firstLastActiveSeen.set(j, true);
+                        color = "#90EE90";
+                    } else {
+                        color = "black";
+                    }
+                }
+                nodeColumns.add(new BufferBodyCell(b.getBodyNode().toString(), color));
+            }
+            rows.add(new BufferBodyRow(i++, nodeColumns, current.getValue().toString(), current.getFactor().toString(), current.isDeactivated(), current.isProved()));
             current = current.getLargerBody();
         }
-        return bodies;
+        return rows;
     }
 
     public List<Body> getBodies(BodyList bodyList) {
@@ -446,9 +488,19 @@ public class NewCoreController {
     }
 
     public List<HcnGenerator> getHcnGenerators() {
-        HcnGenerator current =HcnGenerator.getFirstHcnGenerator();
+        HcnGenerator current = RecorderBody.getFirstRecorder().getHcnGenerator();
         List<HcnGenerator> bodies = new ArrayList<>();
         while (current != null) {
+            bodies.add(current);
+            current = current.getNextHcnGenerator();
+        }
+        return bodies;
+    }
+
+    public List<HcnGenerator> getDeactivatedHcnGenerators() {
+        HcnGenerator current = HcnGenerator.getFirstHcnGenerator();
+        List<HcnGenerator> bodies = new ArrayList<>();
+        while (!current.equals(RecorderBody.getFirstRecorder().getHcnGenerator())) {
             bodies.add(current);
             current = current.getNextHcnGenerator();
         }
@@ -511,29 +563,38 @@ public class NewCoreController {
         return Matrix.getTargetValue();
     }
 
-    public record ProcessedPassingRow(Integer interval, String offset, Integer postRecorderListSize, Integer hcnOrderGroup, Integer skippingCount, Integer order, String hcn) {}
+    public record ActiveIntervalHcnRow(String bodyChain, String lapi, String value, String factor, boolean firstOfInterval, boolean lastOfZone) {}
+    public record ActiveIntervalZoneRow(Integer orderGroup, Integer skippingCount, List<ActiveIntervalHcnRow> hcns, int zoneRows) {}
+    public record ActiveIntervalRow(Integer interval, String offset, Integer postRecorderListSize, List<ActiveIntervalZoneRow> zones, int totalRows) {}
 
-    public List<ProcessedPassingRow> getProcessedPassings() {
-        List<ProcessedPassingRow> rows = new ArrayList<>();
-        List<com.hcn.newCore.interval.ActiveInterval> activeIntervals =
-                com.hcn.newCore.interval.ReferenceInterval.getCurrentReferenceInterval().getActiveIntervals();
-        for (com.hcn.newCore.interval.ActiveInterval activeInterval : activeIntervals) {
-            for (int i = 0; i < activeInterval.getActivityZones().size(); i++) {
-                List<Hcn> hcns = activeInterval.getActivityZones().get(i).getHcns();
-
-                int interval = activeInterval.getInterval();
-                for (int j = 0; j < hcns.size(); j++) {
-                    Hcn hcn = hcns.get(j);
-                    rows.add(new ProcessedPassingRow(
-                            interval,
-                            activeInterval.getFirstRecorder().getHcnGenerator().getBody().getBodyChain(),
-                            activeInterval.getPostRecorderListSize(),
-                            activeInterval.getActivityZones().get(i).getHcnOrder(),
-                            activeInterval.getActivityZones().get(i).getSkippingCount(),
-                            hcn.getOrder(),
-                            hcn.toString()));
+    public List<ActiveIntervalRow> getProcessedPassings() {
+        List<ActiveIntervalRow> rows = new ArrayList<>();
+        boolean firstAi = true;
+        for (com.hcn.newCore.interval.ActiveInterval ai : com.hcn.newCore.interval.ReferenceInterval.getCurrentReferenceInterval().getActiveIntervals()) {
+            List<ActiveIntervalZoneRow> zones = new ArrayList<>();
+            boolean firstZone = true;
+            for (var zone : ai.getActivityZones()) {
+                boolean isFirstRow = !firstAi && firstZone;
+                List<ActiveIntervalHcnRow> hcns;
+                if (zone.getHcns().isEmpty()) {
+                    hcns = List.of(new ActiveIntervalHcnRow(null, null, null, null, isFirstRow, true));
+                } else {
+                    boolean[] first = {true};
+                    List<Hcn> zoneHcns = zone.getHcns();
+                    hcns = zoneHcns.stream().map(h -> {
+                        boolean mark = isFirstRow && first[0];
+                        first[0] = false;
+                        boolean last = zoneHcns.indexOf(h) == zoneHcns.size() - 1;
+                        return new ActiveIntervalHcnRow(h.getHcnGenerator().getBody().getBodyChain(), "[" + h.getLapiIndex() + "]", h.getValue().toString(), h.getFactor().toString(), mark, last);
+                    }).toList();
                 }
+                int zoneRows = hcns.size();
+                zones.add(new ActiveIntervalZoneRow(zone.getHcnOrder(), zone.getSkippingCount(), hcns, zoneRows));
+                firstZone = false;
             }
+            int totalRows = zones.stream().mapToInt(ActiveIntervalZoneRow::zoneRows).sum();
+            rows.add(new ActiveIntervalRow(ai.getInterval(), ai.getFirstRecorder().getHcnGenerator().getBody().getBodyChain(), ai.getPostRecorderListSize(), zones, totalRows));
+            firstAi = false;
         }
         return rows;
     }

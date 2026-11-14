@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.hcn.db.DbBody;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -265,17 +264,4 @@ public class Body implements Comparable<Body>{
         }
     }
 
-    //only GUI
-    public List<BodyNode> getNonHunterBodyNodes() {
-        List<BodyNode> nonHunterBodyNodes = new ArrayList<>();
-        Body nonHunterCandidate = this;
-        while (nonHunterCandidate != null) {
-            if (!nonHunterCandidate.bodyNode.isHasHunterBody()) {
-                nonHunterBodyNodes.add(nonHunterCandidate.bodyNode);
-            }
-            nonHunterCandidate = nonHunterCandidate.parent;
-        }
-        Collections.reverse(nonHunterBodyNodes);
-        return nonHunterBodyNodes;
-    }
 }

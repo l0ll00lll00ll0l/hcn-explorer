@@ -3,44 +3,67 @@
 <body>
 <div th:fragment="content">
     <div class="bodylist-selector">
-        <button class="bodylist-btn active" id="subtab-btn-processedpassings" onclick="selectIntervalSubTab('processedpassings')">Processed Passings</button>
+        <button class="bodylist-btn active" id="subtab-btn-processedpassings" onclick="selectIntervalSubTab('processedpassings')">Active Intervals</button>
         <button class="bodylist-btn" id="subtab-btn-hcnprojection" onclick="selectIntervalSubTab('hcnprojection')">Hcn Projection</button>
     </div>
 
     <div id="interval-processedpassings">
+        <style>.ai-separator td { border-top: 2px solid #555 !important; }</style>
         <table class="level-table">
             <thead>
                 <tr>
+                    <th colspan="3" style="text-align: center;">ActiveInterval</th>
+                    <th colspan="2" style="border-left: 1px solid #ddd; text-align: center;">ActivityZone</th>
+                    <th colspan="4" style="border-left: 1px solid #ddd; text-align: center;">Hcn</th>
+                </tr>
+                <tr style="border-top: 1px solid #ddd;">
                     <th>interval</th>
                     <th>offset</th>
-                    <th>postRecorderListSize</th>
-                    <th>orderGroup</th>
+                    <th>size</th>
+                    <th style="border-left: 1px solid #ddd;">orderGroup</th>
                     <th>skippingCount</th>
-                    <th>order</th>
-                    <th>hcn</th>
+                    <th style="border-left: 1px solid #ddd;">Body</th>
+                    <th>Lapi</th>
+                    <th>Value</th>
+                    <th>Factor</th>
                 </tr>
             </thead>
             <tbody>
-                <tr th:each="row : ${@newCoreController.getProcessedPassings()}">
-                    <td th:text="${row.interval()}"></td>
-                    <td th:text="${row.offset()}"></td>
-                    <td th:text="${row.postRecorderListSize()}"></td>
-                    <td th:text="${row.hcnOrderGroup()}"></td>
-                    <td th:text="${row.skippingCount()}"></td>
-                    <td th:text="${row.order()}"></td>
-                    <td th:text="${row.hcn()}"></td>
-                </tr>
+                <th:block th:each="ai : ${@newCoreController.getProcessedPassings()}">
+                    <th:block th:each="zone, zStat : ${ai.zones()}">
+                        <tr th:each="hcnRow, hStat : ${zone.hcns()}" th:classappend="${hcnRow.firstOfInterval() ? 'ai-separator' : ''}">
+                            <th:block th:if="${zStat.first and hStat.first}">
+                                <td th:rowspan="${ai.totalRows()}" th:text="${ai.interval()}" style="vertical-align: middle; background: #333; color: white; font-weight: bold;"></td>
+                                <td th:rowspan="${ai.totalRows()}" th:text="${ai.offset()}" style="vertical-align: middle;"></td>
+                                <td th:rowspan="${ai.totalRows()}" th:text="${ai.postRecorderListSize()}" style="vertical-align: middle;"></td>
+                            </th:block>
+                            <th:block th:if="${hStat.first}">
+                                <td th:rowspan="${zone.zoneRows()}" th:text="${zone.orderGroup()}" style="vertical-align: middle; border-left: 1px solid #ddd;"></td>
+                                <td th:rowspan="${zone.zoneRows()}" th:text="${zone.skippingCount()}" style="vertical-align: middle;"></td>
+                            </th:block>
+                            <td th:text="${hcnRow.bodyChain()}" th:style="'border-left: 1px solid #ddd;' + (${hcnRow.lastOfZone() ? '' : 'border-bottom: none;'})"></td>
+                            <td th:text="${hcnRow.lapi()}" th:style="${hcnRow.lastOfZone() ? '' : 'border-bottom: none;'}"></td>
+                            <td th:text="${hcnRow.value()}" th:style="${hcnRow.lastOfZone() ? '' : 'border-bottom: none;'}"></td>
+                            <td th:text="${hcnRow.factor()}" th:style="${hcnRow.lastOfZone() ? '' : 'border-bottom: none;'}"></td>
+                        </tr>
+                    </th:block>
+                </th:block>
             </tbody>
         </table>
     </div>
 
     <div id="interval-hcnprojection" style="display:none;">
-        <select id="hcnprojection-select" onchange="loadHcnProjections(this.value)"></select>
-        <table class="level-table" id="hcnprojection-table" style="margin-top:8px;">
+        <div style="display:flex; flex-direction:column; width: 160px; min-width: 160px;">
+            <div style="background:#333; color:white; padding:4px 6px; font-size:11px; font-weight:bold;">Back</div>
+            <div id="hcnprojection-sidebar" style="border-right: 1px solid #ddd; overflow-y: auto;"></div>
+        </div>
+        <div style="flex: 1; overflow-x: auto; margin-left: 12px;">
+        <table class="level-table" id="hcnprojection-table">
             <thead>
                 <tr>
                     <th>#</th>
                     <th>order</th>
+                    <th>deleted</th>
                     <th>lapi</th>
                     <th>body</th>
                     <th>value</th>
@@ -49,21 +72,29 @@
             </thead>
             <tbody id="hcnprojection-tbody"></tbody>
         </table>
+        </div>
     </div>
 
     <script>
+        window.selectHcnProjection = function(index) {
+            document.querySelectorAll('#hcnprojection-sidebar button').forEach(function(b, i) {
+                b.style.background = i === index ? '#333' : 'none';
+                b.style.color = i === index ? 'white' : '';
+            });
+            loadHcnProjections(index);
+        }
         window.selectIntervalSubTab = function(name) {
             ['processedpassings', 'hcnprojection'].forEach(function(t) {
-                document.getElementById('interval-' + t).style.display = t === name ? '' : 'none';
+                document.getElementById('interval-' + t).style.display = t === name ? (t === 'hcnprojection' ? 'flex' : '') : 'none';
                 document.getElementById('subtab-btn-' + t).classList.toggle('active', t === name);
             });
             if (name === 'hcnprojection') {
                 fetch('/newcore/hcnprojection/intervals').then(r => r.json()).then(function(labels) {
-                    var sel = document.getElementById('hcnprojection-select');
-                    sel.innerHTML = labels.map(function(label, i) {
-                        return '<option value="' + i + '">' + label + '</option>';
+                    var sidebar = document.getElementById('hcnprojection-sidebar');
+                    sidebar.innerHTML = labels.map(function(label, i) {
+                        return '<button onclick="selectHcnProjection(' + i + ')" id="hcnproj-btn-' + i + '" style="display:block; width:100%; text-align:left; padding:4px 8px; font-size:11px; border:none; border-bottom:1px solid #ddd; background:none; cursor:pointer;">' + label + '</button>';
                     }).join('');
-                    if (labels.length > 0) loadHcnProjections(0);
+                    if (labels.length > 0) selectHcnProjection(0);
                 });
             }
         }
