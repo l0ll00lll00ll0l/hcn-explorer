@@ -104,9 +104,9 @@ public class ApiNode extends MatrixNode {
     }
 
     private boolean nextMatrixNodeExtensionRequired() {
-        if (nextMatrixNode instanceof ApiNode apinode) {
-            BodyNode lastNode = apinode.getBodyNodes().get(apinode.bodyNodes.lastKey());
-            if (lastNode.isHasHunterBody() && lastNode.getBodyNodeId() < getLargestHasHunterBodyNode().getBodyNodeId()) {
+        if (nextMatrixNode instanceof ApiNode nextApinode) {
+            BodyNode nextApiLastNode = nextApinode.getBodyNodes().get(nextApinode.bodyNodes.lastKey());
+            if (nextApiLastNode.isHasHunterBody() && nextApiLastNode.getBodyNodeId() < bodyNodes.lastKey()) {
                 return true;
             }
         }
@@ -120,7 +120,7 @@ public class ApiNode extends MatrixNode {
             return true;
         } else {
             int pipToCreate = bodyNodes.lastKey() + 1;
-            int largestPreviousProvedPip = prevMatrixNode.getLargestHasHunterBodyNode().getBodyNodeId();
+            int largestPreviousProvedPip = prevMatrixNode.bodyNodes.lastKey();
             if (largestPreviousProvedPip < pipToCreate) {return false;} else {return true;}
         }
     }

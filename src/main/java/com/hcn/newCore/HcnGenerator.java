@@ -66,27 +66,14 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
     }
 
     public static void createHcnGenerators(RecorderBody recorderBody) {
+        log.debug("createHcnGenerators trigger: {} ----------------------", recorderBody.getHcnGenerator());
         while (lastHcnGenerator.getBody().getFactor().isSmallerThan(recorderBody.getHcnGenerator().body.getFactor().multiply(new ScientificNumber(2, 0)))) {
             Body newHunterBody = Body.getSmallestBufferBody();
             Body.shiftNextHcnGeneratorBody();
             lastHcnGenerator = new HcnGenerator(newHunterBody);
+            log.debug("  new HcnGenerator created: {}", lastHcnGenerator);
         }
-    }
-
-    public void deleteHcnGenerator() {
-
-        if (previousHcnGenerator != null) previousHcnGenerator.setNextHcnGenerator(nextHcnGenerator);
-        else firstHcnGenerator = nextHcnGenerator;
-
-        if (nextHcnGenerator != null) nextHcnGenerator.setPreviousHcnGenerator(previousHcnGenerator);
-
-        previousHcnGenerator = null;
-        nextHcnGenerator = null;
-
-        for (Hcn referenceHcn : referencedHcns) {
-            referenceHcn.getPrayBody().deleteHunterHcn(referenceHcn);
-        }
-        referencedHcns.clear();
+        log.debug("");
     }
 
     protected Hcn getHcn(Prime prime, HcnStatus status, RecorderBody prayBody, int intervalDistance) {
@@ -134,7 +121,7 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
         while (referenceCandidate.referencedHcns.isEmpty()) {
             referenceCandidate = referenceCandidate.previousHcnGenerator;
         }
-        return referenceCandidate.referencedHcns.get(0);
+        return referenceCandidate.referencedHcns.get(referenceCandidate.referencedHcns.size() - 1);
     }
 
     public List<Integer> getIntervalDistances() {
