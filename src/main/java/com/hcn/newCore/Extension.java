@@ -58,6 +58,7 @@ public class Extension {
         Body del = delIt.hasNext() ? delIt.next() : null;
         Body add = addIt.hasNext() ? addIt.next() : null;
 
+        /*
         while (del != null || add != null) {
             if (add == null || (del != null && del.compareTo(add) <= 0)) {
                 del.getHcnGenerator().deleteHcnGenerator();
@@ -67,6 +68,8 @@ public class Extension {
                 add = addIt.hasNext() ? addIt.next() : null;
             }
         }
+
+         */
 
         if (ActivityCenter.isDbMode()) {
             MatrixExtensionActivity mea = ActivityCenter.getLastMatrixExtensionActivity();

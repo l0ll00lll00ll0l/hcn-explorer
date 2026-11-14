@@ -53,8 +53,4 @@ public class Hcn implements Comparable<Hcn> {
     public String getValueFactorString() {
         return hcnGenerator.getBody().getBodyChain() + " f: " + factor + " v: " + value;
     }
-
-    public void removeHunterReference() {
-        hcnGenerator.getReferencedHcns().remove(this);
-    }
 }

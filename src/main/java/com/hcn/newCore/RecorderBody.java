@@ -83,6 +83,20 @@ public class RecorderBody implements Comparable<RecorderBody> {
     private final TreeMap<Integer, Hcn> hunters = new TreeMap<>();
     private Passing passing;
 
+    public static void placeHunter(HcnGenerator hcnGenerator) {
+        int highestDepth = firstRecorder.hunters.lastKey();
+
+        if (firstRecorder.previousRecorder.hunters.containsKey(highestDepth)) {
+            firstRecorder.previousRecorder.placeHunterRecursive(hcnGenerator, highestDepth);
+        } else {
+            RecorderBody hunterLimtRecorder = firstRecorder;
+            while (hunterLimtRecorder.nextRecorder.hunters.containsKey(highestDepth)) {
+                hunterLimtRecorder = hunterLimtRecorder.nextRecorder;
+            }
+            hunterLimtRecorder.placeHunterRecursive(hcnGenerator, highestDepth);
+        }
+    }
+
     @Override
     public int compareTo(RecorderBody other) {return order.compareTo(other.order);}
     @Override
@@ -156,7 +170,9 @@ public class RecorderBody implements Comparable<RecorderBody> {
         return prayHcn;
     }
 
-    public void findPrayCheck(HcnGenerator hunter, int intervalDistance) {
+    private void placeHunterRecursive(HcnGenerator hunter, int intervalDistance) {
+
+        //TODO is this needed???
         if (Passing.getLowestPassing().getPreRecorderBodies().contains(this)) {
             return;
         }
@@ -173,7 +189,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
             if (nextRecorder.equals(firstRecorder)) {
                 intervalDistance++;
             }
-            nextRecorder.findPrayCheck(hunter, intervalDistance);
+            nextRecorder.placeHunterRecursive(hunter, intervalDistance);
         }
     }
 
@@ -201,11 +217,9 @@ public class RecorderBody implements Comparable<RecorderBody> {
         }
 
         if (prayPrimeWalker.getNextPrime().equals(prayHcn.getLastActivePrime())) {
-            hunters.get(intervalDistance).removeHunterReference();
             hunters.put(intervalDistance, hunter.generateReferencedHcn(hunterPrime,this, intervalDistance));
         } else {
             replaceHunterHcns(prayPrimeWalker.getNextPrime());
-            hunters.get(intervalDistance).removeHunterReference();
             hunters.put(intervalDistance, hunter.generateReferencedHcn(hunterPrimeWalker.getNextPrime(),this, intervalDistance));
         }
 
@@ -218,7 +232,6 @@ public class RecorderBody implements Comparable<RecorderBody> {
         getRecorderHcn(prayHcnPrime, HcnStatus.RECORDER_IN_PASSINGZONE);
         for (Map.Entry<Integer, Hcn> entry : hunters.entrySet()) {
             prayHcnPrime = prayHcnPrime.getPreviousPrime();
-            entry.getValue().removeHunterReference();
             entry.setValue(entry.getValue().getHcnGenerator().generateReferencedHcn(prayHcnPrime, this, entry.getKey()));
         }
     }
@@ -255,7 +268,6 @@ public class RecorderBody implements Comparable<RecorderBody> {
             TransitionNode.deleteMaintainStatic();
         }
         hunters.values().forEach(hunterHcn -> {
-            hunterHcn.removeHunterReference();
             hunterHcn.setPrayBody(null);
         });
         hunters.clear();
@@ -365,8 +377,6 @@ public class RecorderBody implements Comparable<RecorderBody> {
         Prime basePrayPrimeBefore = prayHcn.getLastActivePrime();
         //log.debug("hunterBodies: {}", hunterBodies);
         Prime basePrayPrimeAfter = identifyNextPassing(hunterBodies, basePrayPrimeBefore, hunterValuesByIntervalDistance);
-
-        hunters.values().forEach(Hcn::removeHunterReference);
 
         if (hunterBodies.size() < hunters.size()) {
             hunters.remove(hunters.lastKey());
