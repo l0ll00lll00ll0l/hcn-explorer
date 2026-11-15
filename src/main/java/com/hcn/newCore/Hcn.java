@@ -17,7 +17,6 @@ public class Hcn implements Comparable<Hcn> {
     @Builder.Default
     private Integer tempId = null;
     private HcnStatus hcnStatus;
-    private RecorderBody prayBody;
     private int intervalDistance;
     @Builder.Default
     private Integer order = null;

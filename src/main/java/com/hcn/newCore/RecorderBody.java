@@ -102,16 +102,17 @@ public class RecorderBody implements Comparable<RecorderBody> {
     @Override
     public String toString() {return order + " - " + hcnGenerator.getBody().toString() + " intervalLapiDistance: " + intervalLapiDistance;}
 
-    public RecorderBody(Hcn triggerHcn) {
+    public RecorderBody(Hcn triggerHcn, Passing parentPassing) {
 
+        RecorderBody prayBody = parentPassing.getPreRecorderBodies().first();
         hcnGenerator = triggerHcn.getHcnGenerator();
         hcnGenerator.setRecorderBody(this);
         hcnGenerator.getBody().setProvedRecursive();
         HcnGenerator.createHcnGenerators(this);
-        intervalLapiDistance = triggerHcn.getIntervalDistance() + (triggerHcn.getPrayBody().equals(firstRecorder) ? -1 : 0);
-        this.order = triggerHcn.getPrayBody().previousRecorder.order + 1;
+        intervalLapiDistance = triggerHcn.getIntervalDistance() + (parentPassing.getPreRecorderBodies().contains(firstRecorder) ? -1 : 0);
+        this.order = prayBody.previousRecorder.order + 1;
 
-        nextRecorder = triggerHcn.getPrayBody();
+        nextRecorder = prayBody;
         previousRecorder = nextRecorder.getPreviousRecorder();
         nextRecorder.setPreviousRecorder(this);
         previousRecorder.setNextRecorder(this);
@@ -267,9 +268,6 @@ public class RecorderBody implements Comparable<RecorderBody> {
         if (isFirstRecorderDeleted) {
             TransitionNode.deleteMaintainStatic();
         }
-        hunters.values().forEach(hunterHcn -> {
-            hunterHcn.setPrayBody(null);
-        });
         hunters.clear();
     }
 

@@ -71,7 +71,7 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
 
     protected Hcn getHcn(Prime prime, HcnStatus status, RecorderBody prayBody, int intervalDistance) {
         return Hcn.builder().hcnGenerator(this).value(getHcnValue(prime)).factor(getHcnFactor(prime)).lastActivePrime(prime)
-                .hcnStatus(status).prayBody(prayBody).intervalDistance(intervalDistance).build();
+                .hcnStatus(status).intervalDistance(intervalDistance).build();
     }
 
     public Hcn generateHunterHcn(Prime prime, HcnStatus status, RecorderBody prayBody, int intervalDistance) {
@@ -86,7 +86,7 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
     }
 
     public Hcn generateTempHcn(Prime prime, RecorderBody prayBody, int intervalDistance) {
-        return Hcn.builder().hcnGenerator(this).value(getHcnValue(prime)).factor(getHcnFactor(prime)).lastActivePrime(prime).prayBody(prayBody).intervalDistance(intervalDistance).build();
+        return Hcn.builder().hcnGenerator(this).value(getHcnValue(prime)).factor(getHcnFactor(prime)).lastActivePrime(prime).intervalDistance(intervalDistance).build();
     }
     public Hcn generateHcnProjection(Prime prime, int hcnOrder) {
         return Hcn.builder().hcnGenerator(this).value(getHcnValue(prime)).factor(getHcnFactor(prime)).lastActivePrime(prime).order(hcnOrder).build();

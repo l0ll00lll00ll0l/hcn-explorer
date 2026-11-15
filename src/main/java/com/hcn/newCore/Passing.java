@@ -27,7 +27,7 @@ public class Passing {
         currentPassing.passingHcns.forEach(hcn -> {
             //Extension.extend(hcn);
             if (hcn.getHcnStatus().equals(HcnStatus.FIRST_RECORDER)) {
-                new RecorderBody(hcn);
+                new RecorderBody(hcn, currentPassing);
             } else {
                 hcn.getHcnGenerator().getRecorderBody().resetReferencedHuntersFromPreviousRecorderBody(currentPassing.prayHcns.first());
             }
