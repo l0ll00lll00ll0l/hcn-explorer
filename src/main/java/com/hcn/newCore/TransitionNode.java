@@ -20,11 +20,11 @@ public class TransitionNode extends MatrixNode{
         lastTransition.indexes.add(Prime.getFirstPrime().getNextPrime());
         BodyNode t1 = BodyNode.builder().parentNode(lastTransition).bodyNodeId(1)
                 .value(new ScientificNumber(1, 0))
-                .factor(new ScientificNumber(1, 0)).proved(true).hasHunterBody(true).build();
+                .factor(new ScientificNumber(1, 0)).hasHunterBody(true).build();
         lastTransition.getBodyNodes().put(1, t1);
         BodyNode t2 = BodyNode.builder()
                 .parentNode(lastTransition).bodyNodeId(2).value(new ScientificNumber(9, 0))
-                .factor(new ScientificNumber(3, 0)).proved(false).hasHunterBody(false).build();
+                .factor(new ScientificNumber(3, 0)).hasHunterBody(false).build();
         lastTransition.getBodyNodes().put(2, t2);
 
         ApiNode.getLastApiNode().setNextMatrixNode(lastTransition);
@@ -110,8 +110,10 @@ public class TransitionNode extends MatrixNode{
     }
 
     private void prepareNodeForBodyNodeCreation(Prime newPrime) {
+
         indexes.add(newPrime);
         ScientificNumber valueMultiplier = new ScientificNumber(Math.pow(indexes.get(indexes.size() - 1).getIntValue(), transitionTo), 0);
+
         bodyNodes.values().forEach(bodyNode -> {
             bodyNode.setValue(bodyNode.getValue().multiply(valueMultiplier));
             bodyNode.setFactor(bodyNode.getFactor().multiply(new ScientificNumber(transitionTo + 1, 0)));
@@ -121,15 +123,11 @@ public class TransitionNode extends MatrixNode{
             body.setFactor(body.getFactor().multiply(new ScientificNumber(transitionTo + 1, 0)));
         });
 
-        if (RecorderBody.getFirstRecorder() != null) {
-            HcnGenerator deactivatedRecorderBody = RecorderBody.getFirstRecorder().getHcnGenerator().getPreviousHcnGenerator();
-            while (deactivatedRecorderBody != null) {
-                Body deactivatedRecorder = deactivatedRecorderBody.getBody();
-                deactivatedRecorder.setValue(deactivatedRecorder.getValue().multiply(valueMultiplier));
-                deactivatedRecorder.setFactor(deactivatedRecorder.getFactor().multiply(new ScientificNumber(transitionTo + 1, 0)));
-
-                deactivatedRecorderBody = deactivatedRecorderBody.getPreviousHcnGenerator();
-            }
+        HcnGenerator hcnGenerator = HcnGenerator.getLastHcnGenerator();
+        while (hcnGenerator != null) {
+            hcnGenerator.setValue(hcnGenerator.getValue().multiply(valueMultiplier));
+            hcnGenerator.setFactor(hcnGenerator.getFactor().multiply(new ScientificNumber(transitionTo + 1, 0)));
+            hcnGenerator = hcnGenerator.getPreviousHcnGenerator();
         }
     }
 

@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
 
 @Slf4j
 @Getter
@@ -14,59 +15,101 @@ import java.util.List;
 @SuperBuilder
 public class HcnGenerator implements Comparable<HcnGenerator> {
 
-    private static HcnGenerator firstHcnGenerator;
-    private static HcnGenerator lastHcnGenerator;
-    public static HcnGenerator getFirstHcnGenerator() { return firstHcnGenerator; }
-    public static void reset() { firstHcnGenerator = null; }
+    private static HcnGenerator lastHcnGenerator = null;
+    public static void reset() { lastHcnGenerator = null; }
+    public static HcnGenerator getLastHcnGenerator() { return lastHcnGenerator; }
 
     public static void initialize() {
 
-        Body firstBody = TransitionNode.getLastTransition().getBodyList().getSmallestBody();
-        firstHcnGenerator = HcnGenerator.builder().body(firstBody).previousHcnGenerator(null)
-                .nextHcnGenerator(null).generatedHunterHcns(new ArrayList<>()).build();
-        firstBody.setHcnGenerator(firstHcnGenerator);
-        Body secondBody = firstBody.getLargerBody();
-        lastHcnGenerator = HcnGenerator.builder().body(secondBody).previousHcnGenerator(firstHcnGenerator)
-                .nextHcnGenerator(null).generatedHunterHcns(new ArrayList<>()).build();
-        secondBody.setHcnGenerator(lastHcnGenerator);
-        firstHcnGenerator.setNextHcnGenerator(lastHcnGenerator);
-
-        while (secondBody.getLargerBody() != Body.getSmallestBufferBody()) {
-            secondBody = secondBody.getLargerBody();
-            HcnGenerator hcnGenerator = HcnGenerator.builder().body(secondBody).previousHcnGenerator(lastHcnGenerator)
-                    .nextHcnGenerator(null).generatedHunterHcns(new ArrayList<>()).build();
-            secondBody.setHcnGenerator(hcnGenerator);
-            lastHcnGenerator.setNextHcnGenerator(hcnGenerator);
-            lastHcnGenerator = hcnGenerator;
+        int currentHcnGeneratorCount = 0;
+        while (currentHcnGeneratorCount < 6) {
+            Body bodyToPrepare = Body.getSmallestBufferBody();
+            lastHcnGenerator = new HcnGenerator(bodyToPrepare);
+            Body.shiftNextHcnGeneratorBody();
+            bodyToPrepare.deleteDuringBodyListMaintain();
+            currentHcnGeneratorCount ++;
         }
     }
 
-    protected Body body;
-    private List<Hcn> generatedHunterHcns;
-    private HcnGenerator previousHcnGenerator;
+    public static void createHcnGenerators(RecorderBody recorderBody) {
+        //log.debug("createHcnGenerators trigger: {} ----------------------", recorderBody.getHcnGenerator());
+        while (lastHcnGenerator.getFactor().isSmallerThan(recorderBody.getHcnGenerator().getFactor().multiply(new ScientificNumber(2, 0)))) {
+            lastHcnGenerator = new HcnGenerator(Body.getSmallestBufferBody());
+            RecorderBody.placeHunter(lastHcnGenerator);
+            Body.getSmallestBufferBody().deleteDuringBodyListMaintain();
+            Body.shiftNextHcnGeneratorBody();
+            //log.debug("  new HcnGenerator created: {}", lastHcnGenerator);
+        }
+        //log.debug("");
+    }
+
+    private final List<Integer> powerGroupPowers = new ArrayList<>();
+    private final List<Integer> powerGroupIndexes = new ArrayList<>();
+    private int[] head;
+    private int[] tail;
+    private final List<Hcn> generatedHunterHcns;
+    private final HcnGenerator previousHcnGenerator;
+    private ScientificNumber value;
+    private ScientificNumber factor;
     private HcnGenerator nextHcnGenerator;
     private RecorderBody recorderBody;
 
     public HcnGenerator(Body newHunterBody) {
 
-        this.body = newHunterBody;
+        newHunterBody.createPowerGroups(this);
+        createHeadAndTailArrays(newHunterBody);
+        //determinePowerGroups(newHunterBody);
+        this.value = newHunterBody.getValue();
+        this.factor = newHunterBody.getFactor();
         this.previousHcnGenerator = lastHcnGenerator;
         this.nextHcnGenerator = null;
         this.generatedHunterHcns = new ArrayList<>();
-        newHunterBody.setHcnGenerator(this);
-        previousHcnGenerator.nextHcnGenerator = this;
-        RecorderBody.placeHunter(this);
+        if (lastHcnGenerator != null) previousHcnGenerator.nextHcnGenerator = this;
     }
 
-    public static void createHcnGenerators(RecorderBody recorderBody) {
-        log.debug("createHcnGenerators trigger: {} ----------------------", recorderBody.getHcnGenerator());
-        while (lastHcnGenerator.getBody().getFactor().isSmallerThan(recorderBody.getHcnGenerator().body.getFactor().multiply(new ScientificNumber(2, 0)))) {
-            Body newHunterBody = Body.getSmallestBufferBody();
-            Body.shiftNextHcnGeneratorBody();
-            lastHcnGenerator = new HcnGenerator(newHunterBody);
-            log.debug("  new HcnGenerator created: {}", lastHcnGenerator);
+    private void createHeadAndTailArrays(Body currentBody) {
+        ArrayList<Integer> tail = new ArrayList<>();
+        ArrayList<Integer> head = new ArrayList<>();
+        int lastPower = 0;
+
+        while (currentBody.getBodyNode().getParentNode() instanceof TransitionNode transitionNode) {
+            tail.add(currentBody.getBodyNode().getBodyNodeId() - 1);
+            currentBody = currentBody.getParent();
+            lastPower = transitionNode.getTransitionFrom();
         }
-        log.debug("");
+
+        if (tail.get(tail.size() - 1) == currentBody.getBodyNode().getParentNode().getIndexes().get(0).getIndex()) {
+            lastPower--;
+            tail.remove(tail.size() - 1);
+        }
+
+        //carry on with apiNodes to identify last tailIndex
+        while (currentBody != null) {
+            int currentApiPower = currentBody.getBodyNode().getBodyNodeId();
+            if (currentApiPower > lastPower + 1) {
+                break;
+            } else {
+                if (currentApiPower > lastPower) {
+                    tail.add(currentBody.getBodyNode().getParentNode().getIndexes().get(0).getIndex());
+                    lastPower = currentApiPower;
+                }
+            }
+            currentBody = currentBody.getParent();
+        }
+
+        while (currentBody != null) {
+            head.add(currentBody.getBodyNode().getBodyNodeId());
+            currentBody = currentBody.getParent();
+        }
+
+        this.head = new int[head.size()];
+        for (int i = 0; i < head.size(); i++) {
+            this.head[head.size() -1 -i] = head.get(i);
+        }
+        this.tail = new int[tail.size()];
+        for (int i = 0; i < tail.size(); i++) {
+            this.tail[tail.size() -1 -i] = tail.get(i);
+        }
     }
 
     protected Hcn getHcn(Prime prime, HcnStatus status, RecorderBody prayBody, int intervalDistance) {
@@ -92,22 +135,79 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
         return Hcn.builder().hcnGenerator(this).value(getHcnValue(prime)).factor(getHcnFactor(prime)).lastActivePrime(prime).order(hcnOrder).build();
     }
     public ScientificNumber getHcnValue(Prime prime) {
-        return body.getValue().multiply(prime.getValueMultiplier());
+        return value.multiply(prime.getValueMultiplier());
     }
     public ScientificNumber getHcnFactor(Prime prime) {
-        return body.getFactor().multiply(prime.getFactorMultiplier());
+        return factor.multiply(prime.getFactorMultiplier());
     }
 
     @Override
     public String toString() {
-        return body.toString();
+        /*
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < powerGroupIndexes.size(); i++) {
+            sb.append(powerGroupIndexes.get(i)).append("^").append(powerGroupPowers.get(i)).append("|");
+        }
+
+        return powerGroupPowers + "|" + powerGroupIndexes + " - " + sb.deleteCharAt(sb.length() - 1);
+
+         */
+        return dbBodyTosString();
     }
 
     @Override
     public int compareTo(HcnGenerator other) {
-        return this.body.getValue().compareTo(other.body.getValue());
+        return this.value.compareTo(other.value);
     }
 
+    private String dbBodyTosString() {
+        StringBuilder sb = new StringBuilder();
+        int startingRelationIndex = 0;
+        int powerGroup;
+
+        if (head.length > 0) {
+            powerGroup = head[0];
+
+            for (int currentIndex = 1; currentIndex < head.length; currentIndex++) {
+                int currentPower = head[currentIndex];
+                if (powerGroup > currentPower) {
+                    if (currentIndex - startingRelationIndex == 1) {
+                        sb.append("p").append(startingRelationIndex).append("^").append(powerGroup).append(" ");
+                    } else {
+                        sb.append("p").append(startingRelationIndex).append("-").append(currentIndex - 1).append("^").append(powerGroup).append(" ");
+                    }
+
+                    startingRelationIndex = currentIndex;
+                    powerGroup = currentPower;
+                }
+            }
+
+            if (head.length == startingRelationIndex + 1) {
+                sb.append("p").append(startingRelationIndex).append("^").append(powerGroup).append(" ");
+            } else if (head.length > startingRelationIndex + 1) {
+                sb.append("p").append(startingRelationIndex).append("-").append(head.length - 1).append("^").append(powerGroup).append(" ");
+            }
+        }
+        startingRelationIndex = head.length;
+        powerGroup = tail.length + 1;
+
+        for (int i = 0; i < tail.length; i++) {
+
+            int currentIndex = tail[i];
+
+            if (startingRelationIndex == currentIndex) {
+                sb.append("p").append(startingRelationIndex).append("^").append(powerGroup).append(" ");
+            } else {
+                sb.append("p").append(startingRelationIndex).append("-").append(currentIndex).append("^").append(powerGroup).append(" ");
+            }
+            startingRelationIndex = currentIndex + 1;
+            powerGroup --;
+        }
+
+        return sb.toString();
+    }
+
+    /*
     public void deactivateCheck() {
         if (!this.equals(RecorderBody.getFirstRecorder().getHunters().get(1).getHcnGenerator())) {
             if (recorderBody == null) {
@@ -116,4 +216,7 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
             this.nextHcnGenerator.deactivateCheck();
         }
     }
+
+     */
+
 }

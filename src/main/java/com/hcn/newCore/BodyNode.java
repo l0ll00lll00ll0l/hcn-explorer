@@ -16,8 +16,6 @@ public class BodyNode {
     private final MatrixNode parentNode;
     private final int bodyNodeId;
     @Builder.Default
-    private boolean proved = false;
-    @Builder.Default
     private boolean hasHunterBody = false;
     private ScientificNumber value;
     private ScientificNumber factor;
@@ -33,17 +31,8 @@ public class BodyNode {
         parentNode.extensionCheck();
     }
 
-    public void setProvedRecursive() {
-        if (proved) { return; }
-        proved = true;
-    }
-
     public boolean isActive() {
         return parentNode.bodyNodes.containsValue(this);
-    }
-
-    public boolean isDeactivated() {
-        return parentNode.deactivatedBodyNodes.containsValue(this);
     }
 
     @Override

@@ -28,7 +28,8 @@ public class Hcn implements Comparable<Hcn> {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        hcnGenerator.getBody().buildChain(sb);
+        sb.append(hcnGenerator);
+        //hcnGenerator.getBody().buildChain(sb);
         String hcnStatus = "N/A";
         if (this.hcnStatus != null) {
             hcnStatus = this.hcnStatus.toString();
@@ -49,7 +50,10 @@ public class Hcn implements Comparable<Hcn> {
         return lastActivePrime.getIndex() + "_" + (hcnStatus == null ? "N/A" : hcnStatus.s);
     }
 
+    /*
     public String getValueFactorString() {
         return hcnGenerator.getBody().getBodyChain() + " f: " + factor + " v: " + value;
     }
+
+     */
 }

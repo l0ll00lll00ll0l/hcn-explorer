@@ -15,13 +15,13 @@ public class ApiNode extends MatrixNode {
     public static void initialize() {
         lastApiNode = ApiNode.builder().prevMatrixNode(null).build();
         lastApiNode.getIndexes().add(Prime.getFirstPrime());
-        BodyNode pip01 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(1).proved(true).hasHunterBody(true)
+        BodyNode pip01 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(1).hasHunterBody(true)
                 .value(new ScientificNumber(2,0))
                 .factor(new ScientificNumber(2, 0)).build();
-        BodyNode pip02 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(2).proved(true).hasHunterBody(true)
+        BodyNode pip02 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(2).hasHunterBody(true)
                 .value(new ScientificNumber(4,0))
                 .factor(new ScientificNumber(3, 0)).build();
-        BodyNode pip03 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(3).proved(false).hasHunterBody(false)
+        BodyNode pip03 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(3).hasHunterBody(false)
                 .value(new ScientificNumber(8,0))
                 .factor(new ScientificNumber(4, 0)).build();
         lastApiNode.getBodyNodes().put(1, pip01);
@@ -97,7 +97,7 @@ public class ApiNode extends MatrixNode {
 
     public void transitionNodeTriggerCheck() {
         //log.debug("Checking: {}, bodyNodes.size() {}, deactivatedBodyNodes: {}" , this, bodyNodes.size(), deactivatedBodyNodes.size());
-        if (bodyNodes.size() == 1 && deactivatedBodyNodes.isEmpty()) {
+        if (bodyNodes.size() == 1) {
             //log.debug("HERE {}", this);
             new TransitionNodeCreator(this).create();
         }

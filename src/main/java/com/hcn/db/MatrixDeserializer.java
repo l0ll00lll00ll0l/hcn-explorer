@@ -102,16 +102,11 @@ public class MatrixDeserializer {
             BodyNode bodyNode = BodyNode.builder()
                     .parentNode(parentNode)
                     .bodyNodeId(bodyNodeId)
-                    .proved(proved)
                     .value(new ScientificNumber(valueMantissa, valueExponent))
                     .factor(new ScientificNumber(factorMantissa, factorExponent))
                     .build();
             bodyNodeMap.put(id, bodyNode);
-            if (active) {
-                parentNode.getBodyNodes().put(bodyNodeId, bodyNode);
-            } else {
-                parentNode.getDeactivatedBodyNodes().put(bodyNodeId, bodyNode);
-            }
+            parentNode.getBodyNodes().put(bodyNodeId, bodyNode);
         });
     }
 
@@ -130,8 +125,7 @@ public class MatrixDeserializer {
                     .bodyNode(bodyNodeId != null ? bodyNodeMap.get(bodyNodeId) : null)
                     .value(new ScientificNumber(valueMantissa, valueExponent))
                     .factor(new ScientificNumber(factorMantissa, factorExponent))
-                    .proved(proved)
-                    .deactivated(deactivated)
+                    .extended(proved)
                     .build();
             bodyMap.put(id, body);
         });
@@ -282,22 +276,14 @@ public class MatrixDeserializer {
     private void buildOffsprings() {
         for (Body body : bodyMap.values()) {
             if (body.getBodyNode() == null || body.getParent() == null) continue;
-            if (body.isDeactivated()) {
-                body.getParent().getDeactivatedOffsprings().add(body);
-            } else {
-                body.getParent().getOffsprings().add(body);
-            }
+            body.getParent().getOffsprings().add(body);
         }
     }
 
     private void buildActiveBodies() {
         for (Body body : bodyMap.values()) {
             if (body.getBodyNode() == null) continue; // deleted body
-            if (body.isDeactivated()) {
-                body.getBodyNode().getDeactivatedBodies().add(body);
-            } else {
-                body.getBodyNode().getActiveBodies().add(body);
-            }
+            body.getBodyNode().getActiveBodies().add(body);
         }
     }
 

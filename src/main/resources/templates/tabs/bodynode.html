@@ -14,7 +14,7 @@
             <select id="bodyNodeSelect" onchange="loadBodyNodeDetail()" style="font-family: monospace;">
                 <option th:each="bn : ${activeBodyNodes}" th:value="${bn.bodyNodeId}"
                         th:selected="${bn.bodyNodeId == activeBodyNodeId}"
-                        th:text="${(bn.isDeactivated() ? '[D] ' : '') + bn.bodyNodeId + ' (v=' + bn.value + ' f=' + bn.factor + ')'}"></option>
+                        th:text="${bn.bodyNodeId + ' (v=' + bn.value + ' f=' + bn.factor + ')'}"></option>
             </select>
         </label>
     </div>
@@ -29,8 +29,7 @@
             (matrixNodeBodyNodes[idx] || []).forEach(function(bn) {
                 var opt = document.createElement('option');
                 opt.value = bn.id;
-                opt.textContent = (bn.deactivated ? '[D] ' : '') + bn.id + ' (v=' + bn.value + ' f=' + bn.factor + ')';
-                if (bn.deactivated) opt.style.color = '#888';
+                opt.textContent = bn.id + ' (v=' + bn.value + ' f=' + bn.factor + ')';
                 select.appendChild(opt);
             });
             window.loadBodyNodeDetail();

@@ -16,7 +16,7 @@
         </thead>
         <tbody>
             <tr th:each="row : ${@newCoreController.getBufferBodies()}"
-                th:style="${row.deactivated() ? (row.proved() ? 'background-color: #c8e6c9;' : 'background-color: #e0e0e0;') : (row.proved() ? 'background-color: #90EE90;' : '')}">
+                th:style="${row.extended() ? 'background-color: #90EE90;' : ''}">
                 <td th:text="${row.index()}"></td>
                 <td th:each="cell : ${row.nodeColumns()}" th:text="${cell.label()}" th:style="${cell.color().equals('black') ? 'white-space: nowrap; width: 1px; background-color: black; color: white;' : (!cell.color().isEmpty() ? 'white-space: nowrap; width: 1px; background-color: ' + cell.color() + ';' : 'white-space: nowrap; width: 1px;')}"></td>
                 <td th:text="${row.value()}" style="padding-left: 40px;"></td>

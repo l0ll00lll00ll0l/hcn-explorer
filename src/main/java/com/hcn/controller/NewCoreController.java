@@ -103,7 +103,6 @@ public class NewCoreController {
         List<MatrixNode> chain = getMatrixChain();
         MatrixNode node = chain.get(activeMatrixNodeIdx);
         BodyNode selected = node.getBodyNodes().get(activeBodyNodeId);
-        if (selected == null) selected = node.getDeactivatedBodyNodes().get(activeBodyNodeId);
         if (selected == null && !node.getBodyNodes().isEmpty()) selected = node.getBodyNodes().firstEntry().getValue();
         model.addAttribute("selectedBodyNode", selected);
         return "tabs/bodynode-detail :: content";
@@ -138,7 +137,6 @@ public class NewCoreController {
                 model.addAttribute("bodyNodesPerMatrixNode", getBodyNodesPerMatrixNodeJson(chain));
                 MatrixNode node = chain.get(activeMatrixNodeIdx);
                 BodyNode selected = node.getBodyNodes().get(activeBodyNodeId);
-                if (selected == null) selected = node.getDeactivatedBodyNodes().get(activeBodyNodeId);
                 if (selected == null && !node.getBodyNodes().isEmpty()) selected = node.getBodyNodes().firstEntry().getValue();
                 model.addAttribute("selectedBodyNode", selected);
                 model.addAttribute("activeBodyNodes", getBodyNodesForNode(node));
@@ -204,7 +202,6 @@ public class NewCoreController {
     private List<BodyNode> getBodyNodesForNode(MatrixNode node) {
         List<BodyNode> result = new ArrayList<>();
         node.getBodyNodes().descendingMap().values().forEach(result::add);
-        node.getDeactivatedBodyNodes().descendingMap().values().forEach(result::add);
         return result;
     }
 
@@ -218,12 +215,7 @@ public class NewCoreController {
             for (var entry : node.getBodyNodes().descendingMap().entrySet()) {
                 if (!first) sb.append(","); first = false;
                 BodyNode bn = entry.getValue();
-                sb.append("{\"id\":").append(bn.getBodyNodeId()).append(",\"deactivated\":false,\"value\":\"").append(bn.getValue()).append("\",\"factor\":\"").append(bn.getFactor()).append("\"}");
-            }
-            for (var entry : node.getDeactivatedBodyNodes().descendingMap().entrySet()) {
-                if (!first) sb.append(","); first = false;
-                BodyNode bn = entry.getValue();
-                sb.append("{\"id\":").append(bn.getBodyNodeId()).append(",\"deactivated\":true,\"value\":\"").append(bn.getValue()).append("\",\"factor\":\"").append(bn.getFactor()).append("\"}");
+                sb.append("{\"id\":").append(bn.getBodyNodeId()).append(",\"value\":\"").append(bn.getValue()).append("\",\"factor\":\"").append(bn.getFactor()).append("\"}");
             }
             sb.append("]");
         }
@@ -292,7 +284,6 @@ public class NewCoreController {
         RecorderBody.reset();
         TransitionNode.reset();
         HcnGenerator.reset();
-        Extension.reset();
         com.hcn.newCore.interval.ActiveInterval.reset();
         com.hcn.newCore.interval.ReferenceInterval.reset();
         Matrix.reset();
@@ -352,10 +343,12 @@ public class NewCoreController {
         for (DbBody b : bodies) {
             if (!first) sb.append(",");
             first = false;
-            sb.append("{\"firstHcn\":").append(b.getFirstHcnLapi() != null ? b.getFirstHcnLapi() : "null")
-              .append(",\"firstSuperior\":").append(b.getFirstSuperiorHcnLapi() != null ? b.getFirstSuperiorHcnLapi() : "null")
-              .append(",\"firstDominated\":").append(b.getFirstDominatedHcnLapi() != null ? b.getFirstDominatedHcnLapi() : "null")
-              .append(",\"label\":\"").append(b.toString().replace("\"", "\\\"")).append("\"}");
+            //TODO: restore after DbBody is updated
+            //sb.append("{\"firstHcn\":").append(b.getFirstHcnLapi() != null ? b.getFirstHcnLapi() : "null")
+            //  .append(",\"firstSuperior\":").append(b.getFirstSuperiorHcnLapi() != null ? b.getFirstSuperiorHcnLapi() : "null")
+            //  .append(",\"firstDominated\":").append(b.getFirstDominatedHcnLapi() != null ? b.getFirstDominatedHcnLapi() : "null")
+            //  .append(",\"label\":\"").append(b.toString().replace("\"", "\\\"")).append("\"}");
+            sb.append("{\"label\":\"").append(b.toString().replace("\"", "\\\"")).append("\"}");
         }
         return sb.append("]").toString();
     }
@@ -413,7 +406,7 @@ public class NewCoreController {
         for (int i = 0; i < hcns.size(); i++) {
             com.hcn.newCore.Hcn hcn = hcns.get(i);
             int skipCount = skipsAtHcnOrder.containsKey(hcn.getOrder()) ? skipsAtHcnOrder.get(hcn.getOrder()) : 0;
-            rows.add(new HcnProjectionRow(i + 1, hcn.getOrder(), skipCount < 1 ? null : skipCount, hcn.getLapiIndex(), hcn.getHcnGenerator().getBody().getBodyChain(),
+            rows.add(new HcnProjectionRow(i + 1, hcn.getOrder(), skipCount < 1 ? null : skipCount, hcn.getLapiIndex(), hcn.getHcnGenerator().toString(),
                     hcn.getValue().toString(), hcn.getFactor().toString(), newRecorderdHcnOrders.contains(hcn.getOrder())));
         }
         return rows;
@@ -439,7 +432,7 @@ public class NewCoreController {
     }
 
     public record BufferBodyCell(String label, String color) {}
-    public record BufferBodyRow(int index, List<BufferBodyCell> nodeColumns, String value, String factor, boolean deactivated, boolean proved) {}
+    public record BufferBodyRow(int index, List<BufferBodyCell> nodeColumns, String value, String factor, boolean extended) {}
 
     public List<BufferBodyRow> getBufferBodies() {
         List<MatrixNode> chain = getMatrixChain();
@@ -467,7 +460,7 @@ public class NewCoreController {
                 }
                 nodeColumns.add(new BufferBodyCell(b.getBodyNode().toString(), color));
             }
-            rows.add(new BufferBodyRow(i++, nodeColumns, current.getValue().toString(), current.getFactor().toString(), current.isDeactivated(), current.isProved()));
+            rows.add(new BufferBodyRow(i++, nodeColumns, current.getValue().toString(), current.getFactor().toString(), current.isExtended()));
             current = current.getLargerBody();
         }
         return rows;
@@ -498,7 +491,8 @@ public class NewCoreController {
     }
 
     public List<HcnGenerator> getDeactivatedHcnGenerators() {
-        HcnGenerator current = HcnGenerator.getFirstHcnGenerator();
+        HcnGenerator current = HcnGenerator.getLastHcnGenerator();
+        while (current.getPreviousHcnGenerator() != null) {current = current.getPreviousHcnGenerator();}
         List<HcnGenerator> bodies = new ArrayList<>();
         while (!current.equals(RecorderBody.getFirstRecorder().getHcnGenerator())) {
             bodies.add(current);
@@ -510,7 +504,7 @@ public class NewCoreController {
     public List<Body> getActiveBodiesChain(BodyList bodyList) {
         List<Body> bodies = new ArrayList<>();
         Body current = bodyList.getSmallestBody();
-        while (current != null && current.isDeactivated()) {
+        while (current != null && !current.isExtended()) {
             bodies.add(current);
             current = current.getLargerBody();
         }
@@ -585,7 +579,7 @@ public class NewCoreController {
                         boolean mark = isFirstRow && first[0];
                         first[0] = false;
                         boolean last = zoneHcns.indexOf(h) == zoneHcns.size() - 1;
-                        return new ActiveIntervalHcnRow(h.getHcnGenerator().getBody().getBodyChain(), "[" + h.getLapiIndex() + "]", h.getValue().toString(), h.getFactor().toString(), mark, last);
+                        return new ActiveIntervalHcnRow(h.getHcnGenerator().toString(), "[" + h.getLapiIndex() + "]", h.getValue().toString(), h.getFactor().toString(), mark, last);
                     }).toList();
                 }
                 int zoneRows = hcns.size();
@@ -593,7 +587,7 @@ public class NewCoreController {
                 firstZone = false;
             }
             int totalRows = zones.stream().mapToInt(ActiveIntervalZoneRow::zoneRows).sum();
-            rows.add(new ActiveIntervalRow(ai.getInterval(), ai.getFirstRecorder().getHcnGenerator().getBody().getBodyChain(), ai.getPostRecorderListSize(), zones, totalRows));
+            rows.add(new ActiveIntervalRow(ai.getInterval(), ai.getFirstRecorder().getHcnGenerator().toString(), ai.getPostRecorderListSize(), zones, totalRows));
             firstAi = false;
         }
         return rows;
@@ -626,24 +620,6 @@ public class NewCoreController {
         return sb.toString();
     }
 
-    public String deactivatedOffspringString(Body body) {
-        if (body.getDeactivatedOffsprings().isEmpty()) return "";
-        StringBuilder sb = new StringBuilder();
-        List<Body> sorted = body.getDeactivatedOffsprings().stream()
-                .sorted(Comparator.comparingInt(b -> b.getBodyNode().getBodyNodeId()))
-                .toList();
-        for (int i = 0; i < sorted.size(); i++) {
-            if (i > 0) sb.append(", ");
-            BodyNode node = sorted.get(i).getBodyNode();
-            if (node.getParentNode() instanceof ApiNode) {
-                sb.append(node.getBodyNodeId());
-            } else {
-                sb.append("t").append(node.getBodyNodeId());
-            }
-        }
-        return sb.toString();
-    }
-
     public String matrixNodeLabel(MatrixNode node) {
         if (node instanceof ApiNode a) {
             if (a.getIndexes().isEmpty()) return "p?";
@@ -661,11 +637,6 @@ public class NewCoreController {
         return node.getBodyNodes().values().stream().mapToInt(bn -> bn.getActiveBodies().size()).sum();
     }
 
-    public int totalDeactivatedBodyCount(MatrixNode node) {
-        int fromActive = node.getBodyNodes().values().stream().mapToInt(bn -> bn.getDeactivatedBodies().size()).sum();
-        int fromDeactivated = node.getDeactivatedBodyNodes().values().stream().mapToInt(bn -> bn.getDeactivatedBodies().size()).sum();
-        return fromActive + fromDeactivated;
-    }
 
     public int totalActiveHcnGen(BodyNode bn) {
         return bn.getActiveBodies().stream().mapToInt(Body::getActiveHcnGeneratorCount).sum();

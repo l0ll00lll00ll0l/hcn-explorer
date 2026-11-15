@@ -25,35 +25,31 @@
             <b>Largest Body:</b> <span th:text="${node.bodyList != null and node.bodyList.largestBody != null ? node.bodyList.largestBody.value : '-'}"></span>
         </div>
         <table class="level-table">
-            <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Proved</th><th>Deact</th><th>ActiveHcnGen</th><th>Offsprings</th><th>DeactOffsprings</th></tr></thead>
+            <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Extended</th><th>ActiveHcnGen</th><th>Offsprings</th></tr></thead>
             <tbody>
                 <tr th:if="${node instanceof T(com.hcn.newCore.ApiNode) and node.bodyList != null}"
                     th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}"
-                    th:style="${body.deactivated ? (body.proved ? 'background-color: #c8e6c9;' : 'background-color: #e0e0e0;') : (body.proved ? 'background-color: #90EE90;' : '')}">
+                    th:style="${body.extended ? 'background-color: #90EE90;' : ''}">
                     <td th:text="${bIter.index}"></td>
                     <td th:text="${@newCoreController.guiString(body)}"></td>
                     <td th:text="${body.value}"></td>
                     <td th:text="${body.factor}"></td>
                     <td th:text="${body.value.logBase(body.factor)}"></td>
-                    <td th:text="${body.proved}"></td>
-                    <td th:text="${body.deactivated}"></td>
+                    <td th:text="${body.extended}"></td>
                     <td th:text="${body.activeHcnGeneratorCount}"></td>
                     <td th:text="${@newCoreController.offspringString(body)}"></td>
-                    <td th:text="${@newCoreController.deactivatedOffspringString(body)}"></td>
                 </tr>
                 <tr th:if="${node instanceof T(com.hcn.newCore.TransitionNode) and node.bodyList != null}"
                     th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}"
-                    th:style="${body.deactivated ? (body.proved ? 'background-color: #c8e6c9;' : 'background-color: #e0e0e0;') : (body.proved ? 'background-color: #90EE90;' : '')}">
+                    th:style="${body.extended ? 'background-color: #90EE90;' : ''}">
                     <td th:text="${bIter.index}"></td>
                     <td th:text="${@newCoreController.guiString(body)}"></td>
                     <td th:text="${body.value}"></td>
                     <td th:text="${body.factor}"></td>
                     <td th:text="${body.value.logBase(body.factor)}"></td>
-                    <td th:text="${body.proved}"></td>
-                    <td th:text="${body.deactivated}"></td>
+                    <td th:text="${body.extended}"></td>
                     <td th:text="${body.activeHcnGeneratorCount}"></td>
                     <td th:text="${@newCoreController.offspringString(body)}"></td>
-                    <td th:text="${@newCoreController.deactivatedOffspringString(body)}"></td>
                 </tr>
             </tbody>
         </table>

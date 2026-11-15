@@ -208,9 +208,9 @@ public class DbCacheService {
             Integer[] headArr = (Integer[]) rs.getArray("head").getArray();
             Integer[] tailArr = (Integer[]) rs.getArray("tail").getArray();
             DbBody body = new DbBody(toIntArray(headArr), toIntArray(tailArr));
-            body.setFirstHcnLapi((Integer) rs.getObject("first_hcn_lapi"));
-            body.setFirstSuperiorHcnLapi((Integer) rs.getObject("first_superior_hcn_lapi"));
-            body.setFirstDominatedHcnLapi((Integer) rs.getObject("first_dominated_hcn_lapi"));
+            //body.setFirstHcnLapi((Integer) rs.getObject("first_hcn_lapi"));
+            //body.setFirstSuperiorHcnLapi((Integer) rs.getObject("first_superior_hcn_lapi"));
+            //body.setFirstDominatedHcnLapi((Integer) rs.getObject("first_dominated_hcn_lapi"));
             bodyCache.put(id, body);
             prepend.add(body);
         });
@@ -270,9 +270,9 @@ public class DbCacheService {
             t().query("SELECT body_id, first_hcn_lapi, first_superior_hcn_lapi, first_dominated_hcn_lapi FROM body_lifecycle WHERE body_id IN (" + in + ") ORDER BY ctid", rs -> {
                 int id = rs.getInt("body_id");
                 DbBody body = new DbBody(new int[0], new int[0]);
-                body.setFirstHcnLapi((Integer) rs.getObject("first_hcn_lapi"));
-                body.setFirstSuperiorHcnLapi((Integer) rs.getObject("first_superior_hcn_lapi"));
-                body.setFirstDominatedHcnLapi((Integer) rs.getObject("first_dominated_hcn_lapi"));
+                //body.setFirstHcnLapi((Integer) rs.getObject("first_hcn_lapi"));
+                //body.setFirstSuperiorHcnLapi((Integer) rs.getObject("first_superior_hcn_lapi"));
+                //body.setFirstDominatedHcnLapi((Integer) rs.getObject("first_dominated_hcn_lapi"));
                 bodyCache.put(id, body);
             });
 

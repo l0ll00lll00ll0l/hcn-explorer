@@ -30,11 +30,11 @@ public class Body implements Comparable<Body>{
         BodyNode pip03 = p0.bodyNodes.get(3);
 
         Body b01 = Body.builder().bodyNode(pip01).parent(null).value(new ScientificNumber(2, 0))
-                .factor(new ScientificNumber(2, 0)).proved(true).extended(true).build();
+                .factor(new ScientificNumber(2, 0)).extended(true).build();
         Body b02 = Body.builder().bodyNode(pip02).parent(null).value(new ScientificNumber(4, 0))
-                .factor(new ScientificNumber(3, 0)).proved(true).extended(true).build();
+                .factor(new ScientificNumber(3, 0)).extended(true).build();
         Body b03 = Body.builder().bodyNode(pip03).parent(null).value(new ScientificNumber(8, 0))
-                .factor(new ScientificNumber(4, 0)).proved(false).extended(false).build();
+                .factor(new ScientificNumber(4, 0)).extended(false).build();
 
         pip01.getActiveBodies().add(b01);
         pip02.getActiveBodies().add(b02);
@@ -53,15 +53,15 @@ public class Body implements Comparable<Body>{
         BodyNode t2 = TransitionNode.getLastTransition().bodyNodes.get(2);
 
         Body b11 = Body.builder().bodyNode(t1).parent(b01).value(new ScientificNumber(6, 0))
-                .factor(new ScientificNumber(4, 0)).proved(true).extended(true).build();
+                .factor(new ScientificNumber(4, 0)).extended(true).build();
         Body b21 = Body.builder().bodyNode(t1).parent(b02).value(new ScientificNumber(12, 0))
-                .factor(new ScientificNumber(6, 0)).proved(true).extended(true).build();
+                .factor(new ScientificNumber(6, 0)).extended(true).build();
         Body b31 = Body.builder().bodyNode(t1).parent(b03).value(new ScientificNumber(24, 0))
-                .factor(new ScientificNumber(8, 0)).proved(false).extended(false).build();
+                .factor(new ScientificNumber(8, 0)).extended(false).build();
         Body b22 = Body.builder().bodyNode(t2).parent(b02).value(new ScientificNumber(36, 0))
-                .factor(new ScientificNumber(9, 0)).proved(false).extended(false).build();
+                .factor(new ScientificNumber(9, 0)).extended(false).build();
         Body b32 = Body.builder().bodyNode(t2).parent(b03).value(new ScientificNumber(72, 0))
-                .factor(new ScientificNumber(12, 0)).proved(false).extended(false).build();
+                .factor(new ScientificNumber(12, 0)).extended(false).build();
 
         t1.getActiveBodies().add(b11);
         t1.getActiveBodies().add(b21);
@@ -88,13 +88,6 @@ public class Body implements Comparable<Body>{
         TransitionNode.getLastTransition().setBodyList(BodyList.builder().smallestBody(b11).largestBody(b32).size(5).build());
 
         smallestBufferBody = b11;
-        int currentHcnGeneratorCount = 0;
-
-        while (currentHcnGeneratorCount < 6) {
-            smallestBufferBody.matrixMaintainCheck();
-            smallestBufferBody = smallestBufferBody.largerBody;
-            currentHcnGeneratorCount ++;
-        }
     }
 
     private BodyNode bodyNode;
@@ -102,9 +95,6 @@ public class Body implements Comparable<Body>{
     private ScientificNumber factor;
     private Body parent;
     private final List<Body> offsprings = new ArrayList<>();
-    private final Set<Body> deactivatedOffsprings = new HashSet<>();
-    @Builder.Default
-    private boolean proved = false;
     @Builder.Default
     private boolean extended = false;
     @Builder.Default
@@ -112,10 +102,7 @@ public class Body implements Comparable<Body>{
     private Integer dbId = null;
     private Body smallerBody;
     private Body largerBody;
-    @Builder.Default
-    private boolean deactivated = false;
     private DbBody dbBody;
-    private HcnGenerator hcnGenerator = null;
 
     public boolean isDeleted() {
         return smallerBody == null && largerBody == null;
@@ -125,15 +112,6 @@ public class Body implements Comparable<Body>{
             dbBody = new DbBody(this);
         }
         return dbBody;
-    }
-    public HcnGenerator getPrevActiveBody() {
-        Body candidate = smallerBody;
-        while (candidate != null && candidate.getHcnGenerator() == null) {candidate = candidate.smallerBody;}
-        if (candidate == null) {
-            return null;
-        } else {
-            return candidate.hcnGenerator;
-        }
     }
 
     @Override
@@ -167,70 +145,31 @@ public class Body implements Comparable<Body>{
         }
     }
 
-    public void deactivate() {
-
-        deactivated = true;
+    public void deletedDuringExtension() {
         bodyNode.getActiveBodies().remove(this);
-        bodyNode.getDeactivatedBodies().add(this);
-        bodyNode.getParentNode().needsDeactivateMaintain = true;
-
+        if (bodyNode.getActiveBodies().isEmpty()) {
+            bodyNode.getParentNode().bodyNodes.remove(bodyNode.getBodyNodeId());
+        }
         if (parent != null) {
             parent.offsprings.remove(this);
             if (parent.offsprings.isEmpty()) {
-                parent.deactivate();
-            }
-            parent.deactivatedOffsprings.add(this);
-        }
-
-        bodyNodeActivityMaintain();
-    }
-
-    public void deletedDuringExtension() {
-        if (deactivated) {
-            bodyNode.getDeactivatedBodies().remove(this);
-            if (parent != null) {
-                parent.deactivatedOffsprings.remove(this);
-            }
-        } else {
-            bodyNode.getActiveBodies().remove(this);
-            if (parent != null) {
-                parent.offsprings.remove(this);
-                if (!parent.isDeleted() && parent.offsprings.isEmpty()) {
-                    parent.deactivate();
-                }
+                //TODO used to be deactivate, needs test
+                parent.deletedDuringExtension();
             }
         }
-        bodyNodeActivityMaintain();
     }
 
     public void deleteDuringBodyListMaintain() {
-
-        if (deactivated) {
-            bodyNode.getDeactivatedBodies().remove(this);
-            if (parent != null) {
-                parent.deactivatedOffsprings.remove(this);
-            }
-        } else {
-            bodyNode.getActiveBodies().remove(this);
-            if (parent != null) {
-                parent.offsprings.remove(this);
-                if (!parent.isDeleted() && parent.offsprings.isEmpty()) {
-                    parent.deactivate();
-                }
-            }
-        }
-        bodyNodeActivityMaintain();
-    }
-    private void bodyNodeActivityMaintain() {
+        bodyNode.getActiveBodies().remove(this);
         if (bodyNode.getActiveBodies().isEmpty()) {
-            MatrixNode parentNode = bodyNode.getParentNode();
-            parentNode.bodyNodes.remove(bodyNode.getBodyNodeId());
-            parentNode.deactivatedBodyNodes.put(bodyNode.getBodyNodeId(), bodyNode);
+            bodyNode.getParentNode().bodyNodes.remove(bodyNode.getBodyNodeId());
         }
-
-        if (bodyNode.getDeactivatedBodies().isEmpty()) {
-            MatrixNode parentNode = bodyNode.getParentNode();
-            parentNode.deactivatedBodyNodes.remove(bodyNode.getBodyNodeId());
+        if (parent != null) {
+            parent.offsprings.remove(this);
+            if (parent.offsprings.isEmpty()) {
+                //TODO used to be deactivate, needs test
+                parent.deleteDuringBodyListMaintain();
+            }
         }
     }
 
@@ -241,16 +180,9 @@ public class Body implements Comparable<Body>{
         if (parent != null) { parent.matrixMaintainCheck(); }
     }
 
-    public void setProvedRecursive() {
-        if (proved) { return; }
-        proved = true;
-        bodyNode.setProvedRecursive();
-        if (parent != null) { parent.setProvedRecursive(); }
-    }
-
     public int getActiveHcnGeneratorCount() {
         if (bodyNode == null) {
-            log.error("getActiveHcnGeneratorCount called on body with null bodyNode: value={} factor={} deactivated={} parent={}", value, factor, deactivated, parent);
+            log.error("getActiveHcnGeneratorCount called on body with null bodyNode: value={} factor={}  parent={}", value, factor, parent);
             return 0;
         }
         if (bodyNode.getParentNode() instanceof TransitionNode transitionNode && transitionNode.getTransitionTo() == 1) {
@@ -264,4 +196,29 @@ public class Body implements Comparable<Body>{
         }
     }
 
+    public void createPowerGroups(HcnGenerator hcnGenerator) {
+        if (parent != null) {
+            parent.createPowerGroups(hcnGenerator);
+            int currentPower = hcnGenerator.getPowerGroupPowers().get(hcnGenerator.getPowerGroupPowers().size() - 1);
+            if (bodyNode.getParentNode() instanceof ApiNode apiNode) {
+                if (bodyNode.getBodyNodeId() < currentPower) {
+                    hcnGenerator.getPowerGroupPowers().add(bodyNode.getBodyNodeId());
+                    hcnGenerator.getPowerGroupIndexes().add(apiNode.indexes.get(0).getIndex());
+                }
+            } else {
+                TransitionNode transitionNode = (TransitionNode) bodyNode.getParentNode();
+                if (transitionNode.getTransitionFrom() < currentPower) {
+                    if (transitionNode.getIndexes().get(0).getIndex() < bodyNode.getBodyNodeId()) {
+                        hcnGenerator.getPowerGroupPowers().add(transitionNode.getTransitionFrom());
+                        hcnGenerator.getPowerGroupIndexes().add(transitionNode.indexes.get(0).getIndex());
+                    }
+                }
+                hcnGenerator.getPowerGroupPowers().add(transitionNode.getTransitionTo());
+                hcnGenerator.getPowerGroupIndexes().add(bodyNode.getBodyNodeId());
+            }
+        } else {
+            hcnGenerator.getPowerGroupPowers().add(bodyNode.getBodyNodeId());
+            hcnGenerator.getPowerGroupIndexes().add(0);
+        }
+    }
 }

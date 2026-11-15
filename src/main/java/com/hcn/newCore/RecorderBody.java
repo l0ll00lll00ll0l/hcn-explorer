@@ -30,10 +30,12 @@ public class RecorderBody implements Comparable<RecorderBody> {
     public static void reset() { firstRecorder = null; }
 
     public static void initialize() {
-        firstRecorder = RecorderBody.builder().hcnGenerator(HcnGenerator.getFirstHcnGenerator()).intervalLapiDistance(0).order(1).build();
-        RecorderBody secondRecorder = RecorderBody.builder().hcnGenerator(HcnGenerator.getFirstHcnGenerator().getNextHcnGenerator()).intervalLapiDistance(0).order(2).build();
-        HcnGenerator.getFirstHcnGenerator().setRecorderBody(firstRecorder);
-        HcnGenerator.getFirstHcnGenerator().getNextHcnGenerator().setRecorderBody(secondRecorder);
+        HcnGenerator firstHcnGenerator = HcnGenerator.getLastHcnGenerator();
+        while (firstHcnGenerator.getPreviousHcnGenerator() != null) {firstHcnGenerator = firstHcnGenerator.getPreviousHcnGenerator();}
+        firstRecorder = RecorderBody.builder().hcnGenerator(firstHcnGenerator).intervalLapiDistance(0).order(1).build();
+        RecorderBody secondRecorder = RecorderBody.builder().hcnGenerator(firstHcnGenerator.getNextHcnGenerator()).intervalLapiDistance(0).order(2).build();
+        firstHcnGenerator.setRecorderBody(firstRecorder);
+        firstHcnGenerator.getNextHcnGenerator().setRecorderBody(secondRecorder);
         firstRecorder.setNextRecorder(secondRecorder);
         secondRecorder.setPreviousRecorder(firstRecorder);
         firstRecorder.setPreviousRecorder(secondRecorder);
@@ -100,14 +102,13 @@ public class RecorderBody implements Comparable<RecorderBody> {
     @Override
     public int compareTo(RecorderBody other) {return order.compareTo(other.order);}
     @Override
-    public String toString() {return order + " - " + hcnGenerator.getBody().toString() + " intervalLapiDistance: " + intervalLapiDistance;}
+    public String toString() {return order + " - " + hcnGenerator.toString() + " intervalLapiDistance: " + intervalLapiDistance;}
 
     public RecorderBody(Hcn triggerHcn, Passing parentPassing) {
 
         RecorderBody prayBody = parentPassing.getPreRecorderBodies().first();
         hcnGenerator = triggerHcn.getHcnGenerator();
         hcnGenerator.setRecorderBody(this);
-        hcnGenerator.getBody().setProvedRecursive();
         HcnGenerator.createHcnGenerators(this);
         intervalLapiDistance = triggerHcn.getIntervalDistance() + (parentPassing.getPreRecorderBodies().contains(firstRecorder) ? -1 : 0);
         this.order = prayBody.previousRecorder.order + 1;
@@ -242,13 +243,11 @@ public class RecorderBody implements Comparable<RecorderBody> {
         lowerLargerOrderNumbers();
         previousRecorder.setNextRecorder(nextRecorder);
         nextRecorder.setPreviousRecorder(previousRecorder);
-        HcnGenerator smallestHcnGeneratorForDeactivateCheck = null;
         boolean isFirstRecorderDeleted = this.equals(firstRecorder);
 
         if (isFirstRecorderDeleted) {
             firstRecorder = nextRecorder;
             currentPassing.setInterval(currentPassing.getInterval() - 1);
-            smallestHcnGeneratorForDeactivateCheck = hunters.get(1).getHcnGenerator();
 
             while (firstRecorder.getIntervalLapiDistance() > 0) {
                 firstRecorder.decreaseIntervalLapiDistances();
@@ -258,16 +257,8 @@ public class RecorderBody implements Comparable<RecorderBody> {
             }
         }
 
-        if (smallestHcnGeneratorForDeactivateCheck != null) {
-            smallestHcnGeneratorForDeactivateCheck.deactivateCheck();
-        }
-
         previousRecorder = null;
         nextRecorder = null;
-        hcnGenerator.getBody().deactivate();
-        if (isFirstRecorderDeleted) {
-            TransitionNode.deleteMaintainStatic();
-        }
         hunters.clear();
     }
 
@@ -290,14 +281,7 @@ public class RecorderBody implements Comparable<RecorderBody> {
     }
 
     public void createPassingZoneAfterSurvival(Hcn factorReferenceHcn) {
-        HcnGenerator smallestHcnGeneratorForDeactivateCheck = null;
-        if (this.equals(firstRecorder)) {
-            smallestHcnGeneratorForDeactivateCheck = hunters.get(1).getHcnGenerator();
-        }
         createPassingZone(initiateHcnGeneratorsBasedOnLocalPassingZone(factorReferenceHcn));
-        if (smallestHcnGeneratorForDeactivateCheck != null) {
-            smallestHcnGeneratorForDeactivateCheck.deactivateCheck();
-        }
     }
 
     private TreeMap<Integer, HcnGenerator> initiateHcnGeneratorsBasedOnLocalPassingZone(Hcn factorReferenceHcn) {

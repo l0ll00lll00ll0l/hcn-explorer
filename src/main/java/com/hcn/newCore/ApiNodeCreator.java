@@ -46,7 +46,6 @@ public class ApiNodeCreator {
     private void createTransitionToRemove(Prime newIndex) {
         if (transitionNode.getBodyNodes().containsKey(newIndex.getIndex())) {
             transitionToRemove = transitionNode.getBodyNodes().get(newIndex.getIndex());
-            pipLower.setProved(transitionToRemove.isProved());
             pipLower.setHasHunterBody(transitionToRemove.isHasHunterBody());
             newApiNode.getBodyNodes().put(pipLower.getBodyNodeId(), pipLower);
         }
@@ -56,14 +55,14 @@ public class ApiNodeCreator {
         pipLower = BodyNode.builder().parentNode(newApiNode)
                 .value(newApiNode.indexes.get(0).getValue().pow(transitionNode.getTransitionTo()))
                 .factor(new ScientificNumber(transitionNode.getTransitionTo() + 1, 0))
-                .bodyNodeId(transitionNode.getTransitionTo()).proved(true).hasHunterBody(true).build();
+                .bodyNodeId(transitionNode.getTransitionTo()).hasHunterBody(true).build();
     }
 
     private void createHigherPip() {
         pipHigher = BodyNode.builder().parentNode(newApiNode)
                 .value(newApiNode.indexes.get(0).getValue().pow(transitionNode.getTransitionFrom()))
                 .factor(new ScientificNumber(transitionNode.getTransitionFrom() + 1, 0))
-                .bodyNodeId(transitionNode.getTransitionFrom()).proved(nextLowerTransition.isProved())
+                .bodyNodeId(transitionNode.getTransitionFrom())
                 .hasHunterBody(nextLowerTransition.isHasHunterBody()).build();
         newApiNode.getBodyNodes().put(pipHigher.getBodyNodeId(), pipHigher);
     }
@@ -88,10 +87,6 @@ public class ApiNodeCreator {
             transitionNode.getBodyNodes().remove(transitionNode.getBodyNodes().firstKey());
         }
         transitionNode.getBodyNodes().forEach((key, transition) -> {
-            transition.setValue(transition.getValue().divide(valueExcluded));
-            transition.setFactor(transition.getFactor().divide(factorExcluded));
-        });
-        transitionNode.getDeactivatedBodyNodes().forEach((key, transition) -> {
             transition.setValue(transition.getValue().divide(valueExcluded));
             transition.setFactor(transition.getFactor().divide(factorExcluded));
         });
@@ -124,40 +119,25 @@ public class ApiNodeCreator {
     }
 
     private void maintainOffspringTracking(Body bodyToRebuild, Body newBody) {
-        if (!bodyToRebuild.isDeactivated()) {
-            newBody.getParent().getOffsprings().remove(bodyToRebuild);
-            newBody.getOffsprings().add(bodyToRebuild);
-            newBody.setDeactivated(false);
-            if (!newBody.getParent().getOffsprings().contains(newBody)) {
-                newBody.getParent().getOffsprings().add(newBody);
-            }
-        } else {
-            newBody.getDeactivatedOffsprings().add(bodyToRebuild);
-            newBody.getParent().getDeactivatedOffsprings().remove(bodyToRebuild);
-            newBody.getParent().getDeactivatedOffsprings().add(newBody);
-        }
 
-        if (newBody.getParent().getOffsprings().contains(newBody) && newBody.getParent().getDeactivatedOffsprings().contains(newBody)) {
-            newBody.getParent().getDeactivatedOffsprings().remove(newBody);
+        newBody.getParent().getOffsprings().remove(bodyToRebuild);
+        newBody.getOffsprings().add(bodyToRebuild);
+        if (!newBody.getParent().getOffsprings().contains(newBody)) {
+            newBody.getParent().getOffsprings().add(newBody);
         }
     }
 
     private Body findOrCreateLocalBody(Body bodyToRebuild, BodyNode suitableNewPip) {
-        Body newBody = Body.builder().parent(bodyToRebuild.getParent()).proved(bodyToRebuild.isProved()).deactivated(bodyToRebuild.isDeactivated()).build();
+        Body newBody = Body.builder().parent(bodyToRebuild.getParent()).build();
         newBody.setValue(newBody.getParent().getValue().multiply(suitableNewPip.getValue()));
 
         if (distinctLocalBodies.containsKey(newBody.getValue())) {
             newBody = distinctLocalBodies.get(newBody.getValue());
-            if (bodyToRebuild.isProved()) { newBody.setProved(true); }
         } else {
             if (suitableNewPip.equals(pipLower)) {
                 newBody.setBodyNode(pipLower);
                 bodyToRebuild.setBodyNode(nextLowerTransition);
-                if (bodyToRebuild.isDeactivated()) {
-                    nextLowerTransition.getDeactivatedBodies().add(bodyToRebuild);
-                } else {
-                    nextLowerTransition.getActiveBodies().add(bodyToRebuild);
-                }
+                nextLowerTransition.getActiveBodies().add(bodyToRebuild);
             } else {
                 newBody.setBodyNode(pipHigher);
             }

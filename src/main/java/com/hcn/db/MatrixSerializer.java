@@ -75,11 +75,6 @@ public class MatrixSerializer {
         // There are now orphanBodies in matrix bodylists anymore, so automatic reassign of
         MatrixNode currentNode = TransitionNode.lastTransition;
         while (currentNode != null) {
-            currentNode.getDeactivatedBodyNodes().values().forEach(bodyNode -> {
-                bodyNode.getDeactivatedBodies().forEach(this::assignBodyAndHcnIds);
-                bodyNode.setTempId(++bodyNodeTempId);
-                collectedBodyNodes.add(bodyNode);
-            });
             currentNode.getBodyNodes().values().forEach(bodyNode -> {
                 bodyNode.getActiveBodies().forEach(this::assignBodyAndHcnIds);
                 bodyNode.getDeactivatedBodies().forEach(this::assignBodyAndHcnIds);
@@ -322,7 +317,7 @@ public class MatrixSerializer {
                     bodyNode.getTempId(),
                     bodyNode.getParentNode() != null ? bodyNode.getParentNode().getTempId() : "NULL",
                     bodyNode.getBodyNodeId(),
-                    bodyNode.isProved(),
+                    bodyNode.isHasHunterBody(),
                     bodyNode.getValue().getMantissa(),
                     bodyNode.getValue().getExponent(),
                     bodyNode.getFactor().getMantissa(),
@@ -378,8 +373,7 @@ public class MatrixSerializer {
                 current.getValue().getExponent(),
                 current.getFactor().getMantissa(),
                 current.getFactor().getExponent(),
-                current.isProved(),
-                current.isDeactivated(),
+                current.isExtended(),
                 current.getDbId() != null ? current.getDbId() : "NULL"));
     }
 

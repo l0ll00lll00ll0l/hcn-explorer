@@ -12,9 +12,6 @@ import java.util.ArrayList;
 public class DbBody {
     private int[] head;
     private int[] tail;
-    private Integer firstHcnLapi;
-    private Integer firstSuperiorHcnLapi;
-    private Integer firstDominatedHcnLapi;
 
     public DbBody(int[] head, int[] tail) {
         this.head = head;
@@ -37,13 +34,11 @@ public class DbBody {
         if (tail.get(tail.size() - 1) == currentBody.getBodyNode().getParentNode().getIndexes().get(0).getIndex()) {
             lastPower--;
             tail.remove(tail.size() - 1);
-
         }
 
         //carry on with apiNodes to identify last tailIndex
         while (currentBody != null) {
             int currentApiPower = currentBody.getBodyNode().getBodyNodeId();
-
             if (currentApiPower > lastPower + 1) {
                 break;
             } else {

@@ -33,7 +33,6 @@ public abstract class MatrixNode {
     protected Integer tempId = null;
     protected BodyList bodyList;
     protected final TreeMap<Integer, BodyNode> bodyNodes = new TreeMap<>();
-    protected final TreeMap<Integer, BodyNode> deactivatedBodyNodes = new TreeMap<>();
     protected final List<Prime> indexes = new ArrayList<>();
 
     public List<Prime> getIndexes() { return indexes; }
@@ -52,9 +51,12 @@ public abstract class MatrixNode {
         for (BodyNode bodyNode : bodyNodes.values()) {
             counter = counter + bodyNode.getDeactivatedBodies().size();
         }
+        /*
         for (BodyNode bodyNode : deactivatedBodyNodes.values()) {
             counter = counter + bodyNode.getDeactivatedBodies().size();
         }
+
+         */
         return counter;
     }
 
@@ -100,7 +102,6 @@ public abstract class MatrixNode {
         needsDeactivateMaintain = true;
         int nextBodyNodeId = bodyNodes.lastKey() + 1;
         BodyNode nextBodyNode = provideNextBodyNode();
-        Extension.reportExtension(nextBodyNode);
         if (ActivityCenter.isDbMode()) new MatrixExtensionActivity(nextBodyNode);
         bodyNodes.put(nextBodyNodeId, nextBodyNode);
 
@@ -123,14 +124,14 @@ public abstract class MatrixNode {
 
         if (nextMatrixNode != null) {
             nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());
-        } else {
-            //Extension.finished();
         }
+
         ActivityCenter.finishMatrixExtensionActivity();
     }
 
     private void parentDeactivationCheck(List<Body> parents) {
-        parents.stream().filter(body -> body.getOffsprings().isEmpty() && body.getDeactivatedOffsprings().isEmpty()).forEach(Body::deactivate);
+        //TODO used to be deactivate, needs test
+        parents.stream().filter(body -> body.getOffsprings().isEmpty()).forEach(Body::deletedDuringExtension);
     }
 
     protected abstract BodyNode provideNextBodyNode();

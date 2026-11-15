@@ -18,13 +18,11 @@ public class BodyList implements Iterable<Body> {
     private Body largestBody;
     private int size = 0;
     private final List<Body> successfullyAddedNewBodies = new ArrayList<>();
-    private final List<Body> dominatedSuperiorBodies = new ArrayList<>();
-    private final List<Body> dominatedDeactivatedBodies = new ArrayList<>();
+    private final List<Body> dominatedBodies = new ArrayList<>();
 
     public void mergeBodies(List<List<Body>> otherBodyList) {
         successfullyAddedNewBodies.clear();
-        dominatedSuperiorBodies.clear();
-        dominatedDeactivatedBodies.clear();
+        dominatedBodies.clear();
         List<Body> sorted = createSortedList(otherBodyList);
         List<Body> filtered = new ArrayList<>();
         ScientificNumber factorLimit = null;
@@ -74,11 +72,7 @@ public class BodyList implements Iterable<Body> {
                 Body next = ceiling.getLargerBody();
                 ceiling.setSmallerBody(null);
                 ceiling.setLargerBody(null);
-                if (ceiling.isDeactivated()) {
-                    dominatedDeactivatedBodies.add(ceiling);
-                } else {
-                    dominatedSuperiorBodies.add(ceiling);
-                }
+                dominatedBodies.add(ceiling);
                 size--;
                 ceiling = next;
             }
@@ -99,12 +93,7 @@ public class BodyList implements Iterable<Body> {
             current = newBody;
         }
 
-        dominatedSuperiorBodies.forEach(body -> {
-            body.setSmallerBody(null);
-            body.setLargerBody(null);
-            body.deletedDuringExtension();
-        });
-        dominatedDeactivatedBodies.forEach(body -> {
+        dominatedBodies.forEach(body -> {
             body.setSmallerBody(null);
             body.setLargerBody(null);
             body.deletedDuringExtension();
@@ -149,6 +138,7 @@ public class BodyList implements Iterable<Body> {
 
     public void deleteMaintain(ScientificNumber smallestPossibleExtension) {
 
+        /*
         Body bodyToDelete = smallestBody;
         while (bodyToDelete.getLargerBody() != null && bodyToDelete.getLargerBody().getValue().isSmallerThan(smallestPossibleExtension)) {
             Body nextBody = bodyToDelete.getLargerBody();
@@ -167,9 +157,13 @@ public class BodyList implements Iterable<Body> {
                     bodyToDelete.deleteDuringBodyListMaintain();
                     size--;
                 }
+            } else {
+                break;
             }
             bodyToDelete = nextBody;
         }
+
+         */
     }
 
     @Override

@@ -13,7 +13,7 @@
             <tr class="deactivated-row" th:each="hcnGenerator : ${@newCoreController.getDeactivatedHcnGenerators()}" style="display:none; background-color: #333; color: white;">
                 <td style="border-bottom: 1px solid #555;"></td>
                 <td th:if="${matrix.dbMode}" th:text="${hcnGenerator.body.dbId}" style="border-bottom: 1px solid #555;"></td>
-                <td th:text="${@newCoreController.guiString(hcnGenerator.body)}" style="border-bottom: 1px solid #555;"></td>
+                <td th:text="${hcnGenerator.toString()}" style="border-bottom: 1px solid #555;"></td>
                 <td th:if="${hcnGenerator.recorderBody != null}" th:text="${hcnGenerator.recorderBody.intervalLapiDistance}" style="border-bottom: 1px solid #555; font-weight: bold;"></td>
                 <td th:if="${hcnGenerator.recorderBody == null}" style="border-bottom: 1px solid #555; font-weight: bold;"></td>
                 <td style="border-bottom: 1px solid #555;"><span th:each="hcn, s : ${@newCoreController.getGeneratedRecorderHcns(hcnGenerator)}" th:text="${(s.first ? '' : ', ') + hcn.getStoredHcnToString()}"></span></td>
@@ -25,8 +25,8 @@
             <tr th:each="hcnGenerator, bIter : ${@newCoreController.getHcnGenerators()}">
                 <td th:text="${bIter.index}"></td>
                 <td th:if="${matrix.dbMode}" th:text="${hcnGenerator.body.dbId}"></td>
-                <td th:text="${@newCoreController.guiString(hcnGenerator.body)}"
-                    th:style="${hcnGenerator.body.isDeactivated() ? (hcnGenerator.recorderBody != null ? 'background-color: #8fbc8f;' : 'background-color: #e0e0e0;') : (hcnGenerator.recorderBody != null ? 'background-color: #90EE90;' : 'background-color: #add8e6;')}"></td>
+                <td th:text="${hcnGenerator.toString()}"
+                    th:style="${hcnGenerator.recorderBody != null ? 'background-color: #90EE90;' : 'background-color: #add8e6;'}"></td>
                 <td th:if="${hcnGenerator.recorderBody != null}" th:text="${hcnGenerator.recorderBody.intervalLapiDistance}" style="background: #333; color: white; border-bottom: 1px solid #555; font-weight: bold;"></td>
                 <td th:if="${hcnGenerator.recorderBody == null}" style="background: #333; color: white; border-bottom: 1px solid #555; font-weight: bold;"></td>
                 <td><span th:each="hcn, s : ${@newCoreController.getGeneratedRecorderHcns(hcnGenerator)}" th:text="${(s.first ? '' : ', ') + hcn.getStoredHcnToString()}"></span></td>
