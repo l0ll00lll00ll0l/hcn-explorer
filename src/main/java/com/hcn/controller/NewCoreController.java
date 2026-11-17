@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -80,17 +81,49 @@ public class NewCoreController {
         return "newcore";
     }
 
-    @GetMapping("/newcore/experimental")
-    public String experimental(Model model) {
+    @GetMapping("/bodybuffer")
+    public String bodyBuffer(Model model) {
         if (matrix == null) {
             matrix = Matrix.builder().build();
-            matrix.initializeExperimental();
+            matrix.initializeBodyBuffer();
         }
         model.addAttribute("matrix", matrix);
         model.addAttribute("logLevel", currentLogLevel);
         model.addAttribute("activeTab", activeTab);
         model.addAttribute("activeSubTab", activeSubTab);
-        return "newcore";
+        return "bodybuffer";
+    }
+
+    @GetMapping("/bodybuffer/tab")
+    public String bodyBufferTab(Model model,
+                                @RequestParam String tab,
+                                @RequestParam(defaultValue = "") String subtab,
+                                @RequestParam(defaultValue = "0") int matrixNodeIdx,
+                                @RequestParam(defaultValue = "-1") int bodyNodeId) {
+        return tab(model, tab, subtab, matrixNodeIdx, bodyNodeId, -1);
+    }
+
+    @PostMapping("/bodybuffer/prove")
+    @ResponseBody
+    public String bodyBufferProve(@RequestParam(defaultValue = "1") int count) {
+        if (matrix != null && !ActivityCenter.isProving()) {
+            new Thread(() -> matrix.proveNextBodyBuffer(count)).start();
+        }
+        return "ok";
+    }
+
+    @GetMapping("/bodybuffer/progress")
+    @ResponseBody
+    public String bodyBufferProgress() {
+        return progress();
+    }
+
+    @PostMapping("/bodybuffer/loglevel")
+    public String bodyBufferLogLevel(@RequestParam String level) {
+        currentLogLevel = level.toUpperCase();
+        LoggerContext ctx = (LoggerContext) LoggerFactory.getILoggerFactory();
+        ctx.getLogger("com.hcn.newCore").setLevel(Level.toLevel(currentLogLevel));
+        return "redirect:/bodybuffer";
     }
 
     @GetMapping("/newcore/bodynode-detail")
@@ -492,6 +525,7 @@ public class NewCoreController {
     }
 
     public List<HcnGenerator> getHcnGenerators() {
+        if (RecorderBody.getFirstRecorder() == null) {return new ArrayList<>();}
         HcnGenerator current = RecorderBody.getFirstRecorder().getHcnGenerator();
         List<HcnGenerator> bodies = new ArrayList<>();
         while (current != null) {
@@ -503,12 +537,23 @@ public class NewCoreController {
 
     public List<HcnGenerator> getDeactivatedHcnGenerators() {
         HcnGenerator current = HcnGenerator.getLastHcnGenerator();
+        if (current == null) {return new ArrayList<>();}
+
         while (current.getPreviousHcnGenerator() != null) {current = current.getPreviousHcnGenerator();}
         List<HcnGenerator> bodies = new ArrayList<>();
-        while (!current.equals(RecorderBody.getFirstRecorder().getHcnGenerator())) {
-            bodies.add(current);
-            current = current.getNextHcnGenerator();
+
+        if (RecorderBody.getFirstRecorder() != null)  {
+            while (!current.equals(RecorderBody.getFirstRecorder().getHcnGenerator())) {
+                bodies.add(current);
+                current = current.getNextHcnGenerator();
+            }
+        } else {
+            while (current != null) {
+                bodies.add(current);
+                current = current.getNextHcnGenerator();
+            }
         }
+
         return bodies;
     }
 
@@ -617,6 +662,12 @@ public class NewCoreController {
     }
 
     public record OffspringCell(String label, String bg, String color) {}
+
+    public List<OffspringCell> lifecycleCells(Body body) {
+        return body.getLifeCycle().stream()
+                .map(b -> new OffspringCell(bodyNodeLabel(b), "#333", "white"))
+                .collect(java.util.stream.Collectors.toList());
+    }
 
     public List<OffspringCell> offspringCells(Body body) {
         List<OffspringCell> cells = new ArrayList<>();

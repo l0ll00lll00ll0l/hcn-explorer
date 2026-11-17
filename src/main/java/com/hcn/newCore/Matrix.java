@@ -58,23 +58,11 @@ public class Matrix {
         }
     }
 
-    public void initializeExperimental() {
-
+    public void initializeBodyBuffer() {
         Prime.initialize();
         ApiNode.initialize();
         TransitionNode.initialize();
         Body.initialize();
-        HcnGenerator.initialize();
-        ActiveInterval.initialize();
-        ReferenceInterval.initialize();
-        RecorderBody.initialize();
-
-        lowestProvedLapiWithinInterval = 1;
-        provedCount = 2;
-
-        if (dbMode) {
-            dbInsertService.submit(ActiveInterval.getCurrentActiveInterval());
-        }
     }
 
     public void proveNextLapi(int intervalAdvancement) {
@@ -94,6 +82,12 @@ public class Matrix {
         }
         ActivityCenter.setProving(false);
         */
+    }
+
+    public void proveNextBodyBuffer(int advancement) {
+        for (int i = 0; i < advancement; i++) {
+            HcnGenerator.createHcnGeneratorsForBufferBodyMode();
+        }
     }
 
 

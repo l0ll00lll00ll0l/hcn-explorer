@@ -51,29 +51,29 @@ public class BodyNode {
     }
 
     public void deleteActiveBody(Body bodyToRemove) {
-        log.info("Removing body {}", bodyToRemove);
+        //log.info("Removing body {}", bodyToRemove);
         activeBodies.remove(bodyToRemove);
         if (activeBodies.isEmpty()) {
-            log.info("No more active bodies for {}", this);
+            //log.info("No more active bodies for {}", this);
             parentNode.bodyNodes.remove(bodyNodeId);
             if (!deactivatedBodies.isEmpty()) {
-                log.info("But there are deactivated ones");
+                //log.info("But there are deactivated ones");
                 parentNode.deactivatedBodyNodes.put(bodyNodeId, this);
             }
         }
     }
 
     public void deleteDeactivatedBody(Body deactivatedBodyToRemove) {
-        log.info("Removing deactivated body {}", deactivatedBodyToRemove);
+        //log.info("Removing deactivated body {}", deactivatedBodyToRemove);
         deactivatedBodies.remove(deactivatedBodyToRemove);
         if (deactivatedBodies.isEmpty()) {
-            log.info("No more deactivated bodies for {}", this);
+            //log.info("No more deactivated bodies for {}", this);
             parentNode.deactivatedBodyNodes.remove(bodyNodeId);
         }
     }
 
     public void deactivateBody(Body bodyToDeactivate) {
-        log.info("Deactivating body {}", bodyToDeactivate);
+        //log.info("Deactivating body {}", bodyToDeactivate);
         deactivatedBodies.add(bodyToDeactivate);
     }
 }

@@ -35,9 +35,12 @@ public class BodyList implements Iterable<Body> {
             } else {
                 if (body.getParent() != null) {
                     body.getParent().getDeletedOffsprings().add(body);
+                    body.getParent().registerUnfilteredBody(body);
                 }
             }
         }
+
+        //log.debug("BODYLIST after filter: {}", filtered);
 
         if (smallestBody == null) {
             Body previousBody = null;
@@ -69,6 +72,7 @@ public class BodyList implements Iterable<Body> {
 
             // check if newBody's factor is superior to floor's factor
             if (!newBody.getFactor().isBiggerThan(current.getFactor())) {
+                newBody.getParent().registerUnfilteredBody(newBody);
                 continue;
             }
 

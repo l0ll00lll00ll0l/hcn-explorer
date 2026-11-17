@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>HCN - New Core</title>
+    <title>HCN Generator</title>
     <style>
         body { font-family: monospace; margin: 20px; }
         .tab-bar { display: flex; gap: 4px; margin-bottom: 10px; }
@@ -33,7 +33,7 @@
 <body>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <div style="display: flex; align-items: center; gap: 12px;">
-            <h2 style="margin: 0;">HCN - New Core</h2>
+            <h2 style="margin: 0;">HCN Generator</h2>
             <form id="proveForm" style="display: flex; align-items: center; gap: 4px;">
                 <input type="number" id="proveCount" value="103" min="1" style="font-family: monospace; width: 50px; padding: 4px;">
                 <button type="submit" id="proveBtn" style="font-family: monospace; padding: 4px 12px;" th:disabled="${@activityCenter.isProving()}">Prove</button>

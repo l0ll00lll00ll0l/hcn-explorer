@@ -97,6 +97,8 @@ public class Body implements Comparable<Body>{
     private final List<Body> offsprings = new ArrayList<>();
     private final Set<Body> polledOffsprings = new HashSet<>();
     private final List<Body> deletedOffsprings = new ArrayList<>();
+    private final List<Body> lifeCycle = new ArrayList<>();
+    private OffspringState offspringState;
     @Builder.Default
     private boolean extended = false;
     @Builder.Default
@@ -148,16 +150,17 @@ public class Body implements Comparable<Body>{
 
     public void deletedDeactivatedBodyDuringExtension() {
 
-        log.info("TBH this should not really happen {}", this);
+        log.debug("TBH this should not really happen {}", this);
         bodyNode.deleteActiveBody(this);
     }
 
     public void deleteActiveBodyDuringExtension() {
 
-        log.info("deleteActiveBodyDuringExtension body {}", this);
+        log.debug("deleteActiveBodyDuringExtension body {}", this);
         if (parent != null) {
             parent.offsprings.remove(this);
             parent.deletedOffsprings.add(this);
+            offspringState = OffspringState.DOMINATED_SUPERIOR_BODY;
             if (parent.offsprings.isEmpty()) {
                 parent.deactivate();
             }
@@ -168,7 +171,7 @@ public class Body implements Comparable<Body>{
 
     public void deactivate() {
 
-        log.info("deactivating body {}", this);
+        log.debug("deactivating body {}", this);
         deactivated = true;
         bodyNode.deleteActiveBody(this);
         bodyNode.deactivateBody(this);
@@ -231,5 +234,16 @@ public class Body implements Comparable<Body>{
             hcnGenerator.getPowerGroupPowers().add(bodyNode.getBodyNodeId());
             hcnGenerator.getPowerGroupIndexes().add(0);
         }
+    }
+
+    public void registerParentAsExcluded(Body excluderOffspring) {
+        log.info("registerParentAsExcluded {} by {}", excluderOffspring, this);
+        excluderOffspring.setOffspringState(OffspringState.PARENT_EXCLUDER);
+        lifeCycle.add(excluderOffspring);
+    }
+
+    public void registerUnfilteredBody(Body unfiltered) {
+        unfiltered.setOffspringState(OffspringState.UNFILTERED);
+        lifeCycle.add(unfiltered);
     }
 }

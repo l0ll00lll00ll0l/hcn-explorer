@@ -110,7 +110,7 @@ public class Passing {
 
         while (toPrint != null && order < count) {
             order++;
-            log.debug("[{}] - {}", order, toPrint);
+            //log.debug("[{}] - {}", order, toPrint);
             toPrint = toPrint.nextPassing;
         }
     }

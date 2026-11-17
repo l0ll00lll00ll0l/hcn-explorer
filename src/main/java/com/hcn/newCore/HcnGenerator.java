@@ -32,6 +32,13 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
         }
     }
 
+    public static void createHcnGeneratorsForBufferBodyMode() {
+        Body bodyToPrepare = Body.getSmallestBufferBody();
+        lastHcnGenerator = new HcnGenerator(bodyToPrepare);
+        Body.shiftNextHcnGeneratorBody();
+        TransitionNode.getLastTransition().deletePolledBody(bodyToPrepare);
+    }
+
     public static void createHcnGenerators(RecorderBody recorderBody) {
         //log.debug("createHcnGenerators trigger: {} ----------------------", recorderBody.getHcnGenerator());
         while (lastHcnGenerator.getFactor().isSmallerThan(recorderBody.getHcnGenerator().getFactor().multiply(new ScientificNumber(2, 0)))) {

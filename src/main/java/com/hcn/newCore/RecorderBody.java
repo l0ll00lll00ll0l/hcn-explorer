@@ -311,33 +311,33 @@ public class RecorderBody implements Comparable<RecorderBody> {
     }
 
     private TreeMap<Integer, HcnGenerator> initiateHcnGeneratorsBasedOnPreviousPassingZone() {
-        log.debug("Resetting: {}", this.prayHcn);
-        log.debug("previousRecorder.prayHcn: {}", previousRecorder.prayHcn);
+        //log.debug("Resetting: {}", this.prayHcn);
+        //log.debug("previousRecorder.prayHcn: {}", previousRecorder.prayHcn);
         Prime previousBasePrime = previousRecorder.prayHcn.getLastActivePrime();
         TreeMap<Integer, HcnGenerator> hunterBodies = new TreeMap<>();
 
         for (int intervalDistanceKey = intervalLapiDistance + 1; intervalDistanceKey < previousRecorder.hunters.lastKey() + 1; intervalDistanceKey++) {
 
             HcnGenerator hunterCandidate = getHunterCandidateForIntervalDistance(intervalDistanceKey);
-            log.debug("previousRecorder.prayHcn.getFactor(): {}", previousRecorder.prayHcn.getFactor());
+            //log.debug("previousRecorder.prayHcn.getFactor(): {}", previousRecorder.prayHcn.getFactor());
             Prime hunterPrime = previousBasePrime.getPreviousPrime(intervalDistanceKey - previousRecorder.intervalLapiDistance);
             ScientificNumber hunterFactor = hunterCandidate.getHcnFactor(hunterPrime);
-            log.debug("hunterFactor: {}", hunterFactor);
+            //log.debug("hunterFactor: {}", hunterFactor);
 
             while (hunterFactor.isNotBiggerThan(previousRecorder.prayHcn.getFactor())) {
                 hunterCandidate = hunterCandidate.getNextHcnGenerator();
                 if (hunterCandidate == null) {break;}
-                log.debug("hunterCandidate: {}", hunterCandidate);
+                //log.debug("hunterCandidate: {}", hunterCandidate);
                 hunterFactor = hunterCandidate.getHcnFactor(hunterPrime);
-                log.debug("hunterFactor: {}", hunterFactor);
+                //log.debug("hunterFactor: {}", hunterFactor);
             }
-            log.debug("hunterCandidate final: {}", hunterCandidate);
+            //log.debug("hunterCandidate final: {}", hunterCandidate);
             if (hunterCandidate == null) {break;}
             hunterBodies.put(intervalDistanceKey, hunterCandidate);
 
         }
 
-        log.debug("hunterBodies: {}", hunterBodies);
+        //log.debug("hunterBodies: {}", hunterBodies);
         return hunterBodies;
     }
 
