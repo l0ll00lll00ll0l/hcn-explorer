@@ -95,8 +95,12 @@ public class Body implements Comparable<Body>{
     private ScientificNumber factor;
     private Body parent;
     private final List<Body> offsprings = new ArrayList<>();
+    private final Set<Body> polledOffsprings = new HashSet<>();
+    private final List<Body> deletedOffsprings = new ArrayList<>();
     @Builder.Default
     private boolean extended = false;
+    @Builder.Default
+    private boolean deactivated = false;
     @Builder.Default
     private Integer tempId = null;
     private Integer dbId = null;
@@ -104,9 +108,6 @@ public class Body implements Comparable<Body>{
     private Body largerBody;
     private DbBody dbBody;
 
-    public boolean isDeleted() {
-        return smallerBody == null && largerBody == null;
-    }
     public DbBody getDbBody() {
         if (dbBody == null) {
             dbBody = new DbBody(this);
@@ -145,33 +146,43 @@ public class Body implements Comparable<Body>{
         }
     }
 
-    public void deletedDuringExtension() {
-        bodyNode.getActiveBodies().remove(this);
-        if (bodyNode.getActiveBodies().isEmpty()) {
-            bodyNode.getParentNode().bodyNodes.remove(bodyNode.getBodyNodeId());
-        }
+    public void deletedDeactivatedBodyDuringExtension() {
+
+        log.info("TBH this should not really happen {}", this);
+        bodyNode.deleteActiveBody(this);
+    }
+
+    public void deleteActiveBodyDuringExtension() {
+
+        log.info("deleteActiveBodyDuringExtension body {}", this);
         if (parent != null) {
             parent.offsprings.remove(this);
+            parent.deletedOffsprings.add(this);
             if (parent.offsprings.isEmpty()) {
-                //TODO used to be deactivate, needs test
-                parent.deletedDuringExtension();
+                parent.deactivate();
+            }
+        }
+
+        bodyNode.deleteActiveBody(this);
+    }
+
+    public void deactivate() {
+
+        log.info("deactivating body {}", this);
+        deactivated = true;
+        bodyNode.deleteActiveBody(this);
+        bodyNode.deactivateBody(this);
+
+        if (parent != null) {
+            parent.offsprings.remove(this);
+            parent.deletedOffsprings.add(this);
+            if (parent.offsprings.isEmpty()) {
+                parent.deactivate();
             }
         }
     }
 
-    public void deleteDuringBodyListMaintain() {
-        bodyNode.getActiveBodies().remove(this);
-        if (bodyNode.getActiveBodies().isEmpty()) {
-            bodyNode.getParentNode().bodyNodes.remove(bodyNode.getBodyNodeId());
-        }
-        if (parent != null) {
-            parent.offsprings.remove(this);
-            if (parent.offsprings.isEmpty()) {
-                //TODO used to be deactivate, needs test
-                parent.deleteDuringBodyListMaintain();
-            }
-        }
-    }
+
 
     public void matrixMaintainCheck() {
         if (extended) { return; }

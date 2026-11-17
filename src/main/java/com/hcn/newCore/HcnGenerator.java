@@ -6,6 +6,7 @@ import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.StringJoiner;
 
@@ -26,7 +27,7 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
             Body bodyToPrepare = Body.getSmallestBufferBody();
             lastHcnGenerator = new HcnGenerator(bodyToPrepare);
             Body.shiftNextHcnGeneratorBody();
-            bodyToPrepare.deleteDuringBodyListMaintain();
+            TransitionNode.getLastTransition().deletePolledBody(bodyToPrepare);
             currentHcnGeneratorCount ++;
         }
     }
@@ -34,10 +35,11 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
     public static void createHcnGenerators(RecorderBody recorderBody) {
         //log.debug("createHcnGenerators trigger: {} ----------------------", recorderBody.getHcnGenerator());
         while (lastHcnGenerator.getFactor().isSmallerThan(recorderBody.getHcnGenerator().getFactor().multiply(new ScientificNumber(2, 0)))) {
-            lastHcnGenerator = new HcnGenerator(Body.getSmallestBufferBody());
+            Body bodyToPrepare = Body.getSmallestBufferBody();
+            lastHcnGenerator = new HcnGenerator(bodyToPrepare);
             RecorderBody.placeHunter(lastHcnGenerator);
-            Body.getSmallestBufferBody().deleteDuringBodyListMaintain();
             Body.shiftNextHcnGeneratorBody();
+            TransitionNode.getLastTransition().deletePolledBody(bodyToPrepare);
             //log.debug("  new HcnGenerator created: {}", lastHcnGenerator);
         }
         //log.debug("");
@@ -55,7 +57,6 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
     private RecorderBody recorderBody;
 
     public HcnGenerator(Body newHunterBody) {
-
         newHunterBody.createPowerGroups(this);
         createHeadAndTailArrays(newHunterBody);
         //determinePowerGroups(newHunterBody);
@@ -152,6 +153,7 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
         return powerGroupPowers + "|" + powerGroupIndexes + " - " + sb.deleteCharAt(sb.length() - 1);
 
          */
+        //return Arrays.toString(head) + "|" + Arrays.toString(tail) + " - " + dbBodyTosString();
         return dbBodyTosString();
     }
 
@@ -164,6 +166,8 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
         StringBuilder sb = new StringBuilder();
         int startingRelationIndex = 0;
         int powerGroup;
+
+        if (head.length == 0 && tail.length == 0) return "p0^1";
 
         if (head.length > 0) {
             powerGroup = head[0];

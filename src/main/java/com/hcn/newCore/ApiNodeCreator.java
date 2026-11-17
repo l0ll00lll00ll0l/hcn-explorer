@@ -90,6 +90,10 @@ public class ApiNodeCreator {
             transition.setValue(transition.getValue().divide(valueExcluded));
             transition.setFactor(transition.getFactor().divide(factorExcluded));
         });
+        transitionNode.getDeactivatedBodyNodes().forEach((key, transition) -> {
+            transition.setValue(transition.getValue().divide(valueExcluded));
+            transition.setFactor(transition.getFactor().divide(factorExcluded));
+        });
     }
 
     private BodyList rebuildBodyList() {
@@ -119,25 +123,40 @@ public class ApiNodeCreator {
     }
 
     private void maintainOffspringTracking(Body bodyToRebuild, Body newBody) {
+        if (!bodyToRebuild.isDeactivated()) {
+            newBody.getParent().getOffsprings().remove(bodyToRebuild);
+            newBody.getOffsprings().add(bodyToRebuild);
+            newBody.setDeactivated(false);
+            if (!newBody.getParent().getOffsprings().contains(newBody)) {
+                newBody.getParent().getOffsprings().add(newBody);
+            }
+        } else {
+            newBody.getPolledOffsprings().add(bodyToRebuild);
+            newBody.getParent().getPolledOffsprings().remove(bodyToRebuild);
+            newBody.getParent().getPolledOffsprings().add(newBody);
+        }
 
-        newBody.getParent().getOffsprings().remove(bodyToRebuild);
-        newBody.getOffsprings().add(bodyToRebuild);
-        if (!newBody.getParent().getOffsprings().contains(newBody)) {
-            newBody.getParent().getOffsprings().add(newBody);
+        if (newBody.getParent().getOffsprings().contains(newBody) && newBody.getParent().getPolledOffsprings().contains(newBody)) {
+            newBody.getParent().getPolledOffsprings().remove(newBody);
         }
     }
 
     private Body findOrCreateLocalBody(Body bodyToRebuild, BodyNode suitableNewPip) {
-        Body newBody = Body.builder().parent(bodyToRebuild.getParent()).build();
+        Body newBody = Body.builder().parent(bodyToRebuild.getParent()).deactivated(bodyToRebuild.isDeactivated()).extended(bodyToRebuild.isExtended()).build();
         newBody.setValue(newBody.getParent().getValue().multiply(suitableNewPip.getValue()));
 
         if (distinctLocalBodies.containsKey(newBody.getValue())) {
             newBody = distinctLocalBodies.get(newBody.getValue());
+            if (bodyToRebuild.isExtended()) { newBody.setExtended(true); }
         } else {
             if (suitableNewPip.equals(pipLower)) {
                 newBody.setBodyNode(pipLower);
                 bodyToRebuild.setBodyNode(nextLowerTransition);
-                nextLowerTransition.getActiveBodies().add(bodyToRebuild);
+                if (bodyToRebuild.isDeactivated()) {
+                    nextLowerTransition.getDeactivatedBodies().add(bodyToRebuild);
+                } else {
+                    nextLowerTransition.getActiveBodies().add(bodyToRebuild);
+                }
             } else {
                 newBody.setBodyNode(pipHigher);
             }

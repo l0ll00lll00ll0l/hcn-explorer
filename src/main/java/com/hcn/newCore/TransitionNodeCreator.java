@@ -24,13 +24,38 @@ public class TransitionNodeCreator {
     public void create() {
         TransitionNodeCreationActivity activity = ActivityCenter.isDbMode() ? new TransitionNodeCreationActivity(fixNode.bodyNodes.firstEntry().getValue().getBodyNodeId() - 1) : null;
         collectApiNodesToMove();
+        findDyingBodyChains();
         buildNewTransitionNode();
         buildTransitionBodyNodes();
         rebuildBodyList();
+        checkForDeactivateBodyNodes();
         wireNewTransitionNode();
         cleanUpOldNodes();
 
         if (activity != null) activity.finish();
+    }
+
+    private void findDyingBodyChains() {
+        fixNode.bodyList.forEach(body -> {
+            if (body.isDeactivated()) {
+                if (!offspringExistsInLastApiBodylist(body)) {
+                    body.getParent().getPolledOffsprings().clear();
+                }
+            }
+        });
+    }
+
+    private boolean offspringExistsInLastApiBodylist(Body body) {
+        Body offspring = body.getPolledOffsprings().stream().findAny().orElse(null);
+        if (offspring == null) return false;
+        if (offspring.getBodyNode().getParentNode().equals(apiNodesToMove.get(apiNodesToMove.size() - 1))) return true;
+        return offspringExistsInLastApiBodylist(offspring);
+    }
+
+    private void checkForDeactivateBodyNodes() {
+        while (newTransitionNode.bodyNodes.firstEntry().getValue().getActiveBodies().isEmpty()) {
+            newTransitionNode.deactivatedBodyNodes.put(newTransitionNode.bodyNodes.firstKey(), newTransitionNode.bodyNodes.remove(newTransitionNode.bodyNodes.firstKey()));
+        }
     }
 
     private void collectApiNodesToMove() {
@@ -63,6 +88,9 @@ public class TransitionNodeCreator {
 
         for (ApiNode apiNode : apiNodesToMove) {
             BodyNode smallestBodyNodePresent = apiNode.bodyNodes.firstEntry().getValue();
+            if (!apiNode.deactivatedBodyNodes.isEmpty()) {
+                smallestBodyNodePresent = apiNode.deactivatedBodyNodes.firstEntry().getValue();
+            }
             baseValue = baseValue.multiply(smallestBodyNodePresent.getValue());
             baseFactor = baseFactor.multiply((smallestBodyNodePresent).getFactor());
         }
@@ -96,19 +124,27 @@ public class TransitionNodeCreator {
             BodyNode transitionToUse = newTransitionNode.bodyNodes.get(transitionId);
 
             Body newBody = Body.builder().bodyNode(transitionToUse).extended(bodyToRebuild.isExtended())
+                    .deactivated(bodyToRebuild.isDeactivated())
                     .parent(parentBody).value(parentBody.getValue().multiply(transitionToUse.getValue()))
                     .factor(parentBody.getFactor().multiply(transitionToUse.getFactor())).build();
 
             Body parentBodysOffspring = getSuitableParentBody(bodyToRebuild, newTransitionNode.bodyNodes.size() - 2);
-            parentBody.getOffsprings().add(newBody);
-               transitionToUse.getActiveBodies().add(newBody);
-
+            if (!bodyToRebuild.isDeactivated()) {
+                parentBody.getOffsprings().add(newBody);
+                transitionToUse.getActiveBodies().add(newBody);
+            } else {
+                parentBody.getPolledOffsprings().add(newBody);
+                transitionToUse.getDeactivatedBodies().add(newBody);
+            }
 
             parentBody.getOffsprings().remove(parentBodysOffspring);
+            parentBody.getPolledOffsprings().remove(parentBodysOffspring);
 
             newBody.getOffsprings().addAll(bodyToRebuild.getOffsprings());
+            newBody.getPolledOffsprings().addAll(bodyToRebuild.getPolledOffsprings());
 
             bodyToRebuild.getOffsprings().forEach(offspring -> offspring.setParent(newBody));
+            bodyToRebuild.getPolledOffsprings().forEach(offspring -> offspring.setParent(newBody));
             bodyToRebuild = bodyToRebuild.getLargerBody();
             bodiesForBodyList.add(newBody);
         }

@@ -33,6 +33,7 @@ public abstract class MatrixNode {
     protected Integer tempId = null;
     protected BodyList bodyList;
     protected final TreeMap<Integer, BodyNode> bodyNodes = new TreeMap<>();
+    protected final TreeMap<Integer, BodyNode> deactivatedBodyNodes = new TreeMap<>();
     protected final List<Prime> indexes = new ArrayList<>();
 
     public List<Prime> getIndexes() { return indexes; }
@@ -51,25 +52,28 @@ public abstract class MatrixNode {
         for (BodyNode bodyNode : bodyNodes.values()) {
             counter = counter + bodyNode.getDeactivatedBodies().size();
         }
-        /*
+
         for (BodyNode bodyNode : deactivatedBodyNodes.values()) {
             counter = counter + bodyNode.getDeactivatedBodies().size();
         }
 
-         */
+
         return counter;
     }
 
     public void deleteMaintain() {
+        /*
         if (needsDeactivateMaintain) {
             ScientificNumber smallestPossibleExtension = getSmallestPossibleExtension();
-            bodyList.deleteMaintain(smallestPossibleExtension);
+            bodyList.deleteMaintainold(smallestPossibleExtension);
             needsDeactivateMaintain = false;
         }
 
         if (prevMatrixNode != null) {
             prevMatrixNode.deleteMaintain();
         }
+
+         */
         //ActivityCenter.submitBodyDeletionEvent(deactivatedHcnGenerators);
     }
 
@@ -130,8 +134,17 @@ public abstract class MatrixNode {
     }
 
     private void parentDeactivationCheck(List<Body> parents) {
-        //TODO used to be deactivate, needs test
-        parents.stream().filter(body -> body.getOffsprings().isEmpty()).forEach(Body::deletedDuringExtension);
+        parents.stream().filter(body -> body.getOffsprings().isEmpty()).forEach(Body::deactivate);
+    }
+
+    public void deletePolledBody(Body bodyToRemove) {
+        log.info("deletePolledBody: {}", bodyToRemove);
+        if (bodyToRemove.getParent() != null) {
+            bodyToRemove.getParent().getOffsprings().remove(bodyToRemove);
+            bodyToRemove.getParent().getPolledOffsprings().add(bodyToRemove);
+        }
+        bodyList.deleteMaintain(bodyToRemove);
+        if (prevMatrixNode != null) {prevMatrixNode.deletePolledBody(bodyToRemove.getParent());}
     }
 
     protected abstract BodyNode provideNextBodyNode();

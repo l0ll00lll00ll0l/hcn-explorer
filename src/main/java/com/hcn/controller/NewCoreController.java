@@ -103,6 +103,7 @@ public class NewCoreController {
         List<MatrixNode> chain = getMatrixChain();
         MatrixNode node = chain.get(activeMatrixNodeIdx);
         BodyNode selected = node.getBodyNodes().get(activeBodyNodeId);
+        if (selected == null) selected = node.getDeactivatedBodyNodes().get(activeBodyNodeId);
         if (selected == null && !node.getBodyNodes().isEmpty()) selected = node.getBodyNodes().firstEntry().getValue();
         model.addAttribute("selectedBodyNode", selected);
         return "tabs/bodynode-detail :: content";
@@ -125,7 +126,7 @@ public class NewCoreController {
                 model.addAttribute("matrixChain", getMatrixChain());
             }
             case "matrix" -> {}
-            case "bodynodes" -> {
+            case "bodylist" -> {
                 activeBodyList = matrixNodeIdx == -1 ? (activeBodyList == -1 ? chain.size() - 1 : activeBodyList) : matrixNodeIdx;
                 model.addAttribute("activeBodyList", activeBodyList);
             }
@@ -137,6 +138,7 @@ public class NewCoreController {
                 model.addAttribute("bodyNodesPerMatrixNode", getBodyNodesPerMatrixNodeJson(chain));
                 MatrixNode node = chain.get(activeMatrixNodeIdx);
                 BodyNode selected = node.getBodyNodes().get(activeBodyNodeId);
+                if (selected == null) selected = node.getDeactivatedBodyNodes().get(activeBodyNodeId);
                 if (selected == null && !node.getBodyNodes().isEmpty()) selected = node.getBodyNodes().firstEntry().getValue();
                 model.addAttribute("selectedBodyNode", selected);
                 model.addAttribute("activeBodyNodes", getBodyNodesForNode(node));
@@ -202,6 +204,7 @@ public class NewCoreController {
     private List<BodyNode> getBodyNodesForNode(MatrixNode node) {
         List<BodyNode> result = new ArrayList<>();
         node.getBodyNodes().descendingMap().values().forEach(result::add);
+        node.getDeactivatedBodyNodes().descendingMap().values().forEach(result::add);
         return result;
     }
 
@@ -215,7 +218,12 @@ public class NewCoreController {
             for (var entry : node.getBodyNodes().descendingMap().entrySet()) {
                 if (!first) sb.append(","); first = false;
                 BodyNode bn = entry.getValue();
-                sb.append("{\"id\":").append(bn.getBodyNodeId()).append(",\"value\":\"").append(bn.getValue()).append("\",\"factor\":\"").append(bn.getFactor()).append("\"}");
+                sb.append("{\"id\":").append(bn.getBodyNodeId()).append(",\"deactivated\":false,\"value\":\"").append(bn.getValue()).append("\",\"factor\":\"").append(bn.getFactor()).append("\"}");
+            }
+            for (var entry : node.getDeactivatedBodyNodes().descendingMap().entrySet()) {
+                if (!first) sb.append(","); first = false;
+                BodyNode bn = entry.getValue();
+                sb.append("{\"id\":").append(bn.getBodyNodeId()).append(",\"deactivated\":true,\"value\":\"").append(bn.getValue()).append("\",\"factor\":\"").append(bn.getFactor()).append("\"}");
             }
             sb.append("]");
         }
@@ -432,7 +440,7 @@ public class NewCoreController {
     }
 
     public record BufferBodyCell(String label, String color) {}
-    public record BufferBodyRow(int index, List<BufferBodyCell> nodeColumns, String value, String factor, boolean extended) {}
+    public record BufferBodyRow(int index, List<BufferBodyCell> nodeColumns, String value, String factor, boolean deactivated, boolean extended) {}
 
     public List<BufferBodyRow> getBufferBodies() {
         List<MatrixNode> chain = getMatrixChain();
@@ -460,7 +468,7 @@ public class NewCoreController {
                 }
                 nodeColumns.add(new BufferBodyCell(b.getBodyNode().toString(), color));
             }
-            rows.add(new BufferBodyRow(i++, nodeColumns, current.getValue().toString(), current.getFactor().toString(), current.isExtended()));
+            rows.add(new BufferBodyRow(i++, nodeColumns, current.getValue().toString(), current.getFactor().toString(), current.isDeactivated(), current.isExtended()));
             current = current.getLargerBody();
         }
         return rows;
@@ -469,6 +477,9 @@ public class NewCoreController {
     public List<Body> getBodies(BodyList bodyList) {
         List<Body> bodies = new ArrayList<>();
         Body current = bodyList.getSmallestBody();
+        while (current.getSmallerBody() != null) {
+            current = current.getSmallerBody();
+        }
         while (current != null) {
             bodies.add(current);
             current = current.getLargerBody();
@@ -605,19 +616,21 @@ public class NewCoreController {
         return result;
     }
 
-    public String offspringString(Body body) {
-        if (body.getOffsprings().isEmpty()) return "";
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < body.getOffsprings().size(); i++) {
-            if (i > 0) sb.append(", ");
-            BodyNode node = body.getOffsprings().get(i).getBodyNode();
-            if (node.getParentNode() instanceof ApiNode) {
-                sb.append(node.getBodyNodeId());
-            } else {
-                sb.append("t").append(node.getBodyNodeId());
-            }
-        }
-        return sb.toString();
+    public record OffspringCell(String label, String bg, String color) {}
+
+    public List<OffspringCell> offspringCells(Body body) {
+        List<OffspringCell> cells = new ArrayList<>();
+        body.getPolledOffsprings().stream()
+                .sorted(Comparator.comparingInt(b -> b.getBodyNode().getBodyNodeId()))
+                .forEach(b -> cells.add(new OffspringCell(bodyNodeLabel(b), "#333", "white")));
+        body.getOffsprings().forEach(b -> cells.add(new OffspringCell(bodyNodeLabel(b), "#90EE90", "black")));
+        body.getDeletedOffsprings().forEach(b -> cells.add(new OffspringCell(bodyNodeLabel(b), "#e53935", "white")));
+        return cells;
+    }
+
+    private String bodyNodeLabel(Body b) {
+        BodyNode node = b.getBodyNode();
+        return node.getParentNode() instanceof ApiNode ? String.valueOf(node.getBodyNodeId()) : "t" + node.getBodyNodeId();
     }
 
     public String matrixNodeLabel(MatrixNode node) {
@@ -635,6 +648,12 @@ public class NewCoreController {
 
     public int totalActiveBodyCount(MatrixNode node) {
         return node.getBodyNodes().values().stream().mapToInt(bn -> bn.getActiveBodies().size()).sum();
+    }
+
+    public int totalDeactivatedBodyCount(MatrixNode node) {
+        int fromActive = node.getBodyNodes().values().stream().mapToInt(bn -> bn.getDeactivatedBodies().size()).sum();
+        int fromDeactivated = node.getDeactivatedBodyNodes().values().stream().mapToInt(bn -> bn.getDeactivatedBodies().size()).sum();
+        return fromActive + fromDeactivated;
     }
 
 
