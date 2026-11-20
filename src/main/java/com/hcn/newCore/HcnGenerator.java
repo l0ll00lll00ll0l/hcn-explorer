@@ -17,8 +17,10 @@ import java.util.StringJoiner;
 public class HcnGenerator implements Comparable<HcnGenerator> {
 
     private static HcnGenerator lastHcnGenerator = null;
-    public static void reset() { lastHcnGenerator = null; }
+    private static int idCounter = 0;
+    public static void reset() { lastHcnGenerator = null; idCounter = 0; }
     public static HcnGenerator getLastHcnGenerator() { return lastHcnGenerator; }
+    public static int getIdCounter() { return idCounter; }
 
     public static void initialize() {
 
@@ -27,7 +29,7 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
             Body bodyToPrepare = Body.getSmallestBufferBody();
             lastHcnGenerator = new HcnGenerator(bodyToPrepare);
             Body.shiftNextHcnGeneratorBody();
-            TransitionNode.getLastTransition().deletePolledBody(bodyToPrepare);
+            bodyToPrepare.deletePolledBody();
             currentHcnGeneratorCount ++;
         }
     }
@@ -36,7 +38,7 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
         Body bodyToPrepare = Body.getSmallestBufferBody();
         lastHcnGenerator = new HcnGenerator(bodyToPrepare);
         Body.shiftNextHcnGeneratorBody();
-        TransitionNode.getLastTransition().deletePolledBody(bodyToPrepare);
+        bodyToPrepare.deletePolledBody();
     }
 
     public static void createHcnGenerators(RecorderBody recorderBody) {
@@ -46,12 +48,13 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
             lastHcnGenerator = new HcnGenerator(bodyToPrepare);
             RecorderBody.placeHunter(lastHcnGenerator);
             Body.shiftNextHcnGeneratorBody();
-            TransitionNode.getLastTransition().deletePolledBody(bodyToPrepare);
+            bodyToPrepare.deletePolledBody();
             //log.debug("  new HcnGenerator created: {}", lastHcnGenerator);
         }
         //log.debug("");
     }
 
+    private final int id = ++idCounter;
     private final List<Integer> powerGroupPowers = new ArrayList<>();
     private final List<Integer> powerGroupIndexes = new ArrayList<>();
     private int[] head;

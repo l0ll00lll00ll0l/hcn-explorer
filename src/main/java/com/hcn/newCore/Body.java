@@ -150,7 +150,7 @@ public class Body implements Comparable<Body>{
 
     public void deletedDeactivatedBodyDuringExtension() {
 
-        log.debug("TBH this should not really happen {}", this);
+        log.info("TBH this should not really happen {}", this);
         bodyNode.deleteActiveBody(this);
     }
 
@@ -160,8 +160,9 @@ public class Body implements Comparable<Body>{
         if (parent != null) {
             parent.offsprings.remove(this);
             parent.deletedOffsprings.add(this);
-            offspringState = OffspringState.DOMINATED_SUPERIOR_BODY;
-            if (parent.offsprings.isEmpty()) {
+            this.setOffspringState(OffspringState.DOMINATED_SUPERIOR_BODY);
+            log.debug("deleteActiveBodyDuringExtension parent {} body {}", parent, this);
+            if (!parent.deactivated && parent.offsprings.isEmpty()) {
                 parent.deactivate();
             }
         }
@@ -171,7 +172,11 @@ public class Body implements Comparable<Body>{
 
     public void deactivate() {
 
-        log.debug("deactivating body {}", this);
+        if (deactivated) {
+            log.info("silent deactivating body {}", this);
+            return;
+        }
+        log.info("deactivating body {}", this);
         deactivated = true;
         bodyNode.deleteActiveBody(this);
         bodyNode.deactivateBody(this);
@@ -179,6 +184,8 @@ public class Body implements Comparable<Body>{
         if (parent != null) {
             parent.offsprings.remove(this);
             parent.deletedOffsprings.add(this);
+            offspringState = OffspringState.UNEXTENDABLE;
+            log.debug("deactivate parent {} body {}", parent, this);
             if (parent.offsprings.isEmpty()) {
                 parent.deactivate();
             }
@@ -236,14 +243,15 @@ public class Body implements Comparable<Body>{
         }
     }
 
-    public void registerParentAsExcluded(Body excluderOffspring) {
-        log.info("registerParentAsExcluded {} by {}", excluderOffspring, this);
-        excluderOffspring.setOffspringState(OffspringState.PARENT_EXCLUDER);
-        lifeCycle.add(excluderOffspring);
-    }
+    public void deletePolledBody() {
 
-    public void registerUnfilteredBody(Body unfiltered) {
-        unfiltered.setOffspringState(OffspringState.UNFILTERED);
-        lifeCycle.add(unfiltered);
+        bodyNode.getParentNode().getBodyList().deleteMaintain(this);
+        if (parent != null) {
+            parent.getOffsprings().remove(this);
+            setOffspringState(OffspringState.POLLED_OFFSPRING);
+            parent.getPolledOffsprings().add(this);
+            if (parent.getOffsprings().isEmpty()) {
+                parent.deletePolledBody(); }
+            }
     }
 }

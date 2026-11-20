@@ -34,13 +34,13 @@ public class BodyList implements Iterable<Body> {
                 factorLimit = body.getFactor();
             } else {
                 if (body.getParent() != null) {
+                    log.debug("filter parent {} body {}", body.getParent(), body);
+                    body.setOffspringState(OffspringState.UNFILTERED);
+                    body.getParent().getLifeCycle().add(body);
                     body.getParent().getDeletedOffsprings().add(body);
-                    body.getParent().registerUnfilteredBody(body);
                 }
             }
         }
-
-        //log.debug("BODYLIST after filter: {}", filtered);
 
         if (smallestBody == null) {
             Body previousBody = null;
@@ -72,8 +72,13 @@ public class BodyList implements Iterable<Body> {
 
             // check if newBody's factor is superior to floor's factor
             if (!newBody.getFactor().isBiggerThan(current.getFactor())) {
-                newBody.getParent().registerUnfilteredBody(newBody);
+                log.debug("merge parent {} body {}", newBody.getParent(), newBody);
+                newBody.getParent().getDeletedOffsprings().add(newBody);
+                newBody.setOffspringState(OffspringState.UNMERGED);
+                newBody.getParent().getLifeCycle().add(newBody);
                 continue;
+            } else {
+                //newBody.getParent().getDeletedOffsprings().add(newBody);
             }
 
             // remove dominated bodies above the insertion point
@@ -99,6 +104,8 @@ public class BodyList implements Iterable<Body> {
             newBody.getBodyNode().getActiveBodies().add(newBody);
             if (newBody.getParent() != null) {
                 newBody.getParent().getOffsprings().add(newBody);
+                newBody.setOffspringState(OffspringState.ACTIVE_BUFFER);
+                newBody.getParent().getLifeCycle().add(newBody);
             }
             successfullyAddedNewBodies.add(newBody);
             size++;
@@ -120,6 +127,9 @@ public class BodyList implements Iterable<Body> {
     }
 
     public List<Body> createSortedList(List<List<Body>> otherBodyList) {
+        if (otherBodyList.isEmpty()) {
+            return new ArrayList<>();
+        }
         List<Body> previousSortedList = new ArrayList<>(otherBodyList.get(0));
 
         for (int i = 1; i < otherBodyList.size(); i++) {
@@ -190,7 +200,7 @@ public class BodyList implements Iterable<Body> {
 
         // instead of seleting polled, it gets deactivated
 
-        if (bodyToRemove.getOffsprings().isEmpty()) {
+
             if (!smallestBody.equals(bodyToRemove)) {
                 bodyToRemove.setDeactivated(true);
                 bodyToRemove.getBodyNode().deactivateBody(bodyToRemove);
@@ -213,7 +223,7 @@ public class BodyList implements Iterable<Body> {
                 size--;
                 deactivatedBodyToRemove = nextBody;
             }
-        }
+
     }
 
     @Override

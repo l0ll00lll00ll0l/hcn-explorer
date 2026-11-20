@@ -133,32 +133,17 @@ public abstract class MatrixNode {
         } else {
             int bodyNodeIdLowLimit = determineBodyNodeIdLowLimit();
 
-            Body parentCandidate = prevMatrixNode.bodyList.getSmallestBody();
-            List<Body> newBodyCandidates = new ArrayList<>();
-            while (parentCandidate != null) {
-                if (parentCandidate.getBodyNode().getBodyNodeId() >= bodyNodeIdLowLimit) {
-                    newBodyCandidates.add(createBody(nextBodyNode, parentCandidate));
-
-                } else {
-                    //parentCandidate.registerParentAsExcluded(createBody(nextBodyNode, parentCandidate));
-                }
-            }
-
-
             List<BodyNode> excludedPips = prevMatrixNode.bodyNodes.values().stream()
-                    .filter(pip -> pip.getBodyNodeId() < bodyNodeIdLowLimit)
-                    .collect(Collectors.toList());
+                    .filter(pip -> pip.getBodyNodeId() < bodyNodeIdLowLimit).collect(Collectors.toList());
             List<Body> excludedParents = bodyList.createSortedList(excludedPips.stream()
                     .map(pip -> new ArrayList<>(pip.getActiveBodies())).collect(Collectors.toList()));
             excludedParents.forEach(parentBody -> {
-                Body excluderOffspring = Body.builder().bodyNode(nextBodyNode).parent(parentBody)
-                        .value(nextBodyNode.getValue().multiply(parentBody.getValue()))
-                        .factor(nextBodyNode.getFactor().multiply(parentBody.getFactor())).build();
-                parentBody.registerParentAsExcluded(excluderOffspring);
+                Body excluder = createBody(nextBodyNode, parentBody);
+                log.debug("exclude parent {} body {}", parentBody, excluder);
+                parentBody.getDeletedOffsprings().add(excluder);
+                excluder.setOffspringState(OffspringState.PARENT_EXCLUDER);
+                parentBody.getLifeCycle().add(excluder);
             });
-
-             /*
-
 
             List<Body> parents = bodyList.createSortedList(prevMatrixNode.bodyNodes.values().stream()
                     .filter(pip -> pip.getBodyNodeId() >= bodyNodeIdLowLimit)
@@ -167,13 +152,8 @@ public abstract class MatrixNode {
                             .value(nextBodyNode.getValue().multiply(parentBody.getValue()))
                             .factor(nextBodyNode.getFactor().multiply(parentBody.getFactor())).build())
                     .collect(Collectors.toList()));
-
-            */
-            bodyList.mergeBodies(List.of(newBodyCandidates));
-            //parentDeactivationCheck(parents);
-
-            //log.debug("newBodyCandidates: {}", newBodyCandidates);
-            //log.debug("------------------------------------------------------------------------------------------------------");
+            bodyList.mergeBodies(createdBodies);
+            parentDeactivationCheck(parents);
         }
 
         if (nextMatrixNode != null) {
@@ -197,6 +177,7 @@ public abstract class MatrixNode {
         //log.info("deletePolledBody: {}", bodyToRemove);
         if (bodyToRemove.getParent() != null) {
             bodyToRemove.getParent().getOffsprings().remove(bodyToRemove);
+            bodyToRemove.setOffspringState(OffspringState.POLLED_OFFSPRING);
             bodyToRemove.getParent().getPolledOffsprings().add(bodyToRemove);
         }
         bodyList.deleteMaintain(bodyToRemove);

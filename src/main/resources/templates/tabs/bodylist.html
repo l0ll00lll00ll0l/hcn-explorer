@@ -25,7 +25,7 @@
             <b>Largest Body:</b> <span th:text="${node.bodyList != null and node.bodyList.largestBody != null ? node.bodyList.largestBody.value : '-'}"></span>
         </div>
         <table class="level-table">
-            <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Extended</th><th>Deact</th><th>ActiveHcnGen</th><th>Offsprings</th><th>LifeCycle</th></tr></thead>
+            <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Extended</th><th>Deact</th><th>ActiveHcnGen</th><th>Offsprings</th></tr></thead>
             <tbody>
                 <tr th:if="${node instanceof T(com.hcn.newCore.ApiNode) and node.bodyList != null}"
                     th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}"

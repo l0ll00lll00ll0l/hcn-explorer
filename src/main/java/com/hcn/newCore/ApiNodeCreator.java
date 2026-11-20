@@ -136,8 +136,13 @@ public class ApiNodeCreator {
             newBody.getParent().getPolledOffsprings().add(newBody);
         }
 
-        if (newBody.getParent().getOffsprings().contains(newBody) && newBody.getParent().getPolledOffsprings().contains(newBody)) {
+        if (newBody.getParent().getOffsprings().contains(newBody)) {
             newBody.getParent().getPolledOffsprings().remove(newBody);
+        }
+        newBody.getParent().getLifeCycle().remove(bodyToRebuild);
+        newBody.getLifeCycle().add(bodyToRebuild);
+        if (!newBody.getParent().getLifeCycle().contains(newBody)) {
+            newBody.getParent().getLifeCycle().add(newBody);
         }
     }
 

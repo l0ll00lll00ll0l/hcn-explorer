@@ -58,6 +58,25 @@ public class Matrix {
         }
     }
 
+    public void initializeExperimental() {
+
+        Prime.initialize();
+        ApiNode.initialize();
+        TransitionNode.initialize();
+        Body.initialize();
+        HcnGenerator.initialize();
+        ActiveInterval.initialize();
+        ReferenceInterval.initialize();
+        RecorderBody.initialize();
+
+        lowestProvedLapiWithinInterval = 1;
+        provedCount = 2;
+
+        if (dbMode) {
+            dbInsertService.submit(ActiveInterval.getCurrentActiveInterval());
+        }
+    }
+
     public void initializeBodyBuffer() {
         Prime.initialize();
         ApiNode.initialize();
