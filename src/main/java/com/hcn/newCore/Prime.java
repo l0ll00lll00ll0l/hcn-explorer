@@ -32,14 +32,11 @@ public class Prime {
     }
 
     public static void initialize() {
-        Prime fakePreviousPrime = Prime.builder().index(-1).intValue(1).value(new ScientificNumber(2, -1))
-                .previousPrime(null).factorMultiplier(new ScientificNumber(0.25, 0)).valueMultiplier(new ScientificNumber((double) 1 / 3, 0)).build();
-        firstPrime = Prime.builder().index(0).intValue(2).value(new ScientificNumber(2, 0)).previousPrime(fakePreviousPrime)
+        firstPrime = Prime.builder().index(0).intValue(2).value(new ScientificNumber(2, 0)).previousPrime(null)
                 .valueMultiplier(new ScientificNumber((double) 1 / 3, 0)).factorMultiplier(new ScientificNumber(0.5, 0)).build();
         largestPrime = Prime.builder().index(1).intValue(3).value(new ScientificNumber(3, 0)).previousPrime(firstPrime).nextPrime(null)
                 .valueMultiplier(new ScientificNumber(1, 0)).factorMultiplier(new ScientificNumber(1, 0)).build();
         firstPrime.setNextPrime(largestPrime);
-        //getPrime( 1);
     }
 
     @Override

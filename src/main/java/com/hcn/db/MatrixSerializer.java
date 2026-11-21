@@ -71,21 +71,6 @@ public class MatrixSerializer {
         }
     }
 
-    private void reassignMatrixObjects(Matrix matrix) {
-        // There are now orphanBodies in matrix bodylists anymore, so automatic reassign of
-        MatrixNode currentNode = TransitionNode.lastTransition;
-        while (currentNode != null) {
-            currentNode.getBodyNodes().values().forEach(bodyNode -> {
-                bodyNode.getActiveBodies().forEach(this::assignBodyAndHcnIds);
-                bodyNode.getDeactivatedBodies().forEach(this::assignBodyAndHcnIds);
-                bodyNode.setTempId(++bodyNodeTempId);
-                collectedBodyNodes.add(bodyNode);
-            });
-            currentNode.setTempId(++matrixNodeTempId);
-            collectedMatrixNodes.add(currentNode);
-            currentNode = currentNode.getPrevMatrixNode();
-        }
-    }
 
     private void resetHcnGeneratorHcns(Matrix matrix) {
         Body hcnGenerator = TransitionNode.lastTransition.getBodyList().getSmallestBody();
@@ -317,12 +302,11 @@ public class MatrixSerializer {
                     bodyNode.getTempId(),
                     bodyNode.getParentNode() != null ? bodyNode.getParentNode().getTempId() : "NULL",
                     bodyNode.getBodyNodeId(),
-                    bodyNode.isHasHunterBody(),
+                    //bodyNode.isHasHunterBody(),
                     bodyNode.getValue().getMantissa(),
                     bodyNode.getValue().getExponent(),
                     bodyNode.getFactor().getMantissa(),
-                    bodyNode.getFactor().getExponent(),
-                    bodyNode.isActive()));
+                    bodyNode.getFactor().getExponent()));
         }
         return bodyNodeSb.toString();
     }
@@ -373,7 +357,7 @@ public class MatrixSerializer {
                 current.getValue().getExponent(),
                 current.getFactor().getMantissa(),
                 current.getFactor().getExponent(),
-                current.isExtended(),
+                //current.isExtended(),
                 current.getDbId() != null ? current.getDbId() : "NULL"));
     }
 

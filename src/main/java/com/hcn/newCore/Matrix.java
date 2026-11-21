@@ -82,6 +82,7 @@ public class Matrix {
         ApiNode.initialize();
         TransitionNode.initialize();
         Body.initialize();
+        HcnGenerator.initialize();
     }
 
     public void proveNextLapi(int intervalAdvancement) {

@@ -8,6 +8,8 @@ import java.util.TreeMap;
 @Slf4j
 public class ApiNodeCreator {
 
+    /*
+
     private final ApiNode parentApiNode;
     private final TransitionNode transitionNode;
     private ApiNode newApiNode;
@@ -46,7 +48,7 @@ public class ApiNodeCreator {
     private void createTransitionToRemove(Prime newIndex) {
         if (transitionNode.getBodyNodes().containsKey(newIndex.getIndex())) {
             transitionToRemove = transitionNode.getBodyNodes().get(newIndex.getIndex());
-            pipLower.setHasHunterBody(transitionToRemove.isHasHunterBody());
+            //pipLower.setHasHunterBody(transitionToRemove.isHasHunterBody());
             newApiNode.getBodyNodes().put(pipLower.getBodyNodeId(), pipLower);
         }
     }
@@ -55,7 +57,9 @@ public class ApiNodeCreator {
         pipLower = BodyNode.builder().parentNode(newApiNode)
                 .value(newApiNode.indexes.get(0).getValue().pow(transitionNode.getTransitionTo()))
                 .factor(new ScientificNumber(transitionNode.getTransitionTo() + 1, 0))
-                .bodyNodeId(transitionNode.getTransitionTo()).hasHunterBody(true).build();
+                .bodyNodeId(transitionNode.getTransitionTo())
+                //.hasHunterBody(true)
+                .build();
     }
 
     private void createHigherPip() {
@@ -63,7 +67,8 @@ public class ApiNodeCreator {
                 .value(newApiNode.indexes.get(0).getValue().pow(transitionNode.getTransitionFrom()))
                 .factor(new ScientificNumber(transitionNode.getTransitionFrom() + 1, 0))
                 .bodyNodeId(transitionNode.getTransitionFrom())
-                .hasHunterBody(nextLowerTransition.isHasHunterBody()).build();
+                //.hasHunterBody(nextLowerTransition.isHasHunterBody())
+                .build();
         newApiNode.getBodyNodes().put(pipHigher.getBodyNodeId(), pipHigher);
     }
 
@@ -115,53 +120,56 @@ public class ApiNodeCreator {
     private void distinctParentsMaintain() {
         distinctLocalBodies.values().forEach(localBody -> {
             if (!localBody.getOffsprings().isEmpty()) {
-                localBody.getBodyNode().getActiveBodies().add(localBody);
+                //localBody.getBodyNode().getActiveBodies().add(localBody);
             } else {
-                localBody.getBodyNode().getDeactivatedBodies().add(localBody);
+                //localBody.getBodyNode().getDeactivatedBodies().add(localBody);
             }
         });
     }
 
     private void maintainOffspringTracking(Body bodyToRebuild, Body newBody) {
-        if (!bodyToRebuild.isDeactivated()) {
+        //if (!bodyToRebuild.isDeactivated()) {
             newBody.getParent().getOffsprings().remove(bodyToRebuild);
             newBody.getOffsprings().add(bodyToRebuild);
-            newBody.setDeactivated(false);
+            //newBody.setDeactivated(false);
             if (!newBody.getParent().getOffsprings().contains(newBody)) {
                 newBody.getParent().getOffsprings().add(newBody);
             }
-        } else {
-            newBody.getPolledOffsprings().add(bodyToRebuild);
-            newBody.getParent().getPolledOffsprings().remove(bodyToRebuild);
-            newBody.getParent().getPolledOffsprings().add(newBody);
-        }
+        //} else {
+            //newBody.getPolledOffsprings().add(bodyToRebuild);
+            //newBody.getParent().getPolledOffsprings().remove(bodyToRebuild);
+            //newBody.getParent().getPolledOffsprings().add(newBody);
+        //}
 
         if (newBody.getParent().getOffsprings().contains(newBody)) {
-            newBody.getParent().getPolledOffsprings().remove(newBody);
+            //newBody.getParent().getPolledOffsprings().remove(newBody);
         }
-        newBody.getParent().getLifeCycle().remove(bodyToRebuild);
-        newBody.getLifeCycle().add(bodyToRebuild);
-        if (!newBody.getParent().getLifeCycle().contains(newBody)) {
-            newBody.getParent().getLifeCycle().add(newBody);
-        }
+        //newBody.getParent().getLifeCycle().remove(bodyToRebuild);
+        //newBody.getLifeCycle().add(bodyToRebuild);
+        //if (!newBody.getParent().getLifeCycle().contains(newBody)) {
+            //newBody.getParent().getLifeCycle().add(newBody);
+        //}
     }
 
     private Body findOrCreateLocalBody(Body bodyToRebuild, BodyNode suitableNewPip) {
-        Body newBody = Body.builder().parent(bodyToRebuild.getParent()).deactivated(bodyToRebuild.isDeactivated()).extended(bodyToRebuild.isExtended()).build();
+        Body newBody = Body.builder().parent(bodyToRebuild.getParent())
+                //.deactivated(bodyToRebuild.isDeactivated())
+                //.extended(bodyToRebuild.isExtended())
+                .build();
         newBody.setValue(newBody.getParent().getValue().multiply(suitableNewPip.getValue()));
 
         if (distinctLocalBodies.containsKey(newBody.getValue())) {
             newBody = distinctLocalBodies.get(newBody.getValue());
-            if (bodyToRebuild.isExtended()) { newBody.setExtended(true); }
+            //if (bodyToRebuild.isExtended()) { newBody.setExtended(true); }
         } else {
             if (suitableNewPip.equals(pipLower)) {
                 newBody.setBodyNode(pipLower);
                 bodyToRebuild.setBodyNode(nextLowerTransition);
-                if (bodyToRebuild.isDeactivated()) {
-                    nextLowerTransition.getDeactivatedBodies().add(bodyToRebuild);
-                } else {
-                    nextLowerTransition.getActiveBodies().add(bodyToRebuild);
-                }
+                //if (bodyToRebuild.isDeactivated()) {
+                    //nextLowerTransition.getDeactivatedBodies().add(bodyToRebuild);
+                //} else {
+                    //nextLowerTransition.getActiveBodies().add(bodyToRebuild);
+                //}
             } else {
                 newBody.setBodyNode(pipHigher);
             }
@@ -192,4 +200,7 @@ public class ApiNodeCreator {
         bodyList.setSize(counter);
         return bodyList;
     }
+
+     */
+
 }

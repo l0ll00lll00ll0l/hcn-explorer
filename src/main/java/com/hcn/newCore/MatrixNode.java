@@ -1,7 +1,5 @@
 package com.hcn.newCore;
 
-import com.hcn.event.ActivityCenter;
-import com.hcn.event.MatrixExtensionActivity;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
@@ -9,8 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -18,176 +14,25 @@ import java.util.stream.Collectors;
 @Slf4j
 public abstract class MatrixNode {
 
-    public static void deleteMaintainStatic() {
-        TransitionNode.getLastTransition().deleteMaintain();
-
-        ApiNode apiToTransitionCandidate = ApiNode.getLastApiNode();
-        while (apiToTransitionCandidate != null) {
-            apiToTransitionCandidate.transitionNodeTriggerCheck();
-            apiToTransitionCandidate = (ApiNode) apiToTransitionCandidate.getPrevMatrixNode();
-        }
-    }
-
-    protected MatrixNode prevMatrixNode = null;
-    protected MatrixNode nextMatrixNode= null;
-    protected Integer tempId = null;
+    protected MatrixNode prevMatrixNode;
+    protected MatrixNode nextMatrixNode;
+    protected Integer tempId;
     protected BodyList bodyList;
-    protected final TreeMap<Integer, BodyNode> bodyNodes = new TreeMap<>();
-    protected final TreeMap<Integer, BodyNode> deactivatedBodyNodes = new TreeMap<>();
+    protected BodyNode nextBodyNode;
+    protected ScientificNumber factorLimit;
+    protected BodyNode smallestActiveBodyNode;
+    protected BodyNode largestActiveBodyNode;
     protected final List<Prime> indexes = new ArrayList<>();
 
     public List<Prime> getIndexes() { return indexes; }
-    protected boolean needsDeactivateMaintain = false;
 
-    public int getNonDeactivatedCount() {
-        int counter = 0;
-        for (BodyNode bodyNode : bodyNodes.values()) {
-            counter = counter + bodyNode.getActiveBodies().size();
-        }
-        return counter;
-    }
-
-    public int getDeactivatedCount() {
-        int counter = 0;
-        for (BodyNode bodyNode : bodyNodes.values()) {
-            counter = counter + bodyNode.getDeactivatedBodies().size();
-        }
-
-        for (BodyNode bodyNode : deactivatedBodyNodes.values()) {
-            counter = counter + bodyNode.getDeactivatedBodies().size();
-        }
-
-
-        return counter;
-    }
-
-    public void deleteMaintain() {
-        /*
-        if (needsDeactivateMaintain) {
-            ScientificNumber smallestPossibleExtension = getSmallestPossibleExtension();
-            bodyList.deleteMaintainold(smallestPossibleExtension);
-            needsDeactivateMaintain = false;
-        }
-
-        if (prevMatrixNode != null) {
-            prevMatrixNode.deleteMaintain();
-        }
-
-         */
-        //ActivityCenter.submitBodyDeletionEvent(deactivatedHcnGenerators);
-    }
-
-    protected BodyNode getLargestHasHunterBodyNode() {
-        if (bodyNodes.get(bodyNodes.lastKey()).isHasHunterBody()) {return bodyNodes.get(bodyNodes.lastKey());}
-        return bodyNodes.get(bodyNodes.lastKey() - 1);
-    }
-
-    public void generateNewBodies(List<Body> incomingParents) {
-        needsDeactivateMaintain = false;
-
-
-        final List<List<Body>> createdBodies2 = new ArrayList<>();
-        for (int i = 0; i < bodyNodes.size(); i++) {
-            createdBodies2.add(new ArrayList<>());
-        }
-        for (Body incomingParent : incomingParents) {
-            for (int i = 0; i < bodyNodes.size(); i++) {
-                BodyNode bodyNodeLocal = bodyNodes.get(i + bodyNodes.firstKey());
-                createdBodies2.get(i).add(createBody(bodyNodeLocal, incomingParent));
-            }
-        }
-
-         /*
-
-        List<List<Body>> createdBodies = bodyNodes.values().stream()
-                .map(bodyNode -> incomingParents.stream()
-                        .map(previousBody -> Body.builder().bodyNode(bodyNode).parent(previousBody)
-                                .value(bodyNode.getValue().multiply(previousBody.getValue()))
-                                .factor(bodyNode.getFactor().multiply(previousBody.getFactor())).build())
-                        .collect(Collectors.toList()))
-                .collect(Collectors.toList());
-
-
-          */
-        bodyList.mergeBodies(createdBodies2);
-        //parentDeactivationCheck(incomingParents);
-
-        if (nextMatrixNode != null) {
-            nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());
-        } else {
-            //Extension.finished();
-        }
-    }
-
-    public void createNextBodyNode() {
-        needsDeactivateMaintain = true;
-        int nextBodyNodeId = bodyNodes.lastKey() + 1;
-        BodyNode nextBodyNode = provideNextBodyNode();
-        if (ActivityCenter.isDbMode()) new MatrixExtensionActivity(nextBodyNode);
-        bodyNodes.put(nextBodyNodeId, nextBodyNode);
-
-        List<List<Body>> createdBodies;
-        if (prevMatrixNode == null) {
-            createdBodies = List.of(List.of(Body.builder().bodyNode(nextBodyNode).parent(null).value(nextBodyNode.getValue()).factor(nextBodyNode.getFactor()).build()));
-            bodyList.mergeBodies(createdBodies);
-        } else {
-            int bodyNodeIdLowLimit = determineBodyNodeIdLowLimit();
-
-            List<BodyNode> excludedPips = prevMatrixNode.bodyNodes.values().stream()
-                    .filter(pip -> pip.getBodyNodeId() < bodyNodeIdLowLimit).collect(Collectors.toList());
-            List<Body> excludedParents = bodyList.createSortedList(excludedPips.stream()
-                    .map(pip -> new ArrayList<>(pip.getActiveBodies())).collect(Collectors.toList()));
-            excludedParents.forEach(parentBody -> {
-                Body excluder = createBody(nextBodyNode, parentBody);
-                log.debug("exclude parent {} body {}", parentBody, excluder);
-                parentBody.getDeletedOffsprings().add(excluder);
-                excluder.setOffspringState(OffspringState.PARENT_EXCLUDER);
-                parentBody.getLifeCycle().add(excluder);
-            });
-
-            List<Body> parents = bodyList.createSortedList(prevMatrixNode.bodyNodes.values().stream()
-                    .filter(pip -> pip.getBodyNodeId() >= bodyNodeIdLowLimit)
-                    .map(pip -> new ArrayList<>(pip.getActiveBodies())).collect(Collectors.toList()));
-            createdBodies = List.of(parents.stream().map(parentBody -> Body.builder().bodyNode(nextBodyNode).parent(parentBody)
-                            .value(nextBodyNode.getValue().multiply(parentBody.getValue()))
-                            .factor(nextBodyNode.getFactor().multiply(parentBody.getFactor())).build())
-                    .collect(Collectors.toList()));
-            bodyList.mergeBodies(createdBodies);
-            parentDeactivationCheck(parents);
-        }
-
-        if (nextMatrixNode != null) {
-            nextMatrixNode.generateNewBodies(bodyList.getSuccessfullyAddedNewBodies());
-        }
-
-        ActivityCenter.finishMatrixExtensionActivity();
-    }
-
-    private static Body createBody(BodyNode nextBodyNode, Body parentCandidate) {
-        return Body.builder().bodyNode(nextBodyNode).parent(parentCandidate)
-                .value(nextBodyNode.getValue().multiply(parentCandidate.getValue()))
-                .factor(nextBodyNode.getFactor().multiply(parentCandidate.getFactor())).build();
-    }
-
-    private void parentDeactivationCheck(List<Body> parents) {
-        parents.stream().filter(body -> body.getOffsprings().isEmpty()).forEach(Body::deactivate);
-    }
-
-    public void deletePolledBody(Body bodyToRemove) {
-        //log.info("deletePolledBody: {}", bodyToRemove);
-        if (bodyToRemove.getParent() != null) {
-            bodyToRemove.getParent().getOffsprings().remove(bodyToRemove);
-            bodyToRemove.setOffspringState(OffspringState.POLLED_OFFSPRING);
-            bodyToRemove.getParent().getPolledOffsprings().add(bodyToRemove);
-        }
-        bodyList.deleteMaintain(bodyToRemove);
-        if (prevMatrixNode != null) {prevMatrixNode.deletePolledBody(bodyToRemove.getParent());}
+    public BodyNode getBodyNode(int bodyNodeId) {
+        if (bodyNodeId < smallestActiveBodyNode.getBodyNodeId()) {return null;}
+        BodyNode walker = smallestActiveBodyNode;
+        while (walker != null && walker.getBodyNodeId() < bodyNodeId) {walker = walker.getLargerBodyNode();}
+        return walker;
     }
 
     protected abstract BodyNode provideNextBodyNode();
-    protected abstract int determineBodyNodeIdLowLimit();
-    protected abstract ScientificNumber determineDeactivationLimitMultiplier();
-    public abstract ScientificNumber getSmallestPossibleExtension();
-    protected abstract ScientificNumber getValurForNextMatrixExtension(int bodyNodeId);
-    public abstract void extensionCheck();
+    public abstract void generateBodies(ScientificNumber factorLimit);
 }

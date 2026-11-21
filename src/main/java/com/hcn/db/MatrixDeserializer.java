@@ -106,7 +106,7 @@ public class MatrixDeserializer {
                     .factor(new ScientificNumber(factorMantissa, factorExponent))
                     .build();
             bodyNodeMap.put(id, bodyNode);
-            parentNode.getBodyNodes().put(bodyNodeId, bodyNode);
+            //parentNode.getBodyNodes().put(bodyNodeId, bodyNode);
         });
     }
 
@@ -125,7 +125,7 @@ public class MatrixDeserializer {
                     .bodyNode(bodyNodeId != null ? bodyNodeMap.get(bodyNodeId) : null)
                     .value(new ScientificNumber(valueMantissa, valueExponent))
                     .factor(new ScientificNumber(factorMantissa, factorExponent))
-                    .extended(proved)
+                    //.extended(proved)
                     .build();
             bodyMap.put(id, body);
         });
@@ -283,7 +283,7 @@ public class MatrixDeserializer {
     private void buildActiveBodies() {
         for (Body body : bodyMap.values()) {
             if (body.getBodyNode() == null) continue; // deleted body
-            body.getBodyNode().getActiveBodies().add(body);
+            //body.getBodyNode().getActiveBodies().add(body);
         }
     }
 

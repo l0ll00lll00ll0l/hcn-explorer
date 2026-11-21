@@ -5,7 +5,10 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -16,29 +19,14 @@ import java.util.TreeSet;
 public class BodyNode {
 
     private final MatrixNode parentNode;
-    private final int bodyNodeId;
-    @Builder.Default
-    private boolean hasHunterBody = false;
+    private int bodyNodeId;
+    private BodyNode smallerBodyNode;
+    private BodyNode largerBodyNode;
     private ScientificNumber value;
     private ScientificNumber factor;
-    private final TreeSet<Body> activeBodies = new TreeSet<>();
-    private final Set<Body> deactivatedBodies = new HashSet<>();
+    private Body lastParentProvider;
     @Builder.Default
     private Integer tempId = null;
-
-    public boolean isDeactivated() {
-        return parentNode.deactivatedBodyNodes.containsValue(this);
-    }
-
-    public void extensionCheck() {
-        if (hasHunterBody) { return; }
-        hasHunterBody = true;
-        parentNode.extensionCheck();
-    }
-
-    public boolean isActive() {
-        return parentNode.bodyNodes.containsValue(this);
-    }
 
     @Override
     public String toString() {
@@ -46,34 +34,24 @@ public class BodyNode {
         else {return "t" + bodyNodeId;}
     }
 
-    public boolean isBodyNodeLastActive() {
-        return parentNode.bodyNodes.lastEntry().getValue() == this;
-    }
-
-    public void deleteActiveBody(Body bodyToRemove) {
-        //log.info("Removing body {}", bodyToRemove);
-        activeBodies.remove(bodyToRemove);
-        if (activeBodies.isEmpty()) {
-            //log.info("No more active bodies for {}", this);
-            parentNode.bodyNodes.remove(bodyNodeId);
-            if (!deactivatedBodies.isEmpty()) {
-                //log.info("But there are deactivated ones");
-                parentNode.deactivatedBodyNodes.put(bodyNodeId, this);
-            }
+    public List<Body> generateBodies(ScientificNumber factorLimit) {
+        
+        List<Body> factorLimitBodies = new ArrayList<>();
+        log.info("generateBodies: factorLimit = {}, factor: {}", factorLimit, factor);
+        ScientificNumber parentFactorLimit = factorLimit.divide(factor);
+        log.info("generateBodies: parentFactorLimit = {}", parentFactorLimit);
+        while (lastParentProvider.getLargerBody() != null && lastParentProvider.getLargerBody().getFactor().isNotBiggerThan(parentFactorLimit)) {
+            lastParentProvider = lastParentProvider.getLargerBody();
+            factorLimitBodies.add(createBody());
         }
+        return factorLimitBodies;
     }
 
-    public void deleteDeactivatedBody(Body deactivatedBodyToRemove) {
-        //log.info("Removing deactivated body {}", deactivatedBodyToRemove);
-        deactivatedBodies.remove(deactivatedBodyToRemove);
-        if (deactivatedBodies.isEmpty()) {
-            //log.info("No more deactivated bodies for {}", this);
-            parentNode.deactivatedBodyNodes.remove(bodyNodeId);
-        }
-    }
-
-    public void deactivateBody(Body bodyToDeactivate) {
-        //log.info("Deactivating body {}", bodyToDeactivate);
-        deactivatedBodies.add(bodyToDeactivate);
+    private Body createBody() {
+        Body newBody = Body.builder().bodyNode(this).parent(lastParentProvider)
+                .value(this.getValue().multiply(lastParentProvider.getValue()))
+                .factor(this.getFactor().multiply(lastParentProvider.getFactor())).build();
+        lastParentProvider.getOffsprings().add(newBody);
+        return newBody;
     }
 }

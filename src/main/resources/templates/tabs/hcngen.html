@@ -5,6 +5,7 @@
     <label style="font-size: 12px; display: block; margin: 0;">
         <input type="checkbox" id="showDeactivatedRecorder" onclick="toggleDeactivated(this)"> Show deactivated RecorderBody
     </label>
+    <span style="font-size: 12px;">smallestBufferBody: <b th:text="${T(com.hcn.newCore.Body).getSmallestBufferBody() != null ? T(com.hcn.newCore.Body).getSmallestBufferBody() : 'null'}"></b></span>
     <table class="level-table" style="margin-top: 0;">
         <thead>
             <tr><th>#</th><th th:if="${matrix.dbMode}">dbId</th><th>Body</th><th>Depth</th><th>recorder hcns</th><th>generated Hcns</th></tr>

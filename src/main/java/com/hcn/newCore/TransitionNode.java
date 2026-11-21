@@ -5,6 +5,8 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.TreeSet;
+
 @Getter
 @Setter
 @SuperBuilder
@@ -14,32 +16,49 @@ public class TransitionNode extends MatrixNode{
     public static TransitionNode lastTransition;
     public static TransitionNode getLastTransition() {return lastTransition;}
     public static void reset() { lastTransition = null; }
+    private static Body matrixMaintainLimitBody;
+    public static Body getMatrixMaintainLimitBody() {return matrixMaintainLimitBody;}
 
     public static TransitionNode initialize() {
+
+        Body b1 = ApiNode.getLastApiNode().bodyList.getSmallestBody();
         lastTransition = TransitionNode.builder().transitionFrom(2).transitionTo(1).build();
         lastTransition.indexes.add(Prime.getFirstPrime().getNextPrime());
         BodyNode t1 = BodyNode.builder().parentNode(lastTransition).bodyNodeId(1)
-                .value(new ScientificNumber(1, 0))
-                .factor(new ScientificNumber(1, 0)).hasHunterBody(true).build();
-        lastTransition.getBodyNodes().put(1, t1);
-        BodyNode t2 = BodyNode.builder()
+                .value(new ScientificNumber(3, 0))
+                .factor(new ScientificNumber(2, 0)).lastParentProvider(b1).build();
+        lastTransition.smallestActiveBodyNode = t1;
+        lastTransition.largestActiveBodyNode = t1;
+        lastTransition.nextBodyNode = BodyNode.builder()
                 .parentNode(lastTransition).bodyNodeId(2).value(new ScientificNumber(9, 0))
-                .factor(new ScientificNumber(3, 0)).hasHunterBody(false).build();
-        lastTransition.getBodyNodes().put(2, t2);
+                .factor(new ScientificNumber(3, 0)).lastParentProvider(null).build();
+        lastTransition.factorLimit = new ScientificNumber(3,0);
 
         ApiNode.getLastApiNode().setNextMatrixNode(lastTransition);
         lastTransition.setPrevMatrixNode(ApiNode.getLastApiNode());
+
+        Body b11 = Body.builder().bodyNode(t1).parent(b1).smallerBody(null).largerBody(null)
+                .value(new ScientificNumber(6, 0)).factor(new ScientificNumber(4, 0)).build();
+        lastTransition.setBodyList(BodyList.builder().smallestBody(b11).largestBody(b11).size(1).build());
+        matrixMaintainLimitBody = b11;
         return lastTransition;
     }
 
     private final int transitionFrom;
     private final int transitionTo;
 
+    public static void matrixMaintainOnBufferBodies() {
+        while (matrixMaintainLimitBody.getLargerBody() != null) {
+            matrixMaintainLimitBody = matrixMaintainLimitBody.getLargerBody();
+            matrixMaintainLimitBody.matrixMaintainCheck();
+        }
+    }
+
     @Override
     protected BodyNode provideNextBodyNode() {
-        return BodyNode.builder().parentNode(this).bodyNodeId(bodyNodes.lastKey() + 1)
-                .value(bodyNodes.get(bodyNodes.lastKey()).getValue().multiply(indexes.get(indexes.size() - 1).getValue()))
-                .factor(bodyNodes.get(bodyNodes.lastKey()).getFactor().multiply(new ScientificNumber((double) (transitionFrom + 1) / (transitionTo + 1), 0)))
+        return BodyNode.builder().parentNode(this).bodyNodeId(largestActiveBodyNode.getBodyNodeId() + 1)
+                .value(largestActiveBodyNode.getValue().multiply(indexes.get(indexes.size() - 1).getValue()))
+                .factor(largestActiveBodyNode.getFactor().multiply(new ScientificNumber((double) (transitionFrom + 1) / (transitionTo + 1), 0)))
                 .build();
     }
 
@@ -52,53 +71,51 @@ public class TransitionNode extends MatrixNode{
     }
 
     @Override
-    protected int determineBodyNodeIdLowLimit() {
-        return transitionFrom;
-    }
+    public void generateBodies(ScientificNumber factorLimit) {
 
-    @Override
-    protected ScientificNumber determineDeactivationLimitMultiplier() {
-        return  indexes.stream().filter(prime -> prime.getIndex() == bodyNodes.firstKey() + 1).findFirst().get().getValue();
-    }
+        nextBodyNodeActivationCheck(factorLimit);
 
-    @Override
-    public ScientificNumber getSmallestPossibleExtension() {
-        Prime nextprime;
-        if (nextMatrixNode == null) {
-            nextprime = Prime.getPrime(bodyNodes.lastKey() + 1);
-        } else {
-            nextprime = nextMatrixNode.indexes.get(0);
+        TreeSet<Body> generatedBodies = new TreeSet<>();
+        BodyNode bodyProvider = smallestActiveBodyNode;
+        while (bodyProvider != null) {
+            generatedBodies.addAll(bodyProvider.generateBodies(factorLimit));
+            bodyProvider = bodyProvider.getLargerBodyNode();
         }
-        ScientificNumber localextensionSmallest = bodyNodes.lastEntry().getValue().getValue().multiply(nextprime.getValue());
 
-        ScientificNumber valueForLocalExtension = prevMatrixNode.getValurForNextMatrixExtension(transitionFrom);
-        localextensionSmallest = localextensionSmallest.multiply(valueForLocalExtension);
-        ScientificNumber prevExtensionSmallest = prevMatrixNode.getSmallestPossibleExtension().multiply(bodyNodes.firstEntry().getValue().getValue());
-        if (prevExtensionSmallest.isSmallerThan(localextensionSmallest)) {
-            return prevExtensionSmallest;
-        } else {
-            return localextensionSmallest;
+        log.info("Generated {} bodies", generatedBodies);
+        log.info("getLargestBody {}", bodyList.getLargestBody());
+
+        ScientificNumber oldFactorLimit = bodyList.getLargestBody().getFactor();
+        for (Body generatedBody : generatedBodies) {
+            if (generatedBody.getFactor().isBiggerThan(oldFactorLimit)) {
+                oldFactorLimit = generatedBody.getFactor();
+                bodyList.getLargestBody().setLargerBody(generatedBody);
+                generatedBody.setSmallerBody(bodyList.getLargestBody());
+                bodyList.setLargestBody(generatedBody);
+            }
         }
     }
 
-    @Override
-    protected ScientificNumber getValurForNextMatrixExtension(int bodyNodeId) {
-        return bodyNodes.firstEntry().getValue().getValue().multiply(prevMatrixNode.getValurForNextMatrixExtension(transitionFrom));
-    }
-
-    @Override
-    public void extensionCheck() {
-        Prime newPrime;
-        if (nextMatrixNode == null) {
-            newPrime = Prime.getPrime(getLastPrime().getIndex() + 1);
-            Prime.recalculateAllMultipliers(newPrime);
-        } else {
-            newPrime = ((TransitionNode) nextMatrixNode).releaseFirstIndex();
+    private void nextBodyNodeActivationCheck(ScientificNumber factorLimit) {
+        if (nextBodyNode.getLastParentProvider() == null) {
+            if (prevMatrixNode instanceof ApiNode) {
+                Body parentCandidate = prevMatrixNode.bodyList.getSmallestBody();
+                while (parentCandidate != null && parentCandidate.getBodyNode().getBodyNodeId() < transitionFrom) {
+                    parentCandidate = parentCandidate.getLargerBody();
+                }
+                nextBodyNode.setLastParentProvider(parentCandidate);
+            }
         }
-        prepareNodeForBodyNodeCreation(newPrime);
-        createNextBodyNode();
+
+        ScientificNumber smallestFactor = nextBodyNode.getLastParentProvider().getFactor().multiply(nextBodyNode.getFactor());
+        if (smallestFactor.isNotBiggerThan(factorLimit)) {
+            log.debug("YES smallestFactor: {}, factorLimit: {}", smallestFactor, factorLimit);
+        } else {
+            log.debug("NO smallestFactor: {}, factorLimit: {}", smallestFactor, factorLimit);
+        }
     }
 
+    /*
     private Prime releaseFirstIndex() {
         ScientificNumber valueExcluded = new ScientificNumber(Math.pow(indexes.get(0).getIntValue(), transitionFrom), 0);
         ScientificNumber factorExcluded = new ScientificNumber(transitionFrom + 1, 0);
@@ -131,6 +148,8 @@ public class TransitionNode extends MatrixNode{
         }
     }
 
+     */
+
     @Override
     public String toString() {
         return "TransitionNode{" +
@@ -138,5 +157,18 @@ public class TransitionNode extends MatrixNode{
                 ", transitionTo=" + transitionTo +
                 ", indexes=" + indexes +
                 '}';
+    }
+
+    public ScientificNumber recalculateAfterFirstIndexSteal() {
+        ScientificNumber valueExcluded = new ScientificNumber(Math.pow(indexes.get(0).getIntValue(), transitionFrom), 0);
+        ScientificNumber factorExcluded = new ScientificNumber(transitionFrom + 1, 0);
+
+        BodyNode activeTransition = smallestActiveBodyNode;
+        while (activeTransition != null) {
+            activeTransition.setValue(activeTransition.getValue().divide(valueExcluded));
+            activeTransition.setFactor(activeTransition.getFactor().divide(factorExcluded));
+            activeTransition = activeTransition.getLargerBodyNode();
+        }
+        return factorExcluded;
     }
 }

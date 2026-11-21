@@ -24,21 +24,29 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
 
     public static void initialize() {
 
-        int currentHcnGeneratorCount = 0;
-        while (currentHcnGeneratorCount < 6) {
-            Body bodyToPrepare = Body.getSmallestBufferBody();
-            lastHcnGenerator = new HcnGenerator(bodyToPrepare);
-            Body.shiftNextHcnGeneratorBody();
-            bodyToPrepare.deletePolledBody();
-            currentHcnGeneratorCount ++;
-        }
+        Body bodyToPrepare = Body.getSmallestBufferBody();
+        lastHcnGenerator = new HcnGenerator(bodyToPrepare);
+        bodyToPrepare.matrixMaintainCheck();
+        ScientificNumber factorLimit = new ScientificNumber(6, 0);
+        TransitionNode.getLastTransition().generateBodies(factorLimit);
+        Body.setSmallestBufferBody(bodyToPrepare.getLargerBody());
+        //TODO i think comment line below and remove from here
+        TransitionNode.matrixMaintainOnBufferBodies();
     }
 
     public static void createHcnGeneratorsForBufferBodyMode() {
+        //TODO i think uncomment line below for final place
+        //TransitionNode.matrixMaintainOnBufferBodies();
+        ScientificNumber factorLimit = lastHcnGenerator.getFactor().multiply(new ScientificNumber(2, 0));
+        log.info("createHcnGeneratorsForBufferBodyMode - factorLimit: {}", factorLimit);
+        TransitionNode.getLastTransition().generateBodies(factorLimit);
+        /*
         Body bodyToPrepare = Body.getSmallestBufferBody();
         lastHcnGenerator = new HcnGenerator(bodyToPrepare);
         Body.shiftNextHcnGeneratorBody();
-        bodyToPrepare.deletePolledBody();
+
+         */
+        //bodyToPrepare.deletePolledBody();
     }
 
     public static void createHcnGenerators(RecorderBody recorderBody) {
@@ -48,7 +56,7 @@ public class HcnGenerator implements Comparable<HcnGenerator> {
             lastHcnGenerator = new HcnGenerator(bodyToPrepare);
             RecorderBody.placeHunter(lastHcnGenerator);
             Body.shiftNextHcnGeneratorBody();
-            bodyToPrepare.deletePolledBody();
+            //bodyToPrepare.deletePolledBody();
             //log.debug("  new HcnGenerator created: {}", lastHcnGenerator);
         }
         //log.debug("");

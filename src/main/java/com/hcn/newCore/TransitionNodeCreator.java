@@ -10,6 +10,7 @@ import java.util.List;
 @Slf4j
 public class TransitionNodeCreator {
 
+    /*
     private final ApiNode fixNode;
     private ApiNode apiNodeToTurnIntoTransition;
     private TransitionNode newTransitionNode;
@@ -24,11 +25,11 @@ public class TransitionNodeCreator {
     public void create() {
         TransitionNodeCreationActivity activity = ActivityCenter.isDbMode() ? new TransitionNodeCreationActivity(fixNode.bodyNodes.firstEntry().getValue().getBodyNodeId() - 1) : null;
         collectApiNodesToMove();
-        findDyingBodyChains();
+        //findDyingBodyChains();
         buildNewTransitionNode();
         buildTransitionBodyNodes();
         rebuildBodyList();
-        checkForDeactivateBodyNodes();
+        //checkForDeactivateBodyNodes();
         wireNewTransitionNode();
         cleanUpOldNodes();
 
@@ -57,6 +58,8 @@ public class TransitionNodeCreator {
             newTransitionNode.deactivatedBodyNodes.put(newTransitionNode.bodyNodes.firstKey(), newTransitionNode.bodyNodes.remove(newTransitionNode.bodyNodes.firstKey()));
         }
     }
+
+
 
     private void collectApiNodesToMove() {
 
@@ -97,7 +100,8 @@ public class TransitionNodeCreator {
 
         BodyNode newSmallestTransition = BodyNode.builder().parentNode(newTransitionNode)
                 .bodyNodeId(fixNode.indexes.get(0).getIndex() + 1).value(baseValue).factor(baseFactor)
-                .hasHunterBody(fixNode.getBodyNodes().get(fixNode.getBodyNodes().lastKey()).isHasHunterBody()).build();
+                //.hasHunterBody(fixNode.getBodyNodes().get(fixNode.getBodyNodes().lastKey()).isHasHunterBody())
+                .build();
         newTransitionNode.bodyNodes.put(newSmallestTransition.getBodyNodeId(), newSmallestTransition);
 
         for (ApiNode apiNode : apiNodesToMove) {
@@ -105,14 +109,16 @@ public class TransitionNodeCreator {
             baseFactor = baseFactor.multiply(new ScientificNumber((double) (newTransitionNode.getTransitionFrom() + 1) / (newTransitionNode.getTransitionTo() + 1), 0));
             newTransitionNode.bodyNodes.put(apiNode.indexes.get(0).getIndex() + 1, BodyNode.builder().parentNode(newTransitionNode)
                     .bodyNodeId(apiNode.indexes.get(0).getIndex() + 1).value(baseValue).factor(baseFactor)
-                    .hasHunterBody(apiNode.getBodyNodes().get(apiNode.getBodyNodes().lastKey()).isHasHunterBody()).build());
+                    //.hasHunterBody(apiNode.getBodyNodes().get(apiNode.getBodyNodes().lastKey()).isHasHunterBody())
+                    .build());
         }
 
         deactivatedTransition = BodyNode.builder().parentNode(newTransitionNode)
                 .bodyNodeId(newSmallestTransition.getBodyNodeId() - 1)
                 .value(newSmallestTransition.getValue().divide(fixNode.indexes.get(0).getValue()))
                 .factor(newSmallestTransition.getFactor().divide(new ScientificNumber((double) (newTransitionNode.getTransitionFrom() + 1) / (newTransitionNode.getTransitionTo() + 1), 0)))
-                .hasHunterBody(true).build();
+                //.hasHunterBody(true)
+                .build();
         newTransitionNode.bodyNodes.put(deactivatedTransition.getBodyNodeId(), deactivatedTransition);
     }
 
@@ -123,28 +129,29 @@ public class TransitionNodeCreator {
             int transitionId = getTransitionIdForBody(bodyToRebuild);
             BodyNode transitionToUse = newTransitionNode.bodyNodes.get(transitionId);
 
-            Body newBody = Body.builder().bodyNode(transitionToUse).extended(bodyToRebuild.isExtended())
-                    .deactivated(bodyToRebuild.isDeactivated())
+            Body newBody = Body.builder().bodyNode(transitionToUse)
+                    //.extended(bodyToRebuild.isExtended())
+                    //.deactivated(bodyToRebuild.isDeactivated())
                     .parent(parentBody).value(parentBody.getValue().multiply(transitionToUse.getValue()))
                     .factor(parentBody.getFactor().multiply(transitionToUse.getFactor())).build();
 
             Body parentBodysOffspring = getSuitableParentBody(bodyToRebuild, newTransitionNode.bodyNodes.size() - 2);
-            if (!bodyToRebuild.isDeactivated()) {
+            //if (!bodyToRebuild.isDeactivated()) {
                 parentBody.getOffsprings().add(newBody);
-                transitionToUse.getActiveBodies().add(newBody);
-            } else {
-                parentBody.getPolledOffsprings().add(newBody);
-                transitionToUse.getDeactivatedBodies().add(newBody);
-            }
+                //transitionToUse.getActiveBodies().add(newBody);
+            //} else {
+                //parentBody.getPolledOffsprings().add(newBody);
+                //transitionToUse.getDeactivatedBodies().add(newBody);
+            //}
 
             parentBody.getOffsprings().remove(parentBodysOffspring);
-            parentBody.getPolledOffsprings().remove(parentBodysOffspring);
+            //parentBody.getPolledOffsprings().remove(parentBodysOffspring);
 
             newBody.getOffsprings().addAll(bodyToRebuild.getOffsprings());
-            newBody.getPolledOffsprings().addAll(bodyToRebuild.getPolledOffsprings());
+            //newBody.getPolledOffsprings().addAll(bodyToRebuild.getPolledOffsprings());
 
             bodyToRebuild.getOffsprings().forEach(offspring -> offspring.setParent(newBody));
-            bodyToRebuild.getPolledOffsprings().forEach(offspring -> offspring.setParent(newBody));
+            //bodyToRebuild.getPolledOffsprings().forEach(offspring -> offspring.setParent(newBody));
             bodyToRebuild = bodyToRebuild.getLargerBody();
             bodiesForBodyList.add(newBody);
         }
@@ -202,4 +209,6 @@ public class TransitionNodeCreator {
         bodyList.setSize(counter);
         return bodyList;
     }
+
+     */
 }

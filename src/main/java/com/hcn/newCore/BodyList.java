@@ -36,8 +36,6 @@ public class BodyList implements Iterable<Body> {
                 if (body.getParent() != null) {
                     log.debug("filter parent {} body {}", body.getParent(), body);
                     body.setOffspringState(OffspringState.UNFILTERED);
-                    body.getParent().getLifeCycle().add(body);
-                    body.getParent().getDeletedOffsprings().add(body);
                 }
             }
         }
@@ -73,9 +71,7 @@ public class BodyList implements Iterable<Body> {
             // check if newBody's factor is superior to floor's factor
             if (!newBody.getFactor().isBiggerThan(current.getFactor())) {
                 log.debug("merge parent {} body {}", newBody.getParent(), newBody);
-                newBody.getParent().getDeletedOffsprings().add(newBody);
                 newBody.setOffspringState(OffspringState.UNMERGED);
-                newBody.getParent().getLifeCycle().add(newBody);
                 continue;
             } else {
                 //newBody.getParent().getDeletedOffsprings().add(newBody);
@@ -87,11 +83,11 @@ public class BodyList implements Iterable<Body> {
                 Body next = ceiling.getLargerBody();
                 ceiling.setSmallerBody(null);
                 ceiling.setLargerBody(null);
-                if (ceiling.isDeactivated()) {
+                //if (ceiling.isDeactivated()) {
                     dominatedDeactivatedBodies.add(ceiling);
-                } else {
+                //} else {
                     dominatedSuperiorBodies.add(ceiling);
-                }
+                //}
                 size--;
                 ceiling = next;
             }
@@ -101,11 +97,11 @@ public class BodyList implements Iterable<Body> {
             newBody.setSmallerBody(current);
             newBody.setLargerBody(ceiling);
             if (ceiling != null) ceiling.setSmallerBody(newBody);
-            newBody.getBodyNode().getActiveBodies().add(newBody);
+            //newBody.getBodyNode().getActiveBodies().add(newBody);
             if (newBody.getParent() != null) {
                 newBody.getParent().getOffsprings().add(newBody);
                 newBody.setOffspringState(OffspringState.ACTIVE_BUFFER);
-                newBody.getParent().getLifeCycle().add(newBody);
+                //newBody.getParent().getLifeCycle().add(newBody);
             }
             successfullyAddedNewBodies.add(newBody);
             size++;
@@ -117,7 +113,7 @@ public class BodyList implements Iterable<Body> {
         dominatedSuperiorBodies.forEach(body -> {
             body.setSmallerBody(null);
             body.setLargerBody(null);
-            body.deleteActiveBodyDuringExtension();
+            //body.deleteActiveBodyDuringExtension();
         });
         dominatedDeactivatedBodies.forEach(body -> {
             body.setSmallerBody(null);
@@ -202,27 +198,27 @@ public class BodyList implements Iterable<Body> {
 
 
             if (!smallestBody.equals(bodyToRemove)) {
-                bodyToRemove.setDeactivated(true);
-                bodyToRemove.getBodyNode().deactivateBody(bodyToRemove);
-                bodyToRemove.getBodyNode().deleteActiveBody(bodyToRemove);
+                //bodyToRemove.setDeactivated(true);
+                //bodyToRemove.getBodyNode().deactivateBody(bodyToRemove);
+                //bodyToRemove.getBodyNode().deleteActiveBody(bodyToRemove);
                 return;
             }
             smallestBody = smallestBody.getLargerBody();
             //smallestBody.getSmallerBody().setLargerBody(null);
             //smallestBody.setSmallerBody(null);
-            bodyToRemove.getBodyNode().deleteActiveBody(bodyToRemove);
+            //bodyToRemove.getBodyNode().deleteActiveBody(bodyToRemove);
 
             Body deactivatedBodyToRemove = smallestBody;
-            while (deactivatedBodyToRemove.isDeactivated() && deactivatedBodyToRemove.getOffsprings().isEmpty()) {
+            //while (deactivatedBodyToRemove.isDeactivated() && deactivatedBodyToRemove.getOffsprings().isEmpty()) {
 
-                deactivatedBodyToRemove.getBodyNode().deleteDeactivatedBody(deactivatedBodyToRemove);
+                //deactivatedBodyToRemove.getBodyNode().deleteDeactivatedBody(deactivatedBodyToRemove);
                 Body nextBody = deactivatedBodyToRemove.getLargerBody();
                 smallestBody = smallestBody.getLargerBody();
                 //smallestBody.setSmallerBody(null);
                 //deactivatedBodyToRemove.setLargerBody(null);
                 size--;
                 deactivatedBodyToRemove = nextBody;
-            }
+            //}
 
     }
 

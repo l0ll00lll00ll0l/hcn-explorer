@@ -134,9 +134,8 @@ public class NewCoreController {
         model.addAttribute("matrix", matrix);
         List<MatrixNode> chain = getMatrixChain();
         MatrixNode node = chain.get(activeMatrixNodeIdx);
-        BodyNode selected = node.getBodyNodes().get(activeBodyNodeId);
-        if (selected == null) selected = node.getDeactivatedBodyNodes().get(activeBodyNodeId);
-        if (selected == null && !node.getBodyNodes().isEmpty()) selected = node.getBodyNodes().firstEntry().getValue();
+        BodyNode selected = node.getBodyNode(activeBodyNodeId);
+        if (selected == null) selected = node.getSmallestActiveBodyNode();
         model.addAttribute("selectedBodyNode", selected);
         return "tabs/bodynode-detail :: content";
     }
@@ -169,9 +168,8 @@ public class NewCoreController {
                 model.addAttribute("activeBodyNodeId", activeBodyNodeId);
                 model.addAttribute("bodyNodesPerMatrixNode", getBodyNodesPerMatrixNodeJson(chain));
                 MatrixNode node = chain.get(activeMatrixNodeIdx);
-                BodyNode selected = node.getBodyNodes().get(activeBodyNodeId);
-                if (selected == null) selected = node.getDeactivatedBodyNodes().get(activeBodyNodeId);
-                if (selected == null && !node.getBodyNodes().isEmpty()) selected = node.getBodyNodes().firstEntry().getValue();
+                BodyNode selected = node.getBodyNode(activeBodyNodeId);
+                if (selected == null) selected = node.getSmallestActiveBodyNode();
                 model.addAttribute("selectedBodyNode", selected);
                 model.addAttribute("activeBodyNodes", getBodyNodesForNode(node));
             }
@@ -235,8 +233,11 @@ public class NewCoreController {
 
     private List<BodyNode> getBodyNodesForNode(MatrixNode node) {
         List<BodyNode> result = new ArrayList<>();
-        node.getBodyNodes().descendingMap().values().forEach(result::add);
-        node.getDeactivatedBodyNodes().descendingMap().values().forEach(result::add);
+        BodyNode walker = node.getSmallestActiveBodyNode();
+        while (walker != null) {
+            result.add(walker);
+            walker = walker.getLargerBodyNode();
+        }
         return result;
     }
 
@@ -247,15 +248,11 @@ public class NewCoreController {
             MatrixNode node = chain.get(i);
             sb.append("[");
             boolean first = true;
-            for (var entry : node.getBodyNodes().descendingMap().entrySet()) {
+            BodyNode bn = node.getLargestActiveBodyNode();
+            while (bn != null) {
                 if (!first) sb.append(","); first = false;
-                BodyNode bn = entry.getValue();
-                sb.append("{\"id\":").append(bn.getBodyNodeId()).append(",\"deactivated\":false,\"value\":\"").append(bn.getValue()).append("\",\"factor\":\"").append(bn.getFactor()).append("\"}");
-            }
-            for (var entry : node.getDeactivatedBodyNodes().descendingMap().entrySet()) {
-                if (!first) sb.append(","); first = false;
-                BodyNode bn = entry.getValue();
-                sb.append("{\"id\":").append(bn.getBodyNodeId()).append(",\"deactivated\":true,\"value\":\"").append(bn.getValue()).append("\",\"factor\":\"").append(bn.getFactor()).append("\"}");
+                sb.append("{\"id\":").append(bn.getBodyNodeId()).append(",\"value\":\"").append(bn.getValue()).append("\",\"factor\":\"").append(bn.getFactor()).append("\"}");
+                bn = bn.getSmallerBodyNode();
             }
             sb.append("]");
         }
@@ -471,40 +468,7 @@ public class NewCoreController {
         return chain;
     }
 
-    public record BufferBodyCell(String label, String color) {}
-    public record BufferBodyRow(int index, List<BufferBodyCell> nodeColumns, String value, String factor, boolean deactivated, boolean extended) {}
 
-    public List<BufferBodyRow> getBufferBodies() {
-        List<MatrixNode> chain = getMatrixChain();
-        List<Boolean> firstLastActiveSeen = new ArrayList<>(Collections.nCopies(chain.size(), false));
-        List<BufferBodyRow> rows = new ArrayList<>();
-        Body current = Body.getSmallestBufferBody();
-        int i = 0;
-        while (current != null) {
-            List<BufferBodyCell> nodeColumns = new ArrayList<>();
-            List<Body> ancestors = new ArrayList<>();
-            Body ancestor = current;
-            while (ancestor != null) { ancestors.add(ancestor); ancestor = ancestor.getParent(); }
-            Collections.reverse(ancestors);
-            for (int j = 0; j < ancestors.size(); j++) {
-                Body b = ancestors.get(j);
-                boolean lastActive = b.getBodyNode().isBodyNodeLastActive();
-                String color = "";
-                if (lastActive) {
-                    if (!firstLastActiveSeen.get(j)) {
-                        firstLastActiveSeen.set(j, true);
-                        color = "#90EE90";
-                    } else {
-                        color = "black";
-                    }
-                }
-                nodeColumns.add(new BufferBodyCell(b.getBodyNode().toString(), color));
-            }
-            rows.add(new BufferBodyRow(i++, nodeColumns, current.getValue().toString(), current.getFactor().toString(), current.isDeactivated(), current.isExtended()));
-            current = current.getLargerBody();
-        }
-        return rows;
-    }
 
     public List<Body> getBodies(BodyList bodyList) {
         List<Body> bodies = new ArrayList<>();
@@ -559,7 +523,7 @@ public class NewCoreController {
     public List<Body> getActiveBodiesChain(BodyList bodyList) {
         List<Body> bodies = new ArrayList<>();
         Body current = bodyList.getSmallestBody();
-        while (current != null && !current.isExtended()) {
+        while (current != null) {
             bodies.add(current);
             current = current.getLargerBody();
         }
@@ -662,19 +626,9 @@ public class NewCoreController {
 
     public record OffspringCell(String label, String bg, String color) {}
 
-    public List<OffspringCell> lifecycleCells(Body body) {
-        return body.getLifeCycle().stream()
-                .map(b -> new OffspringCell(bodyNodeLabel(b), "#333", "white"))
-                .collect(java.util.stream.Collectors.toList());
-    }
-
     public List<OffspringCell> offspringCells(Body body) {
         List<OffspringCell> cells = new ArrayList<>();
-        body.getPolledOffsprings().stream()
-                .sorted(Comparator.comparingInt(b -> b.getBodyNode().getBodyNodeId()))
-                .forEach(b -> cells.add(new OffspringCell(bodyNodeLabel(b), "#333", "white")));
-        body.getOffsprings().forEach(b -> cells.add(new OffspringCell(bodyNodeLabel(b), "#90EE90", "black")));
-        body.getDeletedOffsprings().forEach(b -> cells.add(new OffspringCell(bodyNodeLabel(b), "#e53935", "white")));
+        body.getOffsprings().forEach(b -> cells.add(new OffspringCell(bodyNodeLabel(b), null, null)));
         return cells;
     }
 
@@ -696,19 +650,24 @@ public class NewCoreController {
         return "";
     }
 
+    public List<BodyNode> getBodyNodes(MatrixNode node) {
+        List<BodyNode> result = new ArrayList<>();
+        BodyNode walker = node.getSmallestActiveBodyNode();
+        while (walker != null) { result.add(0, walker); walker = walker.getLargerBodyNode(); }
+        return result;
+    }
+
     public int totalActiveBodyCount(MatrixNode node) {
-        return node.getBodyNodes().values().stream().mapToInt(bn -> bn.getActiveBodies().size()).sum();
+        return 0;
     }
 
     public int totalDeactivatedBodyCount(MatrixNode node) {
-        int fromActive = node.getBodyNodes().values().stream().mapToInt(bn -> bn.getDeactivatedBodies().size()).sum();
-        int fromDeactivated = node.getDeactivatedBodyNodes().values().stream().mapToInt(bn -> bn.getDeactivatedBodies().size()).sum();
-        return fromActive + fromDeactivated;
+        return 0;
     }
 
 
     public int totalActiveHcnGen(BodyNode bn) {
-        return bn.getActiveBodies().stream().mapToInt(Body::getActiveHcnGeneratorCount).sum();
+        return 0;
     }
 
 

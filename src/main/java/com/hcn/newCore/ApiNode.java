@@ -10,119 +10,38 @@ import lombok.extern.slf4j.Slf4j;
 public class ApiNode extends MatrixNode {
 
     private static ApiNode lastApiNode;
+
     public static ApiNode getLastApiNode() {return lastApiNode;}
 
     public static void initialize() {
         lastApiNode = ApiNode.builder().prevMatrixNode(null).build();
         lastApiNode.getIndexes().add(Prime.getFirstPrime());
-        BodyNode pip01 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(1).hasHunterBody(true)
+        BodyNode pip01 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(1).lastParentProvider(null)
                 .value(new ScientificNumber(2,0))
                 .factor(new ScientificNumber(2, 0)).build();
-        BodyNode pip02 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(2).hasHunterBody(true)
+        BodyNode pip02 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(2).lastParentProvider(null)
                 .value(new ScientificNumber(4,0))
                 .factor(new ScientificNumber(3, 0)).build();
-        BodyNode pip03 = BodyNode.builder().parentNode(lastApiNode).bodyNodeId(3).hasHunterBody(false)
-                .value(new ScientificNumber(8,0))
-                .factor(new ScientificNumber(4, 0)).build();
-        lastApiNode.getBodyNodes().put(1, pip01);
-        lastApiNode.getBodyNodes().put(2, pip02);
-        lastApiNode.getBodyNodes().put(3, pip03);
+        lastApiNode.smallestActiveBodyNode = pip01;
+        lastApiNode.largestActiveBodyNode = pip01;
+        lastApiNode.nextBodyNode = pip02;
+        lastApiNode.factorLimit = new ScientificNumber(2,0);
+
+        Body b01 = Body.builder().bodyNode(pip01).parent(null).value(new ScientificNumber(2, 0))
+                .factor(new ScientificNumber(2, 0)).smallerBody(null).largerBody(null).build();
+        lastApiNode.setBodyList(BodyList.builder().smallestBody(b01).largestBody(b01).size(1).build());
     }
 
     @Override
     protected BodyNode provideNextBodyNode() {
-        return BodyNode.builder().parentNode(this).bodyNodeId(bodyNodes.lastKey() + 1)
-                .value(bodyNodes.get(bodyNodes.lastKey()).getValue().multiply(indexes.get(0).getValue()))
-                .factor(new ScientificNumber(bodyNodes.lastKey() + 2, 0)).build();
+        return BodyNode.builder().parentNode(this).bodyNodeId(largestActiveBodyNode.getBodyNodeId() + 1)
+                .value(largestActiveBodyNode.getValue().multiply(indexes.get(0).getValue()))
+                .factor(new ScientificNumber(largestActiveBodyNode.getBodyNodeId() + 2, 0)).build();
     }
 
     @Override
-    protected int determineBodyNodeIdLowLimit() {
-        return bodyNodes.lastKey();
-    }
+    public void generateBodies(ScientificNumber factorLimit) {
 
-    @Override
-    protected ScientificNumber determineDeactivationLimitMultiplier() {
-        if (prevMatrixNode == null) {return new ScientificNumber(1, 0);}
-        return indexes.get(0).getValue();
-    }
-
-    @Override
-    public ScientificNumber getSmallestPossibleExtension() {
-
-        ScientificNumber localextensionSmallest = bodyNodes.lastEntry().getValue().getValue().multiply(indexes.get(0).getValue());
-
-        if (prevMatrixNode != null) {
-            ScientificNumber valueForLocalExtension = prevMatrixNode.getValurForNextMatrixExtension(bodyNodes.lastEntry().getValue().getBodyNodeId());
-            localextensionSmallest = localextensionSmallest.multiply(valueForLocalExtension);
-            ScientificNumber prevExtensionSmallest = prevMatrixNode.getSmallestPossibleExtension().multiply(bodyNodes.firstEntry().getValue().getValue());
-            if (prevExtensionSmallest.isSmallerThan(localextensionSmallest)) {
-                return prevExtensionSmallest;
-            } else {
-                return localextensionSmallest;
-            }
-        }
-        return localextensionSmallest;
-    }
-
-    @Override
-    protected ScientificNumber getValurForNextMatrixExtension(int bodyNodeIdTrigger) {
-
-        ScientificNumber localSuitableMultiplier;
-        if (bodyNodes.firstKey() < bodyNodeIdTrigger) {
-            localSuitableMultiplier = bodyNodes.get(bodyNodeIdTrigger).getValue();
-        } else {
-            localSuitableMultiplier = bodyNodes.firstEntry().getValue().getValue();
-        }
-
-        if (prevMatrixNode != null) {
-            return localSuitableMultiplier.multiply(prevMatrixNode.getValurForNextMatrixExtension(bodyNodeIdTrigger));
-        } else {
-            return localSuitableMultiplier;
-        }
-    }
-
-    @Override
-    public void extensionCheck() {
-        if (transitionReleaseRequired()) {
-            lastApiNode = new ApiNodeCreator(this, (TransitionNode) nextMatrixNode).create();
-        }
-        if (isLocalExtensionRequired()) {
-            createNextBodyNode();
-        }
-        if (nextMatrixNodeExtensionRequired()) {
-            nextMatrixNode.createNextBodyNode();
-        }
-    }
-
-    public void transitionNodeTriggerCheck() {
-        //log.debug("Checking: {}, bodyNodes.size() {}, deactivatedBodyNodes: {}" , this, bodyNodes.size(), deactivatedBodyNodes.size());
-        if (bodyNodes.size() == 1) {
-            //log.debug("HERE {}", this);
-            new TransitionNodeCreator(this).create();
-        }
-    }
-
-    private boolean nextMatrixNodeExtensionRequired() {
-        if (nextMatrixNode instanceof ApiNode nextApinode) {
-            BodyNode nextApiLastNode = nextApinode.getBodyNodes().get(nextApinode.bodyNodes.lastKey());
-            if (nextApiLastNode.isHasHunterBody() && nextApiLastNode.getBodyNodeId() < bodyNodes.lastKey()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean transitionReleaseRequired() {return nextMatrixNode instanceof TransitionNode transitionNode && bodyNodes.lastKey() > transitionNode.getTransitionFrom();}
-
-    private boolean isLocalExtensionRequired() {
-        if (prevMatrixNode == null) {
-            return true;
-        } else {
-            int pipToCreate = bodyNodes.lastKey() + 1;
-            int largestPreviousProvedPip = prevMatrixNode.bodyNodes.lastKey();
-            if (largestPreviousProvedPip < pipToCreate) {return false;} else {return true;}
-        }
     }
 
     @Override
@@ -131,5 +50,43 @@ public class ApiNode extends MatrixNode {
                 "index=" + indexes.get(0) +
                 ", prime=" + indexes.get(0).getIntValue() +
                 '}';
+    }
+
+    public void createNextBodyNode() {
+        largestActiveBodyNode.setLargerBodyNode(nextBodyNode);
+        nextBodyNode.setSmallerBodyNode(largestActiveBodyNode);
+        largestActiveBodyNode = nextBodyNode;
+        if (prevMatrixNode == null) {
+            bodyList.getLargestBody().setLargerBody(Body.builder().bodyNode(nextBodyNode).parent(null).value(nextBodyNode.getValue())
+                    .factor(nextBodyNode.getFactor()).smallerBody(bodyList.getLargestBody()).largerBody(null).build());
+            bodyList.setLargestBody(bodyList.getLargestBody().getLargerBody());
+        } else {
+            //TODO newBodyNodeShould align factorlimit
+        }
+
+        nextBodyNode = provideNextBodyNode();
+
+    }
+
+    public void create() {
+        log.info("API Node is creating");
+        TransitionNode transitionNode = (TransitionNode) nextMatrixNode;
+        Prime newIndex = transitionNode.indexes.get(0);
+        indexes.add(newIndex);
+        prevMatrixNode.setNextMatrixNode(this);
+        nextMatrixNode.setPrevMatrixNode(this);
+
+        if (transitionNode.getSmallestActiveBodyNode().getBodyNodeId() == newIndex.getIndex()) {
+            smallestActiveBodyNode = transitionNode.getSmallestActiveBodyNode();
+            largestActiveBodyNode = smallestActiveBodyNode;
+            nextBodyNode = provideNextBodyNode();
+            log.info("smallestActiveBodyNode moved");
+            if (transitionNode.getLargestActiveBodyNode().equals(transitionNode.getSmallestActiveBodyNode())) {
+                log.info("transitionNode needs care");
+            }
+        }
+
+        factorLimit = prevMatrixNode.getFactorLimit().multiply(transitionNode.recalculateAfterFirstIndexSteal());
+        log.info("factorLimit recalculated: {}", factorLimit);
     }
 }

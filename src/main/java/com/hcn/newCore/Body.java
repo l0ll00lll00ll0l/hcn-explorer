@@ -16,6 +16,7 @@ public class Body implements Comparable<Body>{
 
     private static Body smallestBufferBody;
     public static Body getSmallestBufferBody() {return smallestBufferBody;}
+    public static void setSmallestBufferBody(Body smallestBufferBody) {Body.smallestBufferBody = smallestBufferBody;}
 
     public static void shiftNextHcnGeneratorBody() {
         smallestBufferBody.matrixMaintainCheck();
@@ -23,71 +24,7 @@ public class Body implements Comparable<Body>{
     }
 
     public static void initialize() {
-
-        MatrixNode p0 = TransitionNode.getLastTransition().getPrevMatrixNode();
-        BodyNode pip01 = p0.bodyNodes.get(1);
-        BodyNode pip02 = p0.bodyNodes.get(2);
-        BodyNode pip03 = p0.bodyNodes.get(3);
-
-        Body b01 = Body.builder().bodyNode(pip01).parent(null).value(new ScientificNumber(2, 0))
-                .factor(new ScientificNumber(2, 0)).extended(true).build();
-        Body b02 = Body.builder().bodyNode(pip02).parent(null).value(new ScientificNumber(4, 0))
-                .factor(new ScientificNumber(3, 0)).extended(true).build();
-        Body b03 = Body.builder().bodyNode(pip03).parent(null).value(new ScientificNumber(8, 0))
-                .factor(new ScientificNumber(4, 0)).extended(false).build();
-
-        pip01.getActiveBodies().add(b01);
-        pip02.getActiveBodies().add(b02);
-        pip03.getActiveBodies().add(b03);
-
-        b01.setSmallerBody(null);
-        b01.setLargerBody(b02);
-        b02.setSmallerBody(b01);
-        b02.setLargerBody(b03);
-        b03.setSmallerBody(b02);
-        b03.setLargerBody(null);
-
-        p0.setBodyList(BodyList.builder().smallestBody(b01).largestBody(b03).size(3).build());
-
-        BodyNode t1 = TransitionNode.getLastTransition().bodyNodes.get(1);
-        BodyNode t2 = TransitionNode.getLastTransition().bodyNodes.get(2);
-
-        Body b11 = Body.builder().bodyNode(t1).parent(b01).value(new ScientificNumber(6, 0))
-                .factor(new ScientificNumber(4, 0)).extended(true).build();
-        Body b21 = Body.builder().bodyNode(t1).parent(b02).value(new ScientificNumber(12, 0))
-                .factor(new ScientificNumber(6, 0)).extended(true).build();
-        Body b31 = Body.builder().bodyNode(t1).parent(b03).value(new ScientificNumber(24, 0))
-                .factor(new ScientificNumber(8, 0)).extended(false).build();
-        Body b22 = Body.builder().bodyNode(t2).parent(b02).value(new ScientificNumber(36, 0))
-                .factor(new ScientificNumber(9, 0)).extended(false).build();
-        Body b32 = Body.builder().bodyNode(t2).parent(b03).value(new ScientificNumber(72, 0))
-                .factor(new ScientificNumber(12, 0)).extended(false).build();
-
-        t1.getActiveBodies().add(b11);
-        t1.getActiveBodies().add(b21);
-        t1.getActiveBodies().add(b31);
-        t2.getActiveBodies().add(b22);
-        t2.getActiveBodies().add(b32);
-
-        b11.setSmallerBody(null);
-        b11.setLargerBody(b21);
-        b21.setSmallerBody(b11);
-        b21.setLargerBody(b31);
-        b31.setSmallerBody(b21);
-        b31.setLargerBody(b22);
-        b22.setSmallerBody(b31);
-        b22.setLargerBody(b32);
-        b32.setSmallerBody(b22);
-        b32.setLargerBody(null);
-        b01.getOffsprings().add(b11);
-        b02.getOffsprings().add(b21);
-        b03.getOffsprings().add(b31);
-        b02.getOffsprings().add(b22);
-        b03.getOffsprings().add(b32);
-
-        TransitionNode.getLastTransition().setBodyList(BodyList.builder().smallestBody(b11).largestBody(b32).size(5).build());
-
-        smallestBufferBody = b11;
+        smallestBufferBody = TransitionNode.getLastTransition().getBodyList().getSmallestBody();
     }
 
     private BodyNode bodyNode;
@@ -95,14 +32,7 @@ public class Body implements Comparable<Body>{
     private ScientificNumber factor;
     private Body parent;
     private final List<Body> offsprings = new ArrayList<>();
-    private final Set<Body> polledOffsprings = new HashSet<>();
-    private final List<Body> deletedOffsprings = new ArrayList<>();
-    private final List<Body> lifeCycle = new ArrayList<>();
     private OffspringState offspringState;
-    @Builder.Default
-    private boolean extended = false;
-    @Builder.Default
-    private boolean deactivated = false;
     @Builder.Default
     private Integer tempId = null;
     private Integer dbId = null;
@@ -151,9 +81,10 @@ public class Body implements Comparable<Body>{
     public void deletedDeactivatedBodyDuringExtension() {
 
         log.info("TBH this should not really happen {}", this);
-        bodyNode.deleteActiveBody(this);
+        //bodyNode.deleteActiveBody(this);
     }
 
+    /*
     public void deleteActiveBodyDuringExtension() {
 
         log.debug("deleteActiveBodyDuringExtension body {}", this);
@@ -167,7 +98,7 @@ public class Body implements Comparable<Body>{
             }
         }
 
-        bodyNode.deleteActiveBody(this);
+        //bodyNode.deleteActiveBody(this);
     }
 
     public void deactivate() {
@@ -178,8 +109,8 @@ public class Body implements Comparable<Body>{
         }
         log.info("deactivating body {}", this);
         deactivated = true;
-        bodyNode.deleteActiveBody(this);
-        bodyNode.deactivateBody(this);
+        //bodyNode.deleteActiveBody(this);
+        //bodyNode.deactivateBody(this);
 
         if (parent != null) {
             parent.offsprings.remove(this);
@@ -192,13 +123,23 @@ public class Body implements Comparable<Body>{
         }
     }
 
-
+     */
 
     public void matrixMaintainCheck() {
-        if (extended) { return; }
-        extended = true;
-        bodyNode.extensionCheck();
+
         if (parent != null) { parent.matrixMaintainCheck(); }
+
+        if (bodyNode.getParentNode() instanceof ApiNode apiNode) {
+            if (bodyNode.equals(apiNode.getLargestActiveBodyNode())) {
+                if (apiNode.equals(ApiNode.getLastApiNode())) {
+                    TransitionNode transitionNode = (TransitionNode) apiNode.getNextMatrixNode();
+                    if (bodyNode.getBodyNodeId() == transitionNode.getTransitionFrom()) {
+                        ApiNode.builder().prevMatrixNode(apiNode).nextMatrixNode(transitionNode).build().create();
+                    }
+                }
+                apiNode.createNextBodyNode();
+            }
+        }
     }
 
     public int getActiveHcnGeneratorCount() {
@@ -243,6 +184,7 @@ public class Body implements Comparable<Body>{
         }
     }
 
+    /*
     public void deletePolledBody() {
 
         bodyNode.getParentNode().getBodyList().deleteMaintain(this);
@@ -254,4 +196,6 @@ public class Body implements Comparable<Body>{
                 parent.deletePolledBody(); }
             }
     }
+
+     */
 }

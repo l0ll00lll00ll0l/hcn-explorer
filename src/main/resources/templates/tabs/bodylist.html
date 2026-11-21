@@ -18,49 +18,31 @@
          th:id="'bodylist-' + ${iter.index}"
          th:style="${iter.index == activeBodyList ? '' : 'display:none;'}">
         <div style="font-size: 11px; margin-bottom: 6px;">
-            <b>Smallest Possible Extension:</b> <span th:text="${node.getSmallestPossibleExtension() != null ? node.getSmallestPossibleExtension() : 'not set'}"></span>
-            &nbsp;|&nbsp;
             <b>Size:</b> <span th:text="${node.bodyList != null ? node.bodyList.size : '-'}"></span>
             &nbsp;|&nbsp;
             <b>Largest Body:</b> <span th:text="${node.bodyList != null and node.bodyList.largestBody != null ? node.bodyList.largestBody.value : '-'}"></span>
         </div>
         <table class="level-table">
-            <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Extended</th><th>Deact</th><th>ActiveHcnGen</th><th>Offsprings</th></tr></thead>
+            <thead><tr><th>#</th><th>Body</th><th>Value</th><th>Factor</th><th>Log</th><th>Offsprings</th></tr></thead>
             <tbody>
                 <tr th:if="${node instanceof T(com.hcn.newCore.ApiNode) and node.bodyList != null}"
-                    th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}"
-                    th:with="beforeList=${body.value.isSmallerThan(node.bodyList.smallestBody.value)}"
-                    th:style="${beforeList ? 'background-color: #333; color: white;' : (body.deactivated ? (body.extended ? 'background-color: #c8e6c9;' : 'background-color: #e0e0e0;') : (body.extended ? 'background-color: #90EE90;' : ''))}">
+                    th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}">
                     <td th:text="${bIter.index}"></td>
                     <td th:text="${@newCoreController.guiString(body)}"></td>
                     <td th:text="${body.value}"></td>
                     <td th:text="${body.factor}"></td>
                     <td th:text="${body.value.logBase(body.factor)}"></td>
-                    <td th:text="${body.extended}"></td>
-                    <td th:text="${body.deactivated}"></td>
-                    <td th:text="${body.activeHcnGeneratorCount}"></td>
                     <td><span th:each="cell, s : ${@newCoreController.offspringCells(body)}"
-                            th:text="${(s.first ? '' : ' ') + cell.label()}"
-                            th:style="'background-color:' + ${cell.bg()} + '; color:' + ${cell.color()} + '; padding: 0 3px;'"></span></td>
-                    <td><span th:each="cell, s : ${@newCoreController.lifecycleCells(body)}"
                             th:text="${(s.first ? '' : ' ') + cell.label()}"></span></td>
                 </tr>
                 <tr th:if="${node instanceof T(com.hcn.newCore.TransitionNode) and node.bodyList != null}"
-                    th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}"
-                    th:with="beforeList=${body.value.isSmallerThan(node.bodyList.smallestBody.value)}"
-                    th:style="${beforeList ? 'background-color: #333; color: white;' : (body.deactivated ? (body.extended ? 'background-color: #c8e6c9;' : 'background-color: #e0e0e0;') : (body.extended ? 'background-color: #90EE90;' : ''))}">
+                    th:each="body, bIter : ${@newCoreController.getBodies(node.bodyList)}">
                     <td th:text="${bIter.index}"></td>
                     <td th:text="${@newCoreController.guiString(body)}"></td>
                     <td th:text="${body.value}"></td>
                     <td th:text="${body.factor}"></td>
                     <td th:text="${body.value.logBase(body.factor)}"></td>
-                    <td th:text="${body.extended}"></td>
-                    <td th:text="${body.deactivated}"></td>
-                    <td th:text="${body.activeHcnGeneratorCount}"></td>
                     <td><span th:each="cell, s : ${@newCoreController.offspringCells(body)}"
-                            th:text="${(s.first ? '' : ' ') + cell.label()}"
-                            th:style="'background-color:' + ${cell.bg()} + '; color:' + ${cell.color()} + '; padding: 0 3px;'"></span></td>
-                    <td><span th:each="cell, s : ${@newCoreController.lifecycleCells(body)}"
                             th:text="${(s.first ? '' : ' ') + cell.label()}"></span></td>
                 </tr>
             </tbody>
